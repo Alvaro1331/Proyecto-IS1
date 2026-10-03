@@ -1,6 +1,6 @@
 # Proyecto-IS1
 
-Bienvenido al read-Me de nuestro proyecto: un software encargado de la gestión de un taller. Con el fin de automatizar los procesos que existen en un taller buscamos desarrollar un software que permita: al cliente del taller ver el estado de su coche en tiempo real según sus datos; al recepcionista registrar los coches en la base de datos; al mecanico notificar el proceso de reparacion y los materiales usados; y al mecanico jefe/administrador/dueño poder administrar la aplicacion con distintas funcionalidades.
+Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión de un taller. Con el fin de automatizar los procesos que existen en un taller buscamos desarrollar un software que permita: al cliente del taller ver el estado de su coche en tiempo real según sus datos; al recepcionista registrar los coches en la base de datos; al mecanico notificar el proceso de reparacion y los materiales usados; y al mecanico jefe/administrador/dueño poder administrar la aplicacion con distintas funcionalidades.
 <br>
 <br>
 
