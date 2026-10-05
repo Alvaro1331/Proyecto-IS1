@@ -1,0 +1,9 @@
+com\taller\repositories\ClienteRepository.class
+com\taller\repositories\VehiculoRepository.class
+com\taller\services\VehiculoService.class
+com\taller\controllers\VehiculoController.class
+com\taller\dtos\VehiculoRequestDTO.class
+com\taller\models\Cliente.class
+com\taller\TallerApplication.class
+com\taller\models\Vehiculo.class
+com\taller\dtos\VehiculoResponseDTO.class
