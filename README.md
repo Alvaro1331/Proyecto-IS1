@@ -29,34 +29,34 @@ Git y GitHub para el control de versiones, usando TortoiseGit como interfaz grá
 
 ¿Cómo hemos organizado el equipo?
 
-Dado que somos 5 personas y que el proyecto tiene una parte visual (frontend) y una parte de lógica y datos (backend), decidimos dividir el equipo en dos subgrupos:
+Dado que somos 5 personas y que el proyecto tiene una parte visual (frontend) y una parte de lógica y datos (backend), decidimos dividir el equipo en dos partes a las que se dedicará mayor o menor tiempo según las necesidades del poyecto y cómo este avance:
 
-Equipo Frontend (2-3 personas): Se encargan de todo lo que el usuario ve en pantalla: los formularios, los botones, las tablas de datos, los colores... Trabajan solo dentro de la carpeta frontend y pueden avanzar de forma totalmente independiente usando datos de prueba inventados mientras el backend no está listo.
+Equipo Frontend: Se encargan de todo lo que el usuario ve en pantalla: los formularios, los botones, las tablas de datos, los colores... Trabajan solo dentro de la carpeta frontend y pueden avanzar de forma totalmente independiente usando datos de prueba inventados mientras el backend no está listo.
 
-Equipo Backend (2-3 personas): Se encargan de la lógica del servidor: recibir peticiones, validar datos, guardarlos en la base de datos y devolverlos al frontend. Trabajan dentro de la carpeta backend.
+Equipo Backend: Se encargan de la lógica del servidor: recibir peticiones, validar datos, guardarlos en la base de datos y devolverlos al frontend. Trabajan dentro de la carpeta backend.
 
 ¿Cómo está organizado el código?
 
 El repositorio tiene la siguiente estructura de carpetas:
 
 Proyecto-IS1/
-├── .gitignore          ← Lista de archivos que Git debe ignorar (ej. node_modules)
-├── README.md           ← Descripción del proyecto
-│
-├── frontend/           ← Todo lo visual (HTML, CSS, JS)
-│   ├── index.html      ← Página de inicio
-│   ├── css/            ← Archivos de estilos
-│   ├── js/             ← Archivos JavaScript
-│   └── pages/          ← Resto de páginas (login, dashboards...)
-│
-└── backend/            ← Todo el servidor Java
-    ├── pom.xml         ← Lista de librerías que necesita Java (como un "carrito de la compra")
-    └── src/main/java/com/taller/
-        ├── models/       ← Las "plantillas" de los datos (Cliente, Vehiculo...)
-        ├── repositories/ ← Los que hablan directamente con la base de datos
-        ├── services/     ← Donde está la lógica real (las reglas del negocio)
-        ├── controllers/  ← Los que reciben las peticiones del frontend
-        └── dtos/         ← Los "sobres" en los que empaquetamos los datos
+├── .gitignore          ← Lista de archivos que Git debe ignorar (ej. node_modules)<br>
+├── README.md           ← Descripción del proyecto<br>
+│<br>
+├── frontend/           ← Todo lo visual (HTML, CSS, JS)<br>
+│   ├── index.html      ← Página de inicio<br>
+│   ├── css/            ← Archivos de estilos<br>
+│   ├── js/             ← Archivos JavaScript<br>
+│   └── pages/          ← Resto de páginas (login, dashboards...)<br>
+│<br>
+└── backend/            ← Todo el servidor Java<br>
+    ├── pom.xml         ← Lista de librerías que necesita Java<br>
+    └── src/main/java/com/taller/<br>
+        ├── models/       ← Las "plantillas" de los datos (Cliente, Vehiculo...)<br>
+        ├── repositories/ ← Los que hablan directamente con la base de datos<br>
+        ├── services/     ← Donde está la lógica real (las reglas del negocio)<br>
+        ├── controllers/  ← Los que reciben las peticiones del frontend<br>
+        └── dtos/         ← Los "sobres" en los que empaquetamos los datos<br>
 
 <br>
 <br>
