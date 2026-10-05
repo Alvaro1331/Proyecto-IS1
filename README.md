@@ -39,7 +39,7 @@ Equipo Backend: Se encargan de la lógica del servidor: recibir peticiones, vali
 
 El repositorio tiene la siguiente estructura de carpetas:
 
-Proyecto-IS1/
+Proyecto-IS1/<br>
 ├── .gitignore          ← Lista de archivos que Git debe ignorar (ej. node_modules)<br>
 ├── README.md           ← Descripción del proyecto<br>
 │<br>
