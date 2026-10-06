@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Estado - TallerPro</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .search-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            text-align: center;
+        }
+        .search-options {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .radio-group input {
+            cursor: pointer;
+        }
+        .search-input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .search-input-group input {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-dark);
+            color: var(--color-text);
+        }
+        .results-container {
+            margin-top: 3rem;
+        }
+        .vehicle-result {
+            margin-bottom: 2rem;
+        }
+        .vehicle-info {
+            background-color: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .vehicle-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--color-primary);
+        }
+        .vehicle-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            color: var(--color-text-muted);
+        }
+        .vehicle-details span {
+            color: var(--color-text);
+        }
+        .repairs-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-left: 1.5rem;
+            border-left: 2px solid var(--color-border);
+            margin-left: 1rem;
+        }
+        .repair-card {
+            background-color: var(--color-bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .repair-card::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: var(--color-primary);
+            border-radius: 50%;
+            left: -1.5rem;
+            top: 1.5rem;
+            transform: translateX(-50%);
+        }
+        .repair-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .repair-desc {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .repair-meta {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 style="color: var(--color-primary); margin: 0;">TallerPro</h1>
+            <div class="nav-links">
+                <a href="../index.html" class="btn" style="background: transparent; border: 1px solid var(--color-primary);">Inicio</a>
+                <a href="login.html" class="btn btn-primary">Iniciar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="search-container">
+            <h2>Consulta el estado de tu vehículo</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 2rem;">
+                Ingresa la matrícula de tu vehículo o tu número de teléfono para conocer el estado actual de las reparaciones.
+            </p>
+            
+            <div class="search-options">
+                <label class="radio-group">
+                    <input type="radio" name="searchType" value="matricula" checked onchange="toggleSearchType()">
+                    <span>Buscar por matrícula</span>
+                </label>
+                <label class="radio-group">
+                    <input type="radio" name="searchType" value="telefono" onchange="toggleSearchType()">
+                    <span>Buscar por teléfono</span>
+                </label>
+            </div>
+
+            <form id="searchForm" onsubmit="handleSearch(event)">
+                <div class="search-input-group">
+                    <input type="text" id="searchInput" placeholder="Ej. 1234ABC" required>
+                    <button type="submit" class="btn btn-primary" id="searchBtn">Buscar</button>
+                </div>
+            </form>
+            
+            <div id="alertContainer"></div>
+        </div>
+
+        <div id="resultsContainer" class="results-container">
+            <!-- Results will be injected here -->
+        </div>
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        function toggleSearchType() {
+            const type = document.querySelector('input[name="searchType"]:checked').value;
+            const input = document.getElementById('searchInput');
+            if (type === 'matricula') {
+                input.placeholder = 'Ej. 1234ABC';
+                input.type = 'text';
+            } else {
+                input.placeholder = 'Ej. 600123456';
+                input.type = 'tel';
+            }
+            input.value = '';
+            document.getElementById('resultsContainer').innerHTML = '';
+            document.getElementById('alertContainer').innerHTML = '';
+        }
+
+        async function handleSearch(event) {
+            event.preventDefault();
+            const btn = document.getElementById('searchBtn');
+            const type = document.querySelector('input[name="searchType"]:checked').value;
+            const value = document.getElementById('searchInput').value.trim();
+            const resultsContainer = document.getElementById('resultsContainer');
+            const alertContainer = document.getElementById('alertContainer');
+            
+            resultsContainer.innerHTML = '';
+            alertContainer.innerHTML = '';
+            
+            if (!value) return;
+
+            toggleLoading(btn, true);
+
+            try {
+                if (type === 'matricula') {
+                    const vehiculo = await apiFetch(`/vehiculos/matricula/${value}`);
+                    if (!vehiculo) throw new Error('Vehículo no encontrado');
+                    await renderVehiculo(vehiculo, resultsContainer);
+                } else {
+                    const cliente = await apiFetch(`/clientes/telefono/${value}`);
+                    if (!cliente) throw new Error('Cliente no encontrado');
+                    
+                    if (!cliente.vehiculos || cliente.vehiculos.length === 0) {
+                        mostrarAlerta('El cliente no tiene vehículos registrados.', 'info', alertContainer);
+                    } else {
+                        for (const vehiculo of cliente.vehiculos) {
+                            await renderVehiculo(vehiculo, resultsContainer);
+                        }
+                    }
+                }
+            } catch (error) {
+                mostrarAlerta(error.message || 'No se encontraron resultados.', 'error', alertContainer);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        async function renderVehiculo(vehiculo, container) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'vehicle-result';
+            
+            // Build Vehicle Info Card
+            const infoHtml = `
+                <div class="vehicle-info">
+                    <div class="vehicle-header">
+                        <div class="vehicle-title">${vehiculo.marca} ${vehiculo.modelo} (${vehiculo.matricula})</div>
+                    </div>
+                    <div class="vehicle-details">
+                        <div><strong>Año:</strong> <span>${vehiculo.anio || 'N/A'}</span></div>
+                        <div><strong>Propietario:</strong> <span>${vehiculo.cliente ? vehiculo.cliente.nombre : 'N/A'}</span></div>
+                    </div>
+                </div>
+            `;
+
+            // Fetch Repairs for this vehicle
+            let repairsHtml = '';
+            try {
+                const reparaciones = await apiFetch(`/reparaciones/vehiculo/${vehiculo.id}`);
+                
+                if (!reparaciones || reparaciones.length === 0) {
+                    repairsHtml = `<div class="empty-state">No hay reparaciones registradas para este vehículo.</div>`;
+                } else {
+                    // Sort descending by id or date if available
+                    reparaciones.sort((a, b) => b.id - a.id);
+                    
+                    repairsHtml = '<div class="repairs-timeline">';
+                    reparaciones.forEach(rep => {
+                        repairsHtml += `
+                            <div class="repair-card">
+                                <div class="repair-header">
+                                    <strong>ID: #${rep.id}</strong>
+                                    ${crearBadgeEstado(rep.estado)}
+                                </div>
+                                <div class="repair-desc">${rep.descripcionAveria || 'Sin descripción'}</div>
+                                <div class="repair-meta">
+                                    <div><strong>Entrada:</strong> ${rep.fechaEntrada ? formatearFecha(rep.fechaEntrada) : 'N/A'}</div>
+                                    <div><strong>Salida:</strong> ${rep.fechaSalida ? formatearFecha(rep.fechaSalida) : 'Pendiente'}</div>
+                                    <div><strong>Mecánico:</strong> ${rep.mecanico ? rep.mecanico.nombre : 'Pendiente de asignar'}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    repairsHtml += '</div>';
+                }
+            } catch (error) {
+                repairsHtml = `<div class="alert alert-error">Error al cargar las reparaciones del vehículo.</div>`;
+            }
+
+            wrapper.innerHTML = infoHtml + repairsHtml;
+            container.appendChild(wrapper);
+        }
+    </script>
+</body>
+</html>

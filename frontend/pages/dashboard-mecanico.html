@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Mecánico - TallerPro</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        @media (min-width: 992px) {
+            .dashboard-grid {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        .stock-low {
+            background-color: rgba(220, 38, 38, 0.1);
+            color: #ef4444;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="dashboard-mecanico.html" style="color: white; text-decoration: none;">TallerPro</a>
+        </div>
+        <div class="nav-links">
+            <a href="dashboard-mecanico.html" class="active">Dashboard</a>
+            <a href="consulta-estado.html">Consulta Pública</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info" style="margin-right: 15px; color: white;"></span>
+            <button class="btn btn-danger" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div id="alertas-container" class="mb-4"></div>
+        
+        <h2 style="margin: 1.5rem 0;">Panel de Mecánico</h2>
+        
+        <div class="stats-grid">
+            <div class="stat-card card">
+                <h3>Mis Reparaciones (En Proceso)</h3>
+                <div class="stat-value" id="stat-en-proceso" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
+            </div>
+            <div class="stat-card card">
+                <h3>Mis Reparaciones (Pendientes)</h3>
+                <div class="stat-value" id="stat-pendientes" style="font-size: 2rem; font-weight: bold; color: var(--warning);">0</div>
+            </div>
+            <div class="stat-card card">
+                <h3>Materiales Disponibles (Tipos)</h3>
+                <div class="stat-value" id="stat-materiales" style="font-size: 2rem; font-weight: bold; color: var(--success);">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="main-column">
+                <section class="card" style="margin-bottom: 2rem;">
+                    <div class="card-header flex-between" style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                        <h3 style="margin: 0;">Mis Reparaciones</h3>
+                        <button class="btn btn-primary btn-sm" onclick="cargarMisReparaciones()">Actualizar</button>
+                    </div>
+                    <div class="card-body" style="padding: 1rem;">
+                        <div class="table-responsive">
+                            <table class="table" id="tabla-reparaciones" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="text-align: left; border-bottom: 2px solid var(--border);">
+                                        <th style="padding: 0.75rem;">ID</th>
+                                        <th style="padding: 0.75rem;">Matrícula</th>
+                                        <th style="padding: 0.75rem;">Marca/Modelo</th>
+                                        <th style="padding: 0.75rem;">Cliente</th>
+                                        <th style="padding: 0.75rem;">Estado</th>
+                                        <th style="padding: 0.75rem;">Fecha Entrada</th>
+                                        <th style="padding: 0.75rem;">Avería</th>
+                                        <th style="padding: 0.75rem;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-header flex-between" style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                        <h3 style="margin: 0;">Inventario de Materiales</h3>
+                        <input type="text" id="buscar-material" class="form-control" style="max-width: 250px; padding: 0.5rem;" placeholder="Buscar material por nombre..." onkeyup="filtrarMateriales()">
+                    </div>
+                    <div class="card-body" style="padding: 1rem;">
+                        <div class="table-responsive">
+                            <table class="table" id="tabla-materiales" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="text-align: left; border-bottom: 2px solid var(--border);">
+                                        <th style="padding: 0.75rem;">Nombre</th>
+                                        <th style="padding: 0.75rem;">Descripción</th>
+                                        <th style="padding: 0.75rem;">Stock</th>
+                                        <th style="padding: 0.75rem;">Precio Unit.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="side-column">
+                <section class="card">
+                    <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                        <h3 style="margin: 0;">Registrar Material Usado</h3>
+                    </div>
+                    <div class="card-body" style="padding: 1rem;">
+                        <form id="form-usar-material">
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label for="select-reparacion" style="display: block; margin-bottom: 0.5rem;">Reparación (En Proceso)</label>
+                                <select id="select-reparacion" class="form-control" style="width: 100%; padding: 0.5rem;" required>
+                                    <option value="">Seleccione una reparación</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label for="select-material" style="display: block; margin-bottom: 0.5rem;">Material</label>
+                                <select id="select-material" class="form-control" style="width: 100%; padding: 0.5rem;" required>
+                                    <option value="">Seleccione un material</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label for="cantidad-material" style="display: block; margin-bottom: 0.5rem;">Cantidad</label>
+                                <input type="number" id="cantidad-material" class="form-control" style="width: 100%; padding: 0.5rem;" min="1" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary" id="btn-registrar-material" style="width: 100%; padding: 0.75rem;">Registrar Uso</button>
+                        </form>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        let materialesCache = [];
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = requireAuth(['MECANICO', 'ADMIN']);
+            
+            document.getElementById('user-info').innerHTML = `
+                ${user.nombre} <span class="badge" style="background: var(--info); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; margin-left: 8px;">${user.rol}</span>
+            `;
+            
+            await Promise.all([
+                cargarMisReparaciones(),
+                cargarMateriales()
+            ]);
+            
+            document.getElementById('form-usar-material').addEventListener('submit', handleUsarMaterial);
+        });
+        
+        async function cargarMisReparaciones() {
+            const user = getUsuarioActual();
+            const tbody = document.querySelector('#tabla-reparaciones tbody');
+            const selectReparacion = document.getElementById('select-reparacion');
+            
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding: 1rem;"><div class="spinner"></div> Cargando...</td></tr>';
+            
+            try {
+                const reparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
+                
+                let enProcesoCount = 0;
+                let pendientesCount = 0;
+                
+                if (!reparaciones || reparaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center empty-state" style="padding: 2rem;">No hay reparaciones asignadas.</td></tr>';
+                    selectReparacion.innerHTML = '<option value="">No hay reparaciones en proceso</option>';
+                    document.getElementById('stat-en-proceso').textContent = '0';
+                    document.getElementById('stat-pendientes').textContent = '0';
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                selectReparacion.innerHTML = '<option value="">Seleccione una reparación</option>';
+                
+                reparaciones.forEach(rep => {
+                    if (rep.estado === 'EN_PROCESO') {
+                        enProcesoCount++;
+                        // Add to dropdown
+                        const opt = document.createElement('option');
+                        opt.value = rep.id;
+                        opt.textContent = `[#${rep.id}] ${rep.vehiculo.matricula} - ${rep.vehiculo.marca} ${rep.vehiculo.modelo}`;
+                        selectReparacion.appendChild(opt);
+                    } else if (rep.estado === 'PENDIENTE') {
+                        pendientesCount++;
+                    }
+                    
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid var(--border)';
+                    
+                    const btnFinalizar = rep.estado === 'EN_PROCESO' 
+                        ? `<button class="btn btn-success btn-sm" onclick="confirmarFinalizar(${rep.id})" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Marcar Finalizada</button>`
+                        : '';
+                        
+                    // Add safe access for client and vehicle info in case it's nested differently
+                    const clienteNombre = rep.vehiculo?.cliente?.nombre || rep.cliente?.nombre || 'N/A';
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 0.75rem;">${rep.id}</td>
+                        <td style="padding: 0.75rem;">${rep.vehiculo?.matricula || '-'}</td>
+                        <td style="padding: 0.75rem;">${rep.vehiculo?.marca || ''} ${rep.vehiculo?.modelo || ''}</td>
+                        <td style="padding: 0.75rem;">${clienteNombre}</td>
+                        <td style="padding: 0.75rem;">${typeof crearBadgeEstado === 'function' ? crearBadgeEstado(rep.estado) : rep.estado}</td>
+                        <td style="padding: 0.75rem;">${typeof formatearFecha === 'function' ? formatearFecha(rep.fechaEntrada) : rep.fechaEntrada}</td>
+                        <td style="padding: 0.75rem;">${rep.descripcionAveria || ''}</td>
+                        <td style="padding: 0.75rem;">${btnFinalizar}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('stat-en-proceso').textContent = enProcesoCount;
+                document.getElementById('stat-pendientes').textContent = pendientesCount;
+                
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar reparaciones: ${error.message}</td></tr>`;
+                if(typeof mostrarAlerta === 'function') mostrarAlerta('Error al cargar mis reparaciones', 'error', document.getElementById('alertas-container'));
+            }
+        }
+        
+        async function cargarMateriales() {
+            const tbody = document.querySelector('#tabla-materiales tbody');
+            const selectMaterial = document.getElementById('select-material');
+            
+            try {
+                const materiales = await apiFetch('/materiales');
+                materialesCache = materiales;
+                
+                document.getElementById('stat-materiales').textContent = materiales.length;
+                
+                renderMaterialesTable(materiales);
+                
+                selectMaterial.innerHTML = '<option value="">Seleccione un material</option>';
+                materiales.forEach(mat => {
+                    const opt = document.createElement('option');
+                    opt.value = mat.id;
+                    opt.textContent = `${mat.nombre} (Stock: ${mat.stock})`;
+                    selectMaterial.appendChild(opt);
+                });
+                
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar materiales: ${error.message}</td></tr>`;
+            }
+        }
+        
+        function renderMaterialesTable(materiales) {
+            const tbody = document.querySelector('#tabla-materiales tbody');
+            tbody.innerHTML = '';
+            
+            if (materiales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center empty-state" style="padding: 2rem;">No hay materiales encontrados.</td></tr>';
+                return;
+            }
+            
+            materiales.forEach(mat => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                if (mat.stock < 5) tr.classList.add('stock-low');
+                
+                tr.innerHTML = `
+                    <td style="padding: 0.75rem;">${mat.nombre}</td>
+                    <td style="padding: 0.75rem;">${mat.descripcion || '-'}</td>
+                    <td style="padding: 0.75rem;">${mat.stock} ${mat.stock < 5 ? '<span class="badge" style="background: var(--accent); color: white; margin-left: 5px;">Bajo</span>' : ''}</td>
+                    <td style="padding: 0.75rem;">$${mat.precioUnitario?.toFixed(2) || '0.00'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function filtrarMateriales() {
+            const query = document.getElementById('buscar-material').value.toLowerCase();
+            const filtrados = materialesCache.filter(m => m.nombre.toLowerCase().includes(query));
+            renderMaterialesTable(filtrados);
+        }
+        
+        function confirmarFinalizar(id) {
+            if(typeof mostrarModal === 'function') {
+                mostrarModal('Finalizar Reparación', '¿Estás seguro de marcar esta reparación como finalizada? (Solo el recepcionista podrá entregar el vehículo al cliente)', async () => {
+                    try {
+                        await apiFetch(`/reparaciones/${id}/estado`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ estado: 'FINALIZADA' })
+                        });
+                        
+                        mostrarAlerta('Reparación finalizada con éxito.', 'success', document.getElementById('alertas-container'));
+                        cerrarModal();
+                        await cargarMisReparaciones(); // Refresh
+                    } catch (error) {
+                        mostrarAlerta(`Error: ${error.message}`, 'error', document.getElementById('alertas-container'));
+                        cerrarModal();
+                    }
+                });
+            } else {
+                // Fallback si no está el modal
+                if(confirm('¿Estás seguro de marcar esta reparación como finalizada?')) {
+                    apiFetch(`/reparaciones/${id}/estado`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ estado: 'FINALIZADA' })
+                    }).then(() => {
+                        alert('Reparación finalizada con éxito.');
+                        cargarMisReparaciones();
+                    }).catch(err => alert('Error: ' + err.message));
+                }
+            }
+        }
+        
+        async function handleUsarMaterial(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-registrar-material');
+            const reparacionId = document.getElementById('select-reparacion').value;
+            const materialId = document.getElementById('select-material').value;
+            const cantidad = parseInt(document.getElementById('cantidad-material').value, 10);
+            
+            if (!reparacionId || !materialId || !cantidad || cantidad < 1) {
+                if(typeof mostrarAlerta === 'function') mostrarAlerta('Por favor completa todos los campos correctamente.', 'error', document.getElementById('alertas-container'));
+                return;
+            }
+            
+            if(typeof toggleLoading === 'function') toggleLoading(btn, true);
+            try {
+                await apiFetch(`/materiales/${materialId}/usar/${reparacionId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ cantidad })
+                });
+                
+                if(typeof mostrarAlerta === 'function') mostrarAlerta('Material registrado correctamente.', 'success', document.getElementById('alertas-container'));
+                document.getElementById('form-usar-material').reset();
+                
+                // Refresh materials to get updated stock
+                await cargarMateriales();
+            } catch (error) {
+                if(typeof mostrarAlerta === 'function') mostrarAlerta(`Error al registrar material: ${error.message}`, 'error', document.getElementById('alertas-container'));
+            } finally {
+                if(typeof toggleLoading === 'function') toggleLoading(btn, false);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,23 +1,54 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesti�n de Taller</title>
+    <title>TallerPro - Sistema de Gestión de Taller</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <header>
-        <h1>Bienvenido al Taller</h1>
-        <nav>
-            <a href="index.html">Inicio</a>
-            <a href="pages/login.html">Iniciar Sesi�n</a>
-        </nav>
-    </header>
+    <nav class="navbar">
+        <div class="container flex justify-between items-center">
+            <div class="nav-brand">TallerPro</div>
+            <ul class="nav-links flex items-center">
+                <li><a href="index.html" class="active">Inicio</a></li>
+                <li><a href="pages/consulta-estado.html">Consultar Estado de mi Coche</a></li>
+                <li><a href="pages/login.html" class="btn btn-primary">Iniciar Sesión</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <main>
-        <h2>Estado de tu veh�culo</h2>
-        <div id="app">Cargando datos...</div>
+        <section class="hero text-center container">
+            <h1>Bienvenido a TallerPro</h1>
+            <p class="subtitle">El sistema de gestión de taller mecánico más avanzado. Agiliza tus procesos, mejora el servicio y mantén a tus clientes informados.</p>
+            <div class="mt-4">
+                <a href="pages/consulta-estado.html" class="btn btn-primary btn-lg">¿Quieres saber el estado de tu coche?</a>
+            </div>
+        </section>
+
+        <section class="features container grid grid-3">
+            <div class="card feature-card">
+                <h3>Seguimiento en tiempo real</h3>
+                <p>Tus clientes podrán consultar el estado de sus vehículos en cualquier momento, aumentando la transparencia y confianza.</p>
+            </div>
+            <div class="card feature-card">
+                <h3>Gestión eficiente</h3>
+                <p>Asigna reparaciones, controla los estados y optimiza el tiempo de tus mecánicos con nuestra interfaz intuitiva.</p>
+            </div>
+            <div class="card feature-card">
+                <h3>Control de inventario</h3>
+                <p>Gestiona el stock de materiales de forma automática, asegurando que nunca falte lo que necesitas para trabajar.</p>
+            </div>
+        </section>
     </main>
+
+    <footer class="footer mt-auto">
+        <div class="container text-center">
+            <p>&copy; 2026 TallerPro. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    
     <script src="js/app.js"></script>
 </body>
 </html>

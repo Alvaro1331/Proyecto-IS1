@@ -2,15 +2,220 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Taller</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesi贸n - TallerPro</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--color-bg-dark);
+            margin: 0;
+            font-family: sans-serif;
+            color: var(--color-text);
+        }
+        .login-container {
+            background-color: var(--color-bg-card);
+            padding: 2.5rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-header h1 {
+            color: var(--color-primary);
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text);
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(232, 93, 4, 0.2);
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 0.85rem;
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .btn-primary:hover {
+            background-color: var(--color-primary-dark);
+        }
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+        .btn-primary:disabled {
+            background-color: var(--color-text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+        .alert-container {
+            margin-bottom: 1.5rem;
+        }
+        .links {
+            margin-top: 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .links a {
+            color: var(--color-primary-light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .links a:hover {
+            color: var(--color-primary);
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h2>Iniciar Sesi髇</h2>
-    <form>
-        <input type="email" placeholder="Email" required><br><br>
-        <input type="password" placeholder="Contrase馻" required><br><br>
-        <button type="submit">Entrar</button>
-    </form>
+
+    <div class="login-container">
+        <div class="login-header">
+            <h1>TallerPro</h1>
+            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">Gesti贸n integral de taller</p>
+        </div>
+
+        <div id="alert-container" class="alert-container"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Correo Electr贸nico</label>
+                <input type="email" id="email" class="form-control" placeholder="correo@taller.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Contrase帽a</label>
+                <input type="password" id="password" class="form-control" placeholder="Contrase帽a" required>
+            </div>
+            <button type="submit" id="btn-submit" class="btn-primary">Iniciar Sesi贸n</button>
+        </form>
+
+        <div class="links">
+            <a href="consulta-estado.html">驴Quieres consultar el estado de tu coche?</a>
+            <a href="../index.html">Volver al inicio</a>
+        </div>
+    </div>
+
+    <script src="../js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('login-form');
+            const alertContainer = document.getElementById('alert-container');
+            const btnSubmit = document.getElementById('btn-submit');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value.trim();
+
+                alertContainer.innerHTML = '';
+
+                if (typeof toggleLoading === 'function') {
+                    toggleLoading(btnSubmit, true);
+                } else {
+                    btnSubmit.disabled = true;
+                    btnSubmit.textContent = 'Cargando...';
+                }
+
+                try {
+                    let responseData;
+                    if (typeof apiFetch === 'function') {
+                        responseData = await apiFetch('/usuarios/login', {
+                            method: 'POST',
+                            body: JSON.stringify({ email, password })
+                        });
+                    } else {
+                        const API_BASE_URL = typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:8080/api';
+                        const res = await fetch(`${API_BASE_URL}/usuarios/login`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email, password })
+                        });
+                        
+                        if (!res.ok) {
+                            let errorMessage = 'Error en las credenciales';
+                            try {
+                                const errData = await res.json();
+                                errorMessage = errData.message || errorMessage;
+                            } catch (e) {
+                            }
+                            throw new Error(errorMessage);
+                        }
+                        responseData = await res.json();
+                    }
+
+                    sessionStorage.setItem('usuario', JSON.stringify(responseData));
+                    
+                    const rol = responseData.rol;
+                    if (rol === 'ADMIN') {
+                        window.location.href = 'dashboard-admin.html';
+                    } else if (rol === 'RECEPCIONISTA') {
+                        window.location.href = 'dashboard-recepcionista.html';
+                    } else if (rol === 'MECANICO') {
+                        window.location.href = 'dashboard-mecanico.html';
+                    } else {
+                        window.location.href = '../index.html'; 
+                    }
+
+                } catch (error) {
+                    const errorMsg = error.message || 'Error al iniciar sesi贸n';
+                    if (typeof mostrarAlerta === 'function') {
+                        mostrarAlerta(errorMsg, 'error', alertContainer);
+                    } else {
+                        alertContainer.innerHTML = `
+                            <div style="color: var(--color-danger); background: rgba(220, 38, 38, 0.1); border: 1px solid var(--color-danger); padding: 0.75rem; border-radius: 4px; font-size: 0.9rem;">
+                                ${errorMsg}
+                            </div>
+                        `;
+                    }
+                } finally {
+                    if (typeof toggleLoading === 'function') {
+                        toggleLoading(btnSubmit, false);
+                    } else {
+                        btnSubmit.disabled = false;
+                        btnSubmit.textContent = 'Iniciar Sesi贸n';
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

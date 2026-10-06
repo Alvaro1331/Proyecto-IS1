@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TallerPro - Dashboard Administrador</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .tabs { 
+            display: flex; 
+            gap: 1rem; 
+            margin-bottom: 1.5rem; 
+            border-bottom: 1px solid var(--border); 
+            padding-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .tab-btn { 
+            background: none; 
+            border: none; 
+            color: var(--text-light); 
+            padding: 0.5rem 1rem; 
+            cursor: pointer; 
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .tab-btn:hover {
+            background: var(--card-bg);
+        }
+        .tab-btn.active { 
+            background: var(--primary); 
+            font-weight: bold;
+        }
+        .tab-content { 
+            display: none; 
+        }
+        .tab-content.active { 
+            display: block; 
+        }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 1rem; 
+            margin-bottom: 2rem; 
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        .action-cell {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">TallerPro</div>
+        <div class="navbar-links">
+            <a href="dashboard-admin.html">Dashboard</a>
+            <a href="consulta-estado.html">Consulta Pública</a>
+        </div>
+        <div class="navbar-user">
+            <span id="user-info"></span>
+            <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Panel de Administración</h1>
+        
+        <div id="alert-container"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card card">
+                <h3>Total Usuarios</h3>
+                <div id="stat-usuarios" class="stat-value spinner">...</div>
+            </div>
+            <div class="stat-card card">
+                <h3>Total Vehículos</h3>
+                <div id="stat-vehiculos" class="stat-value spinner">...</div>
+            </div>
+            <div class="stat-card card">
+                <h3>Reparaciones en Proceso</h3>
+                <div id="stat-reparaciones" class="stat-value spinner">...</div>
+            </div>
+            <div class="stat-card card">
+                <h3>Materiales Stock Bajo</h3>
+                <div id="stat-materiales" class="stat-value spinner">...</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('tab-usuarios', this)">Gestión de Usuarios</button>
+            <button class="tab-btn" onclick="showTab('tab-reparaciones', this)">Reparaciones</button>
+            <button class="tab-btn" onclick="showTab('tab-inventario', this)">Inventario</button>
+            <button class="tab-btn" onclick="showTab('tab-vehiculos', this)">Vehículos y Clientes</button>
+        </div>
+
+        <!-- TAB 1: USUARIOS -->
+        <div id="tab-usuarios" class="tab-content active">
+            <div class="card">
+                <h2>Crear Nuevo Usuario</h2>
+                <form id="form-crear-usuario">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="usu-nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="usu-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" id="usu-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="text" id="usu-telefono">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="usu-rol" required>
+                                <option value="ADMIN">ADMIN</option>
+                                <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                                <option value="MECANICO">MECANICO</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-usuario" style="margin-top: 1rem;">Crear Usuario</button>
+                </form>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <h2>Lista de Usuarios</h2>
+                <div class="form-group" style="max-width: 300px; margin-bottom: 1rem;">
+                    <label>Filtrar por rol:</label>
+                    <select id="filter-rol" onchange="cargarUsuarios()">
+                        <option value="">Todos</option>
+                        <option value="ADMIN">ADMIN</option>
+                        <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                        <option value="MECANICO">MECANICO</option>
+                    </select>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Rol</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-usuarios"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: REPARACIONES -->
+        <div id="tab-reparaciones" class="tab-content">
+            <div class="card">
+                <h2>Gestión de Reparaciones</h2>
+                <div style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" id="filter-reparaciones">
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('')">Todas</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('PENDIENTE')">Pendientes</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('EN_PROCESO')">En Proceso</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('FINALIZADA')">Finalizadas</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('ENTREGADA')">Entregadas</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Matrícula</th>
+                                <th>Cliente</th>
+                                <th>Mecánico</th>
+                                <th>Estado</th>
+                                <th>Fecha Entrada</th>
+                                <th>Fecha Salida</th>
+                                <th>Avería</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-reparaciones"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: INVENTARIO -->
+        <div id="tab-inventario" class="tab-content">
+            <div class="card">
+                <h2>Añadir Nuevo Material</h2>
+                <form id="form-crear-material">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="mat-nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <input type="text" id="mat-desc">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Inicial</label>
+                            <input type="number" id="mat-stock" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Unitario ($)</label>
+                            <input type="number" id="mat-precio" required min="0" step="0.01">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-material" style="margin-top: 1rem;">Añadir Material</button>
+                </form>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <h2>Inventario Actual</h2>
+                <div class="form-group" style="max-width: 400px; margin-bottom: 1rem;">
+                    <input type="text" id="search-material" placeholder="Buscar material por nombre..." onkeyup="cargarMateriales()">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Stock</th>
+                                <th>Precio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-materiales"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: VEHÍCULOS Y CLIENTES -->
+        <div id="tab-vehiculos" class="tab-content">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <h2>Directorio de Vehículos</h2>
+                    <div style="overflow-x: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Matrícula</th>
+                                    <th>Marca</th>
+                                    <th>Modelo</th>
+                                    <th>Año</th>
+                                    <th>Cliente Propietario</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-vehiculos"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Directorio de Clientes</h2>
+                    <div style="overflow-x: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Teléfono</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-clientes"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof requireAuth === 'function') {
+                requireAuth(['ADMIN']);
+                
+                const user = getUsuarioActual();
+                if (user) {
+                    document.getElementById('user-info').innerHTML = `
+                        ${user.nombre} <span class="badge badge-entregada">${user.rol}</span>
+                    `;
+                }
+            }
+            
+            cargarStats();
+            cargarUsuarios();
+            cargarReparaciones();
+            cargarMateriales();
+            cargarVehiculosYClientes();
+        });
+
+        function showTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        async function cargarStats() {
+            try {
+                const [usuarios, vehiculos, repEnProceso, matBajoStock] = await Promise.all([
+                    apiFetch('/usuarios').catch(() => []),
+                    apiFetch('/vehiculos').catch(() => []),
+                    apiFetch('/reparaciones/estado/EN_PROCESO').catch(() => []),
+                    apiFetch('/materiales/stock-bajo?umbral=5').catch(() => [])
+                ]);
+                document.getElementById('stat-usuarios').textContent = usuarios.length || 0;
+                document.getElementById('stat-vehiculos').textContent = vehiculos.length || 0;
+                document.getElementById('stat-reparaciones').textContent = repEnProceso.length || 0;
+                document.getElementById('stat-materiales').textContent = matBajoStock.length || 0;
+            } catch (error) {
+                console.error("Error loading stats:", error);
+            }
+        }
+
+        // ================= USUARIOS =================
+        document.getElementById('form-crear-usuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-usuario');
+            if (typeof toggleLoading === 'function') toggleLoading(btn, true);
+            
+            const data = {
+                nombre: document.getElementById('usu-nombre').value,
+                email: document.getElementById('usu-email').value,
+                contrasena: document.getElementById('usu-password').value,
+                telefono: document.getElementById('usu-telefono').value,
+                rol: document.getElementById('usu-rol').value
+            };
+            
+            try {
+                await apiFetch('/usuarios', { method: 'POST', body: JSON.stringify(data) });
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('Usuario creado exitosamente.', 'success', document.getElementById('alert-container'));
+                }
+                e.target.reset();
+                cargarUsuarios();
+                cargarStats();
+            } catch (error) {
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('Error: ' + error.message, 'error', document.getElementById('alert-container'));
+                } else {
+                    alert('Error: ' + error.message);
+                }
+            } finally {
+                if (typeof toggleLoading === 'function') toggleLoading(btn, false);
+            }
+        });
+
+        async function cargarUsuarios() {
+            const rol = document.getElementById('filter-rol').value;
+            const endpoint = rol ? `/usuarios/rol/${rol}` : '/usuarios';
+            try {
+                const usuarios = await apiFetch(endpoint);
+                const tbody = document.getElementById('tabla-usuarios');
+                tbody.innerHTML = '';
+                if (!usuarios || usuarios.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No se encontraron usuarios</td></tr>';
+                    return;
+                }
+                usuarios.forEach(u => {
+                    let rolBadgeClass = 'badge';
+                    if (u.rol === 'ADMIN') rolBadgeClass = 'badge badge-entregada';
+                    else if (u.rol === 'MECANICO') rolBadgeClass = 'badge badge-en-proceso';
+                    else if (u.rol === 'RECEPCIONISTA') rolBadgeClass = 'badge badge-finalizada';
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${u.id}</td>
+                            <td>${u.nombre}</td>
+                            <td>${u.email}</td>
+                            <td>${u.telefono || '-'}</td>
+                            <td><span class="${rolBadgeClass}">${u.rol}</span></td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // ================= REPARACIONES =================
+        let currentRepEstado = '';
+        async function cargarReparaciones(estado = currentRepEstado) {
+            currentRepEstado = estado;
+            const endpoint = estado ? `/reparaciones/estado/${estado}` : '/reparaciones';
+            try {
+                const reparaciones = await apiFetch(endpoint);
+                const tbody = document.getElementById('tabla-reparaciones');
+                tbody.innerHTML = '';
+                
+                if (!reparaciones || reparaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No se encontraron reparaciones</td></tr>';
+                    return;
+                }
+                
+                const mecanicos = await apiFetch('/usuarios/rol/MECANICO').catch(()=>[]);
+
+                reparaciones.forEach(r => {
+                    const vehiculo = r.vehiculo ? r.vehiculo.matricula : '-';
+                    const cliente = r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-';
+                    const mecanico = r.mecanico ? r.mecanico.nombre : '<span class="text-muted">No asignado</span>';
+                    
+                    const estadoHtml = typeof crearBadgeEstado === 'function' ? crearBadgeEstado(r.estado) : `<span class="badge">${r.estado}</span>`;
+                    const fEntrada = typeof formatearFecha === 'function' ? formatearFecha(r.fechaEntrada) : r.fechaEntrada;
+                    const fSalida = r.fechaSalida ? (typeof formatearFecha === 'function' ? formatearFecha(r.fechaSalida) : r.fechaSalida) : '-';
+
+                    let acciones = '';
+                    if (r.estado === 'PENDIENTE') {
+                        let opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+                        acciones = `
+                            <div class="action-cell">
+                                <select id="mec-${r.id}" style="padding: 0.25rem;">
+                                    <option value="">Seleccione mecánico...</option>
+                                    ${opts}
+                                </select>
+                                <button class="btn btn-primary" style="padding: 0.25rem 0.5rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
+                            </div>
+                        `;
+                    } else if (r.estado === 'EN_PROCESO') {
+                        acciones = `<button class="btn btn-success" style="padding: 0.25rem 0.5rem;" onclick="cambiarEstadoReparacion(${r.id}, 'FINALIZADA')">Finalizar</button>`;
+                    } else if (r.estado === 'FINALIZADA') {
+                        acciones = `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem;" onclick="cambiarEstadoReparacion(${r.id}, 'ENTREGADA')">Entregar</button>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${r.id}</td>
+                            <td>${vehiculo}</td>
+                            <td>${cliente}</td>
+                            <td>${mecanico}</td>
+                            <td>${estadoHtml}</td>
+                            <td>${fEntrada}</td>
+                            <td>${fSalida}</td>
+                            <td>${r.descripcionAveria || '-'}</td>
+                            <td>${acciones}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function asignarMecanico(repId) {
+            const mecanicoId = document.getElementById(`mec-${repId}`).value;
+            if (!mecanicoId) {
+                alert('Por favor, seleccione un mecánico.');
+                return;
+            }
+            try {
+                await apiFetch(`/reparaciones/${repId}/asignar/${mecanicoId}`, { method: 'PUT' });
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('Mecánico asignado.', 'success', document.getElementById('alert-container'));
+                }
+                cargarReparaciones();
+                cargarStats();
+            } catch (error) {
+                alert('Error al asignar mecánico: ' + error.message);
+            }
+        }
+
+        async function cambiarEstadoReparacion(repId, estado) {
+            try {
+                await apiFetch(`/reparaciones/${repId}/estado`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ estado })
+                });
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta(`Reparación marcada como ${estado}.`, 'success', document.getElementById('alert-container'));
+                }
+                cargarReparaciones();
+                cargarStats();
+            } catch (error) {
+                alert('Error al cambiar estado: ' + error.message);
+            }
+        }
+
+        // ================= INVENTARIO =================
+        document.getElementById('form-crear-material').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-material');
+            if (typeof toggleLoading === 'function') toggleLoading(btn, true);
+            
+            const data = {
+                nombre: document.getElementById('mat-nombre').value,
+                descripcion: document.getElementById('mat-desc').value,
+                stock: parseInt(document.getElementById('mat-stock').value, 10),
+                precioUnitario: parseFloat(document.getElementById('mat-precio').value)
+            };
+            
+            try {
+                await apiFetch('/materiales', { method: 'POST', body: JSON.stringify(data) });
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('Material registrado.', 'success', document.getElementById('alert-container'));
+                }
+                e.target.reset();
+                cargarMateriales();
+                cargarStats();
+            } catch (error) {
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('Error: ' + error.message, 'error', document.getElementById('alert-container'));
+                } else {
+                    alert('Error: ' + error.message);
+                }
+            } finally {
+                if (typeof toggleLoading === 'function') toggleLoading(btn, false);
+            }
+        });
+
+        async function cargarMateriales() {
+            const query = document.getElementById('search-material').value;
+            let endpoint = '/materiales';
+            if (query && query.trim() !== '') {
+                // If the backend search is GET /api/materiales/buscar?nombre=X
+                endpoint = `/materiales/buscar?nombre=${encodeURIComponent(query.trim())}`;
+            }
+            
+            try {
+                const materiales = await apiFetch(endpoint);
+                const tbody = document.getElementById('tabla-materiales');
+                tbody.innerHTML = '';
+                
+                if (!materiales || materiales.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron materiales</td></tr>';
+                    return;
+                }
+                
+                materiales.forEach(m => {
+                    const isBajo = m.stock < 5;
+                    const rowStyle = isBajo ? 'background: rgba(245, 158, 11, 0.1);' : '';
+                    const stockStyle = isBajo ? 'color: var(--warning, #F59E0B); font-weight: bold;' : '';
+                    
+                    tbody.innerHTML += `
+                        <tr style="${rowStyle}">
+                            <td>${m.id}</td>
+                            <td>${m.nombre}</td>
+                            <td>${m.descripcion || '-'}</td>
+                            <td style="${stockStyle}">${m.stock}</td>
+                            <td>$${m.precioUnitario.toFixed(2)}</td>
+                            <td>
+                                <div class="action-cell">
+                                    <input type="number" id="stock-${m.id}" value="${m.stock}" min="0" style="width: 70px; padding: 0.25rem;">
+                                    <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem;" onclick="actualizarStock(${m.id})">Actualizar</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function actualizarStock(id) {
+            const stock = parseInt(document.getElementById(`stock-${id}`).value, 10);
+            try {
+                await apiFetch(`/materiales/${id}/stock`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ stock })
+                });
+                cargarMateriales();
+                cargarStats();
+            } catch (error) {
+                alert('Error al actualizar stock: ' + error.message);
+            }
+        }
+
+        // ================= VEHÍCULOS Y CLIENTES =================
+        async function cargarVehiculosYClientes() {
+            try {
+                const [vehiculos, clientes] = await Promise.all([
+                    apiFetch('/vehiculos').catch(()=>[]),
+                    apiFetch('/clientes').catch(()=>[])
+                ]);
+                
+                const tVehiculos = document.getElementById('tabla-vehiculos');
+                if (!vehiculos || vehiculos.length === 0) {
+                    tVehiculos.innerHTML = '<tr><td colspan="5" class="empty-state">No hay vehículos registrados</td></tr>';
+                } else {
+                    tVehiculos.innerHTML = vehiculos.map(v => `
+                        <tr>
+                            <td><strong>${v.matricula}</strong></td>
+                            <td>${v.marca}</td>
+                            <td>${v.modelo}</td>
+                            <td>${v.anio}</td>
+                            <td>${v.cliente ? v.cliente.nombre : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                const tClientes = document.getElementById('tabla-clientes');
+                if (!clientes || clientes.length === 0) {
+                    tClientes.innerHTML = '<tr><td colspan="3" class="empty-state">No hay clientes registrados</td></tr>';
+                } else {
+                    tClientes.innerHTML = clientes.map(c => `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.nombre}</td>
+                            <td>${c.telefono || '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error("Error loading vehicles and clients:", error);
+            }
+        }
+    </script>
+</body>
+</html>

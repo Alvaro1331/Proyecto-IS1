@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Recepcionista - TallerPro</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .stats-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            flex: 1;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 0.5rem;
+        }
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 4px;
+        }
+        .tab-btn:hover {
+            color: var(--text-light);
+            background-color: var(--card-bg);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            font-weight: bold;
+            background-color: var(--card-bg);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .mt-4 { margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">TallerPro</div>
+        <div class="navbar-links">
+            <a href="dashboard-recepcionista.html" class="active">Dashboard</a>
+            <a href="consulta-estado.html">Consulta Pública</a>
+        </div>
+        <div class="navbar-user">
+            <span id="user-info"></span>
+            <button onclick="logout()" class="btn btn-danger">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Stats -->
+        <div class="stats-container">
+            <div class="card stat-card">
+                <h3>Total Vehículos</h3>
+                <p id="stat-vehiculos" class="stat-value"><span class="spinner"></span></p>
+            </div>
+            <div class="card stat-card">
+                <h3>Total Clientes</h3>
+                <p id="stat-clientes" class="stat-value"><span class="spinner"></span></p>
+            </div>
+            <div class="card stat-card">
+                <h3>Reparaciones Pendientes</h3>
+                <p id="stat-pendientes" class="stat-value"><span class="spinner"></span></p>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('tab-registrar', event)">Registrar Vehículo</button>
+            <button class="tab-btn" onclick="openTab('tab-crear-reparacion', event)">Crear Reparación</button>
+            <button class="tab-btn" onclick="openTab('tab-clientes-vehiculos', event)">Clientes y Vehículos</button>
+        </div>
+
+        <div id="alerts-container"></div>
+
+        <!-- Tab 1: Registrar Vehículo -->
+        <section id="tab-registrar" class="tab-content active">
+            <div class="card">
+                <h2>Registrar Nuevo Vehículo</h2>
+                <form id="form-vehiculo">
+                    <div class="form-group">
+                        <label>Matrícula</label>
+                        <input type="text" id="veh-matricula" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label>Marca</label>
+                        <input type="text" id="veh-marca" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Modelo</label>
+                        <input type="text" id="veh-modelo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Año</label>
+                        <input type="number" id="veh-anio" min="1900" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre del Cliente</label>
+                        <input type="text" id="veh-cliente-nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono del Cliente</label>
+                        <input type="text" id="veh-cliente-tel" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-vehiculo">Registrar Vehículo</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Tab 2: Crear Reparación -->
+        <section id="tab-crear-reparacion" class="tab-content">
+            <div class="card">
+                <h2>Crear Reparación</h2>
+                <form id="form-reparacion">
+                    <div class="form-group">
+                        <label>Vehículo</label>
+                        <select id="rep-vehiculo" required>
+                            <option value="">Seleccione un vehículo...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción de la avería</label>
+                        <textarea id="rep-descripcion" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-reparacion">Crear Reparación</button>
+                </form>
+            </div>
+            
+            <div class="card mt-4">
+                <h2>Todas las Reparaciones</h2>
+                <div class="table-responsive">
+                    <table class="table" id="tabla-reparaciones">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Matrícula</th>
+                                <th>Cliente</th>
+                                <th>Mecánico</th>
+                                <th>Estado</th>
+                                <th>Fecha Entrada</th>
+                                <th>Avería</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: Clientes y Vehículos -->
+        <section id="tab-clientes-vehiculos" class="tab-content">
+            <div class="card">
+                <h2>Clientes</h2>
+                <div class="table-responsive">
+                    <table class="table" id="tabla-clientes">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Teléfono</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <h2>Vehículos</h2>
+                <div class="form-group">
+                    <input type="text" id="search-vehiculo" placeholder="Buscar por matrícula..." onkeyup="filterVehiculos()">
+                </div>
+                <div class="table-responsive">
+                    <table class="table" id="tabla-vehiculos">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Matrícula</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Año</th>
+                                <th>Cliente</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        // Check permissions
+        requireAuth(['RECEPCIONISTA', 'ADMIN']);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = getUsuarioActual();
+            if (user) {
+                document.getElementById('user-info').innerHTML = `${user.nombre} <span class="badge">${user.rol}</span>`;
+            }
+            document.getElementById('veh-anio').max = new Date().getFullYear();
+            
+            loadStats();
+            loadVehiculosParaSelect();
+            loadReparaciones();
+            loadClientes();
+            loadVehiculos();
+        });
+
+        function openTab(tabId, event) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        async function loadStats() {
+            try {
+                const vehiculos = await apiFetch('/vehiculos');
+                document.getElementById('stat-vehiculos').textContent = vehiculos ? vehiculos.length : 0;
+                
+                const clientes = await apiFetch('/clientes');
+                document.getElementById('stat-clientes').textContent = clientes ? clientes.length : 0;
+                
+                const pendientes = await apiFetch('/reparaciones/estado/PENDIENTE');
+                document.getElementById('stat-pendientes').textContent = pendientes ? pendientes.length : 0;
+            } catch (error) {
+                console.error("Error loading stats", error);
+            }
+        }
+
+        async function loadVehiculosParaSelect() {
+            try {
+                const vehiculos = await apiFetch('/vehiculos');
+                const select = document.getElementById('rep-vehiculo');
+                select.innerHTML = '<option value="">Seleccione un vehículo...</option>';
+                if(vehiculos) {
+                    vehiculos.forEach(v => {
+                        const option = document.createElement('option');
+                        option.value = v.id;
+                        option.textContent = `${v.matricula} - ${v.marca} ${v.modelo} (${v.cliente?.nombre || 'Sin cliente'})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading vehiculos select", error);
+            }
+        }
+
+        // Form vehiculo
+        document.getElementById('form-vehiculo').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-vehiculo');
+            toggleLoading(btn, true);
+            const alertsContainer = document.getElementById('alerts-container');
+            
+            const payload = {
+                matricula: document.getElementById('veh-matricula').value.toUpperCase(),
+                marca: document.getElementById('veh-marca').value,
+                modelo: document.getElementById('veh-modelo').value,
+                anio: parseInt(document.getElementById('veh-anio').value, 10),
+                cliente: {
+                    nombre: document.getElementById('veh-cliente-nombre').value,
+                    telefono: document.getElementById('veh-cliente-tel').value
+                }
+            };
+            
+            try {
+                await apiFetch('/vehiculos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                mostrarAlerta('Vehículo registrado correctamente', 'success', alertsContainer);
+                document.getElementById('form-vehiculo').reset();
+                loadStats();
+                loadVehiculosParaSelect();
+                loadClientes();
+                loadVehiculos();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertsContainer);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        });
+
+        // Form reparacion
+        document.getElementById('form-reparacion').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-reparacion');
+            toggleLoading(btn, true);
+            const alertsContainer = document.getElementById('alerts-container');
+            const user = getUsuarioActual();
+            
+            const payload = {
+                vehiculoId: parseInt(document.getElementById('rep-vehiculo').value, 10),
+                recepcionistaId: user.id,
+                descripcionAveria: document.getElementById('rep-descripcion').value
+            };
+            
+            try {
+                await apiFetch('/reparaciones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                mostrarAlerta('Reparación creada correctamente', 'success', alertsContainer);
+                document.getElementById('form-reparacion').reset();
+                loadStats();
+                loadReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertsContainer);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        });
+
+        async function loadReparaciones() {
+            try {
+                const reparaciones = await apiFetch('/reparaciones');
+                const tbody = document.querySelector('#tabla-reparaciones tbody');
+                tbody.innerHTML = '';
+                if(!reparaciones || reparaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No hay reparaciones</td></tr>';
+                    return;
+                }
+                reparaciones.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${r.id}</td>
+                        <td>${r.vehiculo?.matricula || '-'}</td>
+                        <td>${r.vehiculo?.cliente?.nombre || '-'}</td>
+                        <td>${r.mecanico?.nombre || 'Sin asignar'}</td>
+                        <td>${crearBadgeEstado(r.estado)}</td>
+                        <td>${formatearFecha(r.fechaEntrada)}</td>
+                        <td>${r.descripcionAveria || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error loading reparaciones", error);
+            }
+        }
+
+        async function loadClientes() {
+            try {
+                const clientes = await apiFetch('/clientes');
+                const tbody = document.querySelector('#tabla-clientes tbody');
+                tbody.innerHTML = '';
+                if(!clientes || clientes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No hay clientes</td></tr>';
+                    return;
+                }
+                clientes.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${c.id}</td>
+                        <td>${c.nombre}</td>
+                        <td>${c.telefono}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error loading clientes", error);
+            }
+        }
+
+        async function loadVehiculos() {
+            try {
+                const vehiculos = await apiFetch('/vehiculos');
+                const tbody = document.querySelector('#tabla-vehiculos tbody');
+                tbody.innerHTML = '';
+                if(!vehiculos || vehiculos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay vehículos</td></tr>';
+                    return;
+                }
+                vehiculos.forEach(v => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${v.id}</td>
+                        <td class="mat-cell">${v.matricula}</td>
+                        <td>${v.marca}</td>
+                        <td>${v.modelo}</td>
+                        <td>${v.anio}</td>
+                        <td>${v.cliente?.nombre || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error loading vehiculos", error);
+            }
+        }
+
+        function filterVehiculos() {
+            const search = document.getElementById('search-vehiculo').value.toUpperCase();
+            const rows = document.querySelectorAll('#tabla-vehiculos tbody tr');
+            rows.forEach(row => {
+                const matCell = row.querySelector('.mat-cell');
+                if (matCell) {
+                    if (matCell.textContent.toUpperCase().includes(search)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
