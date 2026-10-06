@@ -9,45 +9,60 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Controlador REST para la gestión de vehículos.
  *
- * ENDPOINTS DISPONIBLES:
- * ┌─────────────────────────────────────────────────────────────────┐
- * │ POST   /api/vehiculos          → Registrar un nuevo vehículo    │
- * └─────────────────────────────────────────────────────────────────┘
+ * ENDPOINTS:
+ * ┌──────────────────────────────────────────────────────────────────────────────────────┐
+ * │ POST   /api/vehiculos                  → Registrar un nuevo vehículo                │
+ * │ GET    /api/vehiculos                  → Listar todos los vehículos                 │
+ * │ GET    /api/vehiculos/{id}             → Buscar vehículo por ID                      │
+ * │ GET    /api/vehiculos/matricula/{mat}  → Buscar vehículo por matrícula               │
+ * └──────────────────────────────────────────────────────────────────────────────────────┘
  *
- * ROLES PERMITIDOS:
- * - RECEPCIONISTA: puede registrar vehículos
- * - ADMIN/JEFE: puede hacer todo lo que hace el recepcionista
- * (La validación de roles se añadirá en el Sprint de Seguridad)
+ * ROLES PERMITIDOS: RECEPCIONISTA, ADMIN
  */
 @RestController
 @RequestMapping("/api/vehiculos")
-@CrossOrigin(origins = "*") // Permite peticiones desde el Frontend (HTML/JS)
+@CrossOrigin(origins = "*")
 public class VehiculoController {
 
     @Autowired
     private VehiculoService vehiculoService;
 
-    /**
-     * POST /api/vehiculos
-     * Registra un nuevo vehículo en la base de datos.
-     *
-     * Responde con:
-     *   - 201 CREATED  → Si el vehículo se registró correctamente
-     *   - 400 BAD REQUEST → Si la matrícula ya existe o los datos son incorrectos
-     */
     @PostMapping
     public ResponseEntity<?> registrarVehiculo(@Valid @RequestBody VehiculoRequestDTO dto) {
         try {
             VehiculoResponseDTO respuesta = vehiculoService.registrarVehiculo(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
         } catch (IllegalArgumentException e) {
-            // Error controlado: matrícula duplicada
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<VehiculoResponseDTO>> obtenerTodos() {
+        return ResponseEntity.ok(vehiculoService.obtenerTodos());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(vehiculoService.obtenerPorId(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/matricula/{matricula}")
+    public ResponseEntity<?> obtenerPorMatricula(@PathVariable String matricula) {
+        try {
+            return ResponseEntity.ok(vehiculoService.obtenerPorMatricula(matricula));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 }
