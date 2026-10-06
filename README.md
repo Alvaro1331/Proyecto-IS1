@@ -39,7 +39,7 @@ Equipo Backend: Se encargan de la lógica del servidor: recibir peticiones, vali
 
 El repositorio tiene la siguiente estructura de carpetas:
 
-Proyecto-IS1/
+Proyecto-IS1/<br>
 ├── .gitignore          ← Lista de archivos que Git debe ignorar (ej. node_modules)<br>
 ├── README.md           ← Descripción del proyecto<br>
 │<br>
@@ -60,10 +60,12 @@ Proyecto-IS1/
 
 <br>
 <br>
+
 ## Información para usuarios:
 Esta sección se tiene y se ira rellenando a medida que se vayan desarrollando el software. 
 Si eres una persona que busca probar el software, de momento hay poco que se pueda utilizar, se recomienda leerse la wiki donde esclarecemos el funcionamiento de la aplicación que perseguimos y que tenemos en el momento.
 <br>
 <br>
+
 ### Feedback y comentarios
 Para todos aquellos que probeís nuestra aplicación os agradeceriamos que si encontraseis algun "bug" o algun error en el software, nos lo reportaseis. También nos gustaría que nos dieseís vuestra opinicion (siempre que sea una critica constructiva) para mejorar y reforzar las funcionalidades, fortaleciendo el resultado final.
