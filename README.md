@@ -58,6 +58,17 @@ Proyecto-IS1/<br>
         ├── controllers/  ← Los que reciben las peticiones del frontend<br>
         └── dtos/         ← Los "sobres" en los que empaquetamos los datos<br>
 
+Lógica principal del backend. El servidor Java con Spring Boot ya es capaz de gestionar usuarios, el inventario del taller y el flujo completo de una reparación desde que entra el coche hasta que se entrega. Ahora mismo la API ofrece 25 puntos de conexión (endpoints) para que el frontend pueda ir desarrollándose. Ahora la base de datos funciona así:<br>
+
+Usuarios: Aquí guardamos al personal del taller. Cada uno tiene un rol: ADMIN, RECEPCIONISTA o MECANICO. (Nota: Los clientes no van en esta tabla porque de momento no necesitan iniciar sesión, van en su propia tabla Clientes, hay que cambiarlo).<br><br>
+
+Materiales: Es nuestro inventario. Guardamos el nombre de las piezas (filtros, aceite, pastillas de freno), su precio y el stock disponible.<br><br>
+Reparaciones: Una reparación une todo:<br>
+Sabe qué coche se está arreglando.<br>
+Sabe qué recepcionista lo registró.<br>
+Sabe qué mecánico se encarga (cuando el jefe se lo asigna).<br><br>
+Reparación-Materiales (Tabla intermedia): Como en una reparación se pueden usar muchas piezas distintas, esta tabla apunta qué piezas y cuántas unidades se han gastado en cada reparación concreta. Además hemos hecho que una reparación no pueda estar en cualquier estado.  Sigue un camino estricto: empieza como PENDIENTE, pasa a EN_PROCESO (cuando se le asigna un mecánico), después pasa a FINALIZADA (el coche está arreglado pero sigue en el taller) y termina en ENTREGADA (el cliente se lo lleva). Hemos programado la siguiente regla: el sistema da un error si intentas saltarte pasos hacia atrás (por ejemplo, pasar un coche "Entregado" a "Pendiente").
+
 <br>
 <br>
 
