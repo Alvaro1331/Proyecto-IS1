@@ -1,36 +1,251 @@
-| RIESGO | REPERCUCIÓN | PROBABILIDAD | VALOR | IMPORTANCIA DEL RIESGO |
-| :--- | :--- | :--- | :---: | :---: |
-| insuficiente espacio en la RAM | serio | 3 probable | 4 | **12** |
-| que funcione en todos nuestros ordenadores | serio | 3 remota | 2 | **6** |
-| gestión del github (personas trabajando a la vez, que alguien no haga push, que alguien no haga pull y trabaje) | menor | 2 ocasional | 3 | **6** |
-| problemas con la migración de base de datos | crítica | 4 ocasional | 3 | **12** |
-| delegar demasiado en la IA | crítica | 4 frecuente | 5 | **20** |
-| error en la conexión del backend y frontend | catastrófica | 5 ocasional | 3 | **15** |
-| equivocación de los usuarios con los datos | insignificante | 1 probable | 4 | **4** |
-| no llegar a la fecha semanal | menor | 2 ocasional | 3 | **6** |
-| falta de comunicación entre los miembros del equipo | crítica | 4 frecuente | 5 | **20** |
-| no disponibilidad de los miembros | serio | 3 ocasional | 3 | **9** |
-| perder la contraseña del github | serio | 3 remota | 2 | **6** |
-| huelga muy larga | menor | 2 improbable | 1 | **2** |
-| que se vaya la luz por un tiempo significante | catastrófica | 5 improbable | 1 | **5** |
-| fundirnos el presupuesto de IT al principio | crítica | 4 ocasional | 3 | **12** |
-| enfermedades el día de la presentación | serio | 3 remota | 2 | **6** |
-| que se nos olvide el ordenador para trabajar en clase | serio | 3 frecuente | 5 | **15** |
-| problemas en el código de otros compañeros | crítico | 4 ocasional | 3 | **12** |
-| hacer mal historias de usuarios | serio | 3 ocasional | 3 | **9** |
-| hacer mal gestión de riesgos | insignificante | 1 probable | 4 | **4** |
-| no emplear bien técnicas de scrum | menor | 2 probable | 4 | **8** |
-| equivocarse en el enfoque del proyecto | serio | 3 ocasional | 3 | **9** |
-| dedicar demasiado tiempo a partes no tan relevantes | menor | 2 probable | 4 | **8** |
-| desconocimiento (tecnologías, scrum, gestión de proyecto) | serio | 3 frecuente | 5 | **15** |
-| que nos hackeen el código | catastrófico | 5 improbable | 1 | **5** |
-| que nos roben los ordenadores | catastrófico | 5 improbable | 1 | **5** |
-| planificaciones incorrectas y demasiado ambiciosas | serio | 3 ocasional | 3 | **9** |
-| fallos en el código de la IA | crítico | 4 ocasional | 3 | **12** |
-| desarrollo erróneo de la interfaz de usuario | serio | 3 ocasional | 3 | **9** |
-| continua corriente de cambios en los requisitos | serio | 3 ocasional | 3 | **9** |
-| deficiencias en componentes proporcionados externamente | menor | 2 probable | 4 | **8** |
-| deficiencias en rendimiento en tiempo real | menor | 2 frecuente | 5 | **10** |
-| no ser capaces de aprovechar el potencial de las distintas tecnologías | serio | 3 probable | 4 | **12** |
-| no llegar a la fecha final | catastrófica | 5 remota | 2 | **10** |
-| pandemia repentina | serio | 3 improbable | 1 | **3** |
+<table>
+  <thead>
+    <tr bgcolor="#333333" style="color: white;">
+      <th>RIESGO</th>
+      <th>REPERCUCIÓN</th>
+      <th>PROBABILIDAD</th>
+      <th>VALOR</th>
+      <th>IMPORTANCIA DEL RIESGO</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr bgcolor="#00FF00">
+      <td>insuficiente espacio en la RAM</td>
+      <td>serio</td>
+      <td>3 probable</td>
+      <td>4</td>
+      <td><b>12</b></td>
+    </tr>
+    <tr>
+      <td>que funcione en todos nuestros ordenadores</td>
+      <td>serio</td>
+      <td>3 remota</td>
+      <td>2</td>
+      <td><b>6</b></td>
+    </tr>
+    <tr>
+      <td>gestión del github (...)</td>
+      <td>menor</td>
+      <td>2 ocasional</td>
+      <td>3</td>
+      <td><b>6</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>problemas con la migración de base de datos</td>
+      <td>crítica</td>
+      <td>4 ocasional</td>
+      <td>3</td>
+      <td><b>12</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>delegar demasiado en la IA</td>
+      <td>crítica</td>
+      <td>4 frecuente</td>
+      <td>5</td>
+      <td><b>20</b></td>
+    </tr>
+    <tr>
+      <td>error en la conexión del backend y frontend</td>
+      <td>catastrófica</td>
+      <td>5 ocasional</td>
+      <td>3</td>
+      <td><b>15</b></td>
+    </tr>
+    <tr>
+      <td>equivocación de los usuarios con los datos</td>
+      <td>insignificante</td>
+      <td>1 probable</td>
+      <td>4</td>
+      <td><b>4</b></td>
+    </tr>
+    <tr>
+      <td>no llegar a la fecha semanal</td>
+      <td>menor</td>
+      <td>2 ocasional</td>
+      <td>3</td>
+      <td><b>6</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>falta de comunicación entre los miembros del equipo</td>
+      <td>crítica</td>
+      <td>4 frecuente</td>
+      <td>5</td>
+      <td><b>20</b></td>
+    </tr>
+    <tr>
+      <td>no disponibilidad de los miembros</td>
+      <td>serio</td>
+      <td>3 ocasional</td>
+      <td>3</td>
+      <td><b>9</b></td>
+    </tr>
+    <tr>
+      <td>perder la contraseña del github</td>
+      <td>serio</td>
+      <td>3 remota</td>
+      <td>2</td>
+      <td><b>6</b></td>
+    </tr>
+    <tr>
+      <td>huelga muy larga</td>
+      <td>menor</td>
+      <td>2 improbable</td>
+      <td>1</td>
+      <td><b>2</b></td>
+    </tr>
+    <tr>
+      <td>que se vaya la luz por un tiempo significante</td>
+      <td>catastrófica</td>
+      <td>5 improbable</td>
+      <td>1</td>
+      <td><b>5</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>fundirnos el presupuesto de IT al principio</td>
+      <td>crítica</td>
+      <td>4 ocasional</td>
+      <td>3</td>
+      <td><b>12</b></td>
+    </tr>
+    <tr>
+      <td>enfermedades el día de la presentación</td>
+      <td>serio</td>
+      <td>3 remota</td>
+      <td>2</td>
+      <td><b>6</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>que se nos olvide el ordenador para trabajar en clase</td>
+      <td>serio</td>
+      <td>3 frecuente</td>
+      <td>5</td>
+      <td><b>15</b></td>
+    </tr>
+    <tr>
+      <td>problemas en el código de otros compañeros</td>
+      <td>crítico</td>
+      <td>4 ocasional</td>
+      <td>3</td>
+      <td><b>12</b></td>
+    </tr>
+    <tr>
+      <td>hacer mal historias de usuarios</td>
+      <td>serio</td>
+      <td>3 ocasional</td>
+      <td>3</td>
+      <td><b>9</b></td>
+    </tr>
+    <tr>
+      <td>hacer mal gestión de riesgos</td>
+      <td>insignificante</td>
+      <td>1 probable</td>
+      <td>4</td>
+      <td><b>4</b></td>
+    </tr>
+    <tr>
+      <td>no emplear bien técnicas de scrum</td>
+      <td>menor</td>
+      <td>2 probable</td>
+      <td>4</td>
+      <td><b>8</b></td>
+    </tr>
+    <tr>
+      <td>equivocarse en el enfoque del proyecto</td>
+      <td>serio</td>
+      <td>3 ocasional</td>
+      <td>3</td>
+      <td><b>9</b></td>
+    </tr>
+    <tr style="border: 2px solid purple;">
+      <td>dedicar demasiado tiempo a partes no tan relevantes</td>
+      <td>menor</td>
+      <td>2 probable</td>
+      <td>4</td>
+      <td><b>8</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>desconocimiento (tecnologías, scrum, gestión de proyecto)</td>
+      <td>serio</td>
+      <td>3 frecuente</td>
+      <td>5</td>
+      <td><b>15</b></td>
+    </tr>
+    <tr>
+      <td>que nos hackeen el código</td>
+      <td>catastrófico</td>
+      <td>5 improbable</td>
+      <td>1</td>
+      <td><b>5</b></td>
+    </tr>
+    <tr>
+      <td>que nos roben los ordenadores</td>
+      <td>catastrófico</td>
+      <td>5 improbable</td>
+      <td>1</td>
+      <td><b>5</b></td>
+    </tr>
+    <tr>
+      <td>planificaciones incorrectas y demasiado ambiciosas</td>
+      <td>serio</td>
+      <td>3 ocasional</td>
+      <td>3</td>
+      <td><b>9</b></td>
+    </tr>
+    <tr>
+      <td>fallos en el código de la IA</td>
+      <td>crítico</td>
+      <td>4 ocasional</td>
+      <td>3</td>
+      <td><b>12</b></td>
+    </tr>
+    <tr>
+      <td>desarrollo erróneo de la interfaz de usuario</td>
+      <td>serio</td>
+      <td>3 ocasional</td>
+      <td>3</td>
+      <td><b>9</b></td>
+    </tr>
+    <tr>
+      <td>continua corriente de cambios en los requisitos</td>
+      <td>serio</td>
+      <td>3 ocasional</td>
+      <td>3</td>
+      <td><b>9</b></td>
+    </tr>
+    <tr>
+      <td>deficiencias en componentes proporcionados externamente</td>
+      <td>menor</td>
+      <td>2 probable</td>
+      <td>4</td>
+      <td><b>8</b></td>
+    </tr>
+    <tr>
+      <td>deficiencias en rendimiento en tiempo real</td>
+      <td>menor</td>
+      <td>2 frecuente</td>
+      <td>5</td>
+      <td><b>10</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>no ser capaces de aprovechar el potencial de las distintas tecnologías</td>
+      <td>serio</td>
+      <td>3 probable</td>
+      <td>4</td>
+      <td><b>12</b></td>
+    </tr>
+    <tr bgcolor="#00FF00">
+      <td>no llegar a la fecha final</td>
+      <td>catastrófica</td>
+      <td>5 remota</td>
+      <td>2</td>
+      <td><b>10</b></td>
+    </tr>
+    <tr>
+      <td>pandemia repentina</td>
+      <td>serio</td>
+      <td>3 improbable</td>
+      <td>1</td>
+      <td><b>3</b></td>
+    </tr>
+  </tbody>
+</table>
