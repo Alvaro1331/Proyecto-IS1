@@ -27,7 +27,7 @@ H2 como base de datos durante el desarrollo. H2 es una base de datos que vive en
 
 Git y GitHub para el control de versiones, usando TortoiseGit como interfaz gráfica. Esto nos permite trabajar los cinco de forma paralela sin pisarnos el código.
 
-¿Cómo hemos organizado el equipo?
+Organización del equipo
 
 Dado que somos 5 personas y que el proyecto tiene una parte visual (frontend) y una parte de lógica y datos (backend), decidimos dividir el equipo en dos partes a las que se dedicará mayor o menor tiempo según las necesidades del poyecto y cómo este avance:
 
@@ -35,50 +35,30 @@ Equipo Frontend: Se encargan de todo lo que el usuario ve en pantalla: los formu
 
 Equipo Backend: Se encargan de la lógica del servidor: recibir peticiones, validar datos, guardarlos en la base de datos y devolverlos al frontend. Trabajan dentro de la carpeta backend.
 
-¿Cómo está organizado el código?
 
-El repositorio tiene la siguiente estructura de carpetas:
+Lógica principal del backend:
 
-Proyecto-IS1/<br>
-├── .gitignore          ← Lista de archivos que Git debe ignorar (ej. node_modules)<br>
-├── README.md           ← Descripción del proyecto<br>
-│<br>
-├── frontend/           ← Todo lo visual (HTML, CSS, JS)<br>
-│   ├── index.html      ← Página de inicio<br>
-│   ├── css/            ← Archivos de estilos<br>
-│   ├── js/             ← Archivos JavaScript<br>
-│   └── pages/          ← Resto de páginas (login, dashboards...)<br>
-│<br>
-└── backend/            ← Todo el servidor Java<br>
-    ├── pom.xml         ← Lista de librerías que necesita Java<br>
-    └── src/main/java/com/taller/<br>
-        ├── models/       ← Las "plantillas" de los datos (Cliente, Vehiculo...)<br>
-        ├── repositories/ ← Los que hablan directamente con la base de datos<br>
-        ├── services/     ← Donde está la lógica real (las reglas del negocio)<br>
-        ├── controllers/  ← Los que reciben las peticiones del frontend<br>
-        └── dtos/         ← Los "sobres" en los que empaquetamos los datos<br>
+El servidor Java con Spring Boot ya es capaz de gestionar usuarios, el inventario del taller y el flujo completo de una reparación desde que entra el coche hasta que se entrega. Ahora mismo la API ofrece 25 puntos de conexión (endpoints) para que el frontend pueda ir desarrollándose. Ahora la base de datos funciona así:<br>
 
-Lógica principal del backend. El servidor Java con Spring Boot ya es capaz de gestionar usuarios, el inventario del taller y el flujo completo de una reparación desde que entra el coche hasta que se entrega. Ahora mismo la API ofrece 25 puntos de conexión (endpoints) para que el frontend pueda ir desarrollándose. Ahora la base de datos funciona así:<br>
+Usuarios: Aquí guardamos al personal del taller. Cada uno tiene un rol: ADMIN, RECEPCIONISTA o MECANICO. (Nota: Los clientes no van en esta tabla porque de momento no necesitan iniciar sesión, van en su propia tabla Clientes, hay que cambiarlo).<br><br>
 
-Usuarios: Aquí guardamos al personal del taller. Cada uno tiene un rol: ADMIN, RECEPCIONISTA o MECANICO. (Nota: Los clientes no van en esta tabla porque de momento no necesitan iniciar sesión, van en su propia tabla Clientes, hay que cambiarlo).<br>
-
-Materiales: Es nuestro inventario. Guardamos el nombre de las piezas (filtros, aceite, pastillas de freno), su precio y el stock disponible.<br>
+Materiales: Es nuestro inventario. Guardamos el nombre de las piezas (filtros, aceite, pastillas de freno), su precio y el stock disponible.<br><br>
 Reparaciones: Una reparación une todo:<br>
 Sabe qué coche se está arreglando.<br>
 Sabe qué recepcionista lo registró.<br>
-Sabe qué mecánico se encarga (cuando el jefe se lo asigna).<br>
+Sabe qué mecánico se encarga (cuando el jefe se lo asigna).<br><br>
 Reparación-Materiales (Tabla intermedia): Como en una reparación se pueden usar muchas piezas distintas, esta tabla apunta qué piezas y cuántas unidades se han gastado en cada reparación concreta. Además hemos hecho que una reparación no pueda estar en cualquier estado.  Sigue un camino estricto: empieza como PENDIENTE, pasa a EN_PROCESO (cuando se le asigna un mecánico), después pasa a FINALIZADA (el coche está arreglado pero sigue en el taller) y termina en ENTREGADA (el cliente se lo lleva). Hemos programado la siguiente regla: el sistema da un error si intentas saltarte pasos hacia atrás (por ejemplo, pasar un coche "Entregado" a "Pendiente").
 <br><br>
 
-¿Cómo funciona el frontend que tenemos hasta ahora?
+Estructura del frontend
 
-Para la parte visual hemos decidido usar HTML, CSS y JavaScript nativo para no complicarnos con frameworks raros. Lo bueno es que ya no son solo dibujos o pantallas sueltas: todas las páginas están conectadas con nuestro servidor de Java y muestran datos reales de la base de datos. 
+Para la parte visual hemos decidido usar HTML, CSS y JavaScript nativo. Todas las páginas están conectadas con nuestro servidor de Java y muestran datos reales de la base de datos. 
 
-La web tiene un diseño oscuro moderno y está dividida en varias pantallas según quién la use:
+La web tiene un diseño negro y naranja(a modificar) y está dividida en varias pantallas según quién la use:
 
-1. Página de inicio (index.html): Es la portada de bienvenida de la web ("TallerPro"). Explica un poco qué hace el taller y tiene un botón grande para que los clientes puedan consultar su coche rápidamente, además de un enlace para que los trabajadores inicien sesión.
+1. Página de inicio (index.html): Es la portada de bienvenida de la web. Explica un poco qué hace el taller y tiene un botón grande para que los clientes puedan consultar su coche rápidamente, además de un enlace para que los trabajadores inicien sesión.
 
-2. Consulta para clientes (pages/consulta-estado.html): Como decidimos que los clientes no necesitan crearse una cuenta, en esta pantalla cualquiera puede escribir la matrícula de su coche o su número de teléfono. Al darle a buscar, la página le enseña una tarjeta con los datos de su coche y unas etiquetas de colores que le dicen si la reparación está Pendiente, En proceso, Finalizada o si ya se ha Entregado.
+2. Consulta para clientes (pages/consulta-estado.html): Por ahora los clientes no necesitan crearse una cuenta (a modificar), en esta pantalla cualquiera puede escribir la matrícula de su coche o su número de teléfono. Al darle a buscar, la página le enseña una tarjeta con los datos de su coche y unas etiquetas de colores que le dicen si la reparación está Pendiente, En proceso, Finalizada o si ya se ha Entregado.
 
 3. Inicio de sesión (pages/login.html): Aquí entra el personal del taller con su correo y contraseña. Lo hemos programado para que sea inteligente: cuando inicias sesión, el sistema mira si eres el jefe, la recepcionista o un mecánico, y te manda automáticamente a tu panel correspondiente.
 
