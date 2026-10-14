@@ -68,7 +68,27 @@ Sabe qué coche se está arreglando.<br>
 Sabe qué recepcionista lo registró.<br>
 Sabe qué mecánico se encarga (cuando el jefe se lo asigna).<br><br>
 Reparación-Materiales (Tabla intermedia): Como en una reparación se pueden usar muchas piezas distintas, esta tabla apunta qué piezas y cuántas unidades se han gastado en cada reparación concreta. Además hemos hecho que una reparación no pueda estar en cualquier estado.  Sigue un camino estricto: empieza como PENDIENTE, pasa a EN_PROCESO (cuando se le asigna un mecánico), después pasa a FINALIZADA (el coche está arreglado pero sigue en el taller) y termina en ENTREGADA (el cliente se lo lleva). Hemos programado la siguiente regla: el sistema da un error si intentas saltarte pasos hacia atrás (por ejemplo, pasar un coche "Entregado" a "Pendiente").
+<br><br>
 
+¿Cómo funciona el frontend que tenemos hasta ahora?
+
+Para la parte visual hemos decidido usar HTML, CSS y JavaScript nativo para no complicarnos con frameworks raros. Lo bueno es que ya no son solo dibujos o pantallas sueltas: todas las páginas están conectadas con nuestro servidor de Java y muestran datos reales de la base de datos. 
+
+La web tiene un diseño oscuro moderno y está dividida en varias pantallas según quién la use:
+
+1. Página de inicio (index.html): Es la portada de bienvenida de la web ("TallerPro"). Explica un poco qué hace el taller y tiene un botón grande para que los clientes puedan consultar su coche rápidamente, además de un enlace para que los trabajadores inicien sesión.
+
+2. Consulta para clientes (pages/consulta-estado.html): Como decidimos que los clientes no necesitan crearse una cuenta, en esta pantalla cualquiera puede escribir la matrícula de su coche o su número de teléfono. Al darle a buscar, la página le enseña una tarjeta con los datos de su coche y unas etiquetas de colores que le dicen si la reparación está Pendiente, En proceso, Finalizada o si ya se ha Entregado.
+
+3. Inicio de sesión (pages/login.html): Aquí entra el personal del taller con su correo y contraseña. Lo hemos programado para que sea inteligente: cuando inicias sesión, el sistema mira si eres el jefe, la recepcionista o un mecánico, y te manda automáticamente a tu panel correspondiente.
+
+4. Panel de la recepcionista (pages/dashboard-recepcionista.html): Tiene tres pestañas para hacer el trabajo del día a día: una para registrar un coche nuevo junto a su dueño, otra para abrir una nueva avería, y una lista para ver todos los clientes y coches que tenemos guardados.
+
+5. Panel del mecánico (pages/dashboard-mecanico.html): Aquí cada mecánico ve una lista con solo las reparaciones que el jefe le ha asignado a él. Puede darle a un botón para cambiar el estado a "En proceso" o "Finalizada", y además tiene un apartado para marcar qué piezas ha gastado del almacén (por ejemplo, 2 filtros de aceite), lo que resta automáticamente esas piezas del stock para no tener que contarlas a mano.
+
+6. Panel del administrador / jefe (pages/dashboard-admin.html): Es el panel más completo porque el jefe tiene que poder controlarlo todo. Desde aquí puede crear nuevos empleados, ver todas las reparaciones y decidir qué mecánico se encarga de cada una, y gestionar el almacén de piezas (con avisos automáticos en rojo si alguna pieza se está agotando).
+
+7. Archivos compartidos (app.js y styles.css): Hemos creado un archivo de JavaScript común que se encarga de hablar con el servidor Java (haciendo peticiones a http://localhost:8080/api) y de mostrar los avisos y carteles en pantalla, además de una hoja de estilos para que toda la web tenga los mismos colores y botones.
 <br>
 <br>
 
