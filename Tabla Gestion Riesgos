@@ -1,1 +1,36 @@
-https://docs.google.com/spreadsheets/d/1MW56hafAgmwaoO9EJyFgFmNxFN0V7_G__mc2VE-RnM4/edit?usp=sharing
+| RIESGO | REPERCUCIÓN | PROBABILIDAD | VALOR | IMPORTANCIA DEL RIESGO |
+| :--- | :--- | :--- | :---: | :---: |
+| insuficiente espacio en la RAM | serio | 3 probable | 4 | **12** |
+| que funcione en todos nuestros ordenadores | serio | 3 remota | 2 | **6** |
+| gestión del github (personas trabajando a la vez, que alguien no haga push, que alguien no haga pull y trabaje) | menor | 2 ocasional | 3 | **6** |
+| problemas con la migración de base de datos | crítica | 4 ocasional | 3 | **12** |
+| delegar demasiado en la IA | crítica | 4 frecuente | 5 | **20** |
+| error en la conexión del backend y frontend | catastrófica | 5 ocasional | 3 | **15** |
+| equivocación de los usuarios con los datos | insignificante | 1 probable | 4 | **4** |
+| no llegar a la fecha semanal | menor | 2 ocasional | 3 | **6** |
+| falta de comunicación entre los miembros del equipo | crítica | 4 frecuente | 5 | **20** |
+| no disponibilidad de los miembros | serio | 3 ocasional | 3 | **9** |
+| perder la contraseña del github | serio | 3 remota | 2 | **6** |
+| huelga muy larga | menor | 2 improbable | 1 | **2** |
+| que se vaya la luz por un tiempo significante | catastrófica | 5 improbable | 1 | **5** |
+| fundirnos el presupuesto de IT al principio | crítica | 4 ocasional | 3 | **12** |
+| enfermedades el día de la presentación | serio | 3 remota | 2 | **6** |
+| que se nos olvide el ordenador para trabajar en clase | serio | 3 frecuente | 5 | **15** |
+| problemas en el código de otros compañeros | crítico | 4 ocasional | 3 | **12** |
+| hacer mal historias de usuarios | serio | 3 ocasional | 3 | **9** |
+| hacer mal gestión de riesgos | insignificante | 1 probable | 4 | **4** |
+| no emplear bien técnicas de scrum | menor | 2 probable | 4 | **8** |
+| equivocarse en el enfoque del proyecto | serio | 3 ocasional | 3 | **9** |
+| dedicar demasiado tiempo a partes no tan relevantes | menor | 2 probable | 4 | **8** |
+| desconocimiento (tecnologías, scrum, gestión de proyecto) | serio | 3 frecuente | 5 | **15** |
+| que nos hackeen el código | catastrófico | 5 improbable | 1 | **5** |
+| que nos roben los ordenadores | catastrófico | 5 improbable | 1 | **5** |
+| planificaciones incorrectas y demasiado ambiciosas | serio | 3 ocasional | 3 | **9** |
+| fallos en el código de la IA | crítico | 4 ocasional | 3 | **12** |
+| desarrollo erróneo de la interfaz de usuario | serio | 3 ocasional | 3 | **9** |
+| continua corriente de cambios en los requisitos | serio | 3 ocasional | 3 | **9** |
+| deficiencias en componentes proporcionados externamente | menor | 2 probable | 4 | **8** |
+| deficiencias en rendimiento en tiempo real | menor | 2 frecuente | 5 | **10** |
+| no ser capaces de aprovechar el potencial de las distintas tecnologías | serio | 3 probable | 4 | **12** |
+| no llegar a la fecha final | catastrófica | 5 remota | 2 | **10** |
+| pandemia repentina | serio | 3 improbable | 1 | **3** |
