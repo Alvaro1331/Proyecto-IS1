@@ -263,7 +263,8 @@
                     vehiculos.forEach(v => {
                         const option = document.createElement('option');
                         option.value = v.id;
-                        option.textContent = `${v.matricula} - ${v.marca} ${v.modelo} (${v.cliente?.nombre || 'Sin cliente'})`;
+                        const clientName = v.clienteNombre || v.cliente?.nombre || 'Sin cliente';
+                        option.textContent = `${v.matricula} - ${v.marca} ${v.modelo} (${clientName})`;
                         select.appendChild(option);
                     });
                 }
@@ -280,13 +281,16 @@
             const alertsContainer = document.getElementById('alerts-container');
             
             const payload = {
-                matricula: document.getElementById('veh-matricula').value.toUpperCase(),
-                marca: document.getElementById('veh-marca').value,
-                modelo: document.getElementById('veh-modelo').value,
+                matricula: document.getElementById('veh-matricula').value.toUpperCase().trim(),
+                marca: document.getElementById('veh-marca').value.trim(),
+                modelo: document.getElementById('veh-modelo').value.trim(),
+                ano: parseInt(document.getElementById('veh-anio').value, 10),
                 anio: parseInt(document.getElementById('veh-anio').value, 10),
+                clienteNombre: document.getElementById('veh-cliente-nombre').value.trim(),
+                clienteTelefono: document.getElementById('veh-cliente-tel').value.trim(),
                 cliente: {
-                    nombre: document.getElementById('veh-cliente-nombre').value,
-                    telefono: document.getElementById('veh-cliente-tel').value
+                    nombre: document.getElementById('veh-cliente-nombre').value.trim(),
+                    telefono: document.getElementById('veh-cliente-tel').value.trim()
                 }
             };
             
@@ -406,13 +410,15 @@
                 }
                 vehiculos.forEach(v => {
                     const tr = document.createElement('tr');
+                    const anoVal = v.ano || v.anio || '-';
+                    const clienteVal = v.clienteNombre || v.cliente?.nombre || '-';
                     tr.innerHTML = `
                         <td>${v.id}</td>
                         <td class="mat-cell">${v.matricula}</td>
                         <td>${v.marca}</td>
                         <td>${v.modelo}</td>
-                        <td>${v.anio}</td>
-                        <td>${v.cliente?.nombre || '-'}</td>
+                        <td>${anoVal}</td>
+                        <td>${clienteVal}</td>
                     `;
                     tbody.appendChild(tr);
                 });
