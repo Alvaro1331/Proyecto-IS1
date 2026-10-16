@@ -10,6 +10,7 @@ import java.time.LocalDate;
 public class ReparacionResponseDTO {
 
     private Long id;
+    private String localizador;
     private String matriculaVehiculo;
     private String marcaVehiculo;
     private String modeloVehiculo;
@@ -24,12 +25,13 @@ public class ReparacionResponseDTO {
     private String mensaje;
 
     // Constructor completo
-    public ReparacionResponseDTO(Long id, String matriculaVehiculo, String marcaVehiculo,
+    public ReparacionResponseDTO(Long id, String localizador, String matriculaVehiculo, String marcaVehiculo,
                                   String modeloVehiculo, String nombreCliente, String telefonoCliente,
                                   String nombreMecanico, String nombreRecepcionista,
                                   LocalDate fechaEntrada, LocalDate fechaSalida,
                                   String estado, String descripcionAveria, String mensaje) {
         this.id = id;
+        this.localizador = localizador;
         this.matriculaVehiculo = matriculaVehiculo;
         this.marcaVehiculo = marcaVehiculo;
         this.modeloVehiculo = modeloVehiculo;
@@ -46,6 +48,7 @@ public class ReparacionResponseDTO {
 
     // --- Getters ---
     public Long getId() { return id; }
+    public String getLocalizador() { return localizador; }
     public String getMatriculaVehiculo() { return matriculaVehiculo; }
     public String getMarcaVehiculo() { return marcaVehiculo; }
     public String getModeloVehiculo() { return modeloVehiculo; }

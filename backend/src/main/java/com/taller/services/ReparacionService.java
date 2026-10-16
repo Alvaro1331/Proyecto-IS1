@@ -27,6 +27,8 @@ public class ReparacionService {
     /**
      * Crea una nueva reparación para un vehículo.
      * Se crea en estado PENDIENTE y sin mecánico asignado.
+     * Se genera automáticamente un código localizador único
+     * para que el cliente pueda consultar el estado de su reparación.
      */
     public ReparacionResponseDTO crearReparacion(ReparacionRequestDTO dto) {
         // Buscar el vehículo
@@ -44,11 +46,24 @@ public class ReparacionService {
                     "El usuario " + recepcionista.getNombre() + " no tiene permisos de recepcionista.");
         }
 
-        // Crear la reparación
+        // Crear la reparación (el localizador se genera automáticamente en el constructor)
         Reparacion reparacion = new Reparacion(vehiculo, recepcionista, dto.getDescripcionAveria());
         reparacionRepository.save(reparacion);
 
-        return convertirAResponseDTO(reparacion, "Reparación creada correctamente.");
+        return convertirAResponseDTO(reparacion,
+                "Reparación creada correctamente. Localizador: " + reparacion.getLocalizador());
+    }
+
+    /**
+     * Busca una reparación por su código localizador.
+     * Este es el endpoint público que usan los clientes para consultar
+     * el estado de su reparación sin necesidad de iniciar sesión.
+     */
+    public ReparacionResponseDTO obtenerPorLocalizador(String localizador) {
+        Reparacion reparacion = reparacionRepository.findByLocalizador(localizador.toUpperCase())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No se encontró ninguna reparación con el código: " + localizador));
+        return convertirAResponseDTO(reparacion, null);
     }
 
     /**
@@ -182,6 +197,7 @@ public class ReparacionService {
     private ReparacionResponseDTO convertirAResponseDTO(Reparacion reparacion, String mensaje) {
         return new ReparacionResponseDTO(
                 reparacion.getId(),
+                reparacion.getLocalizador(),
                 reparacion.getVehiculo().getMatricula(),
                 reparacion.getVehiculo().getMarca(),
                 reparacion.getVehiculo().getModelo(),

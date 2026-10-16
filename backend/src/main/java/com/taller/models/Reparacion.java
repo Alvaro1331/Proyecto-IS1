@@ -1,6 +1,7 @@
 package com.taller.models;
 
 import jakarta.persistence.*;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -19,9 +20,17 @@ import java.util.List;
 @Table(name = "reparaciones")
 public class Reparacion {
 
+    private static final String CARACTERES_LOCALIZADOR = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+    private static final int LONGITUD_LOCALIZADOR = 8;
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Código alfanumérico único para que el cliente consulte el estado de su reparación
+    @Column(unique = true, nullable = false, length = 8)
+    private String localizador;
 
     // El vehículo que se está reparando
     @ManyToOne
@@ -59,6 +68,7 @@ public class Reparacion {
     public Reparacion() {}
 
     public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria) {
+        this.localizador = generarLocalizador();
         this.vehiculo = vehiculo;
         this.recepcionista = recepcionista;
         this.descripcionAveria = descripcionAveria;
@@ -66,9 +76,25 @@ public class Reparacion {
         this.estado = EstadoReparacion.PENDIENTE;
     }
 
+    /**
+     * Genera un código localizador aleatorio de 8 caracteres alfanuméricos.
+     * Excluye caracteres confusos como O, 0, I, 1, L.
+     */
+    public static String generarLocalizador() {
+        StringBuilder sb = new StringBuilder(LONGITUD_LOCALIZADOR);
+        for (int i = 0; i < LONGITUD_LOCALIZADOR; i++) {
+            int index = RANDOM.nextInt(CARACTERES_LOCALIZADOR.length());
+            sb.append(CARACTERES_LOCALIZADOR.charAt(index));
+        }
+        return sb.toString();
+    }
+
     // --- Getters y Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getLocalizador() { return localizador; }
+    public void setLocalizador(String localizador) { this.localizador = localizador; }
 
     public Vehiculo getVehiculo() { return vehiculo; }
     public void setVehiculo(Vehiculo vehiculo) { this.vehiculo = vehiculo; }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - TallerPro</title>
+    <title>Acceso al Sistema - TallerPro</title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
         body {
@@ -15,6 +15,8 @@
             margin: 0;
             font-family: sans-serif;
             color: var(--color-text);
+            padding: 1.5rem;
+            box-sizing: border-box;
         }
         .login-container {
             background-color: var(--color-bg-card);
@@ -22,26 +24,49 @@
             border-radius: 8px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
             width: 100%;
-            max-width: 400px;
+            max-width: 440px;
         }
         .login-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
         .login-header h1 {
             color: var(--color-primary);
             margin: 0;
-            font-size: 2.5rem;
+            font-size: 2.3rem;
             font-weight: 700;
         }
-        .form-group {
+        .tabs-header {
+            display: flex;
+            border-bottom: 2px solid var(--color-border);
             margin-bottom: 1.5rem;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 0.5rem;
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+        .form-group {
+            margin-bottom: 1.25rem;
         }
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             color: var(--color-text-muted);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .form-control {
             width: 100%;
@@ -51,7 +76,7 @@
             background-color: var(--color-bg-dark);
             color: var(--color-text);
             box-sizing: border-box;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         .form-control:focus {
             outline: none;
@@ -73,29 +98,38 @@
         .btn-primary:hover {
             background-color: var(--color-primary-dark);
         }
-        .btn-primary:active {
-            transform: translateY(1px);
-        }
         .btn-primary:disabled {
             background-color: var(--color-text-muted);
             cursor: not-allowed;
-            transform: none;
         }
         .alert-container {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .sub-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+        }
+        .sub-toggle a {
+            color: var(--color-primary-light);
+            text-decoration: underline;
+            cursor: pointer;
         }
         .links {
             margin-top: 1.5rem;
             text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.6rem;
+            border-top: 1px solid var(--color-border);
+            padding-top: 1rem;
         }
         .links a {
             color: var(--color-primary-light);
             text-decoration: none;
-            font-size: 0.9rem;
-            transition: color 0.2s;
+            font-size: 0.85rem;
         }
         .links a:hover {
             color: var(--color-primary);
@@ -108,114 +142,229 @@
     <div class="login-container">
         <div class="login-header">
             <h1>TallerPro</h1>
-            <p style="color: var(--color-text-muted); margin-top: 0.5rem;">Gestión integral de taller</p>
+            <p style="color: var(--color-text-muted); margin-top: 0.3rem;">Acceso al sistema del taller</p>
+        </div>
+
+        <div class="tabs-header">
+            <button class="tab-btn active" id="tab-staff-btn" onclick="switchMainTab('staff')">Personal del Taller</button>
+            <button class="tab-btn" id="tab-client-btn" onclick="switchMainTab('client')">Área Clientes</button>
         </div>
 
         <div id="alert-container" class="alert-container"></div>
 
-        <form id="login-form">
-            <div class="form-group">
-                <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" class="form-control" placeholder="correo@taller.com" required>
+        <!-- FORMULARIO 1: Personal del taller (Admin, Recepcionista, Mecánico) -->
+        <div id="section-staff">
+            <form id="form-staff" onsubmit="handleStaffLogin(event)">
+                <div class="form-group">
+                    <label for="staff-email">Correo Electrónico</label>
+                    <input type="email" id="staff-email" class="form-control" placeholder="empleado@taller.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="staff-password">Contraseña</label>
+                    <input type="password" id="staff-password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" id="btn-staff-submit" class="btn-primary">Iniciar Sesión Empleado</button>
+            </form>
+        </div>
+
+        <!-- SECCIÓN 2: Clientes (Login o Registro) -->
+        <div id="section-client" style="display: none;">
+            
+            <!-- Login Cliente -->
+            <div id="client-login-view">
+                <form id="form-client-login" onsubmit="handleClientLogin(event)">
+                    <div class="form-group">
+                        <label for="client-user">Correo Electrónico o Teléfono</label>
+                        <input type="text" id="client-user" class="form-control" placeholder="juan@email.com o 611111111" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="client-password">Contraseña</label>
+                        <input type="password" id="client-password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="btn-client-login-submit" class="btn-primary">Entrar a mi Cuenta</button>
+                </form>
+                <div class="sub-toggle" style="margin-top: 1rem;">
+                    <span>¿No tienes cuenta? <a onclick="toggleClientMode('register')">Regístrate aquí</a></span>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="password">Contraseña</label>
-                <input type="password" id="password" class="form-control" placeholder="Contraseña" required>
+
+            <!-- Registro Cliente -->
+            <div id="client-register-view" style="display: none;">
+                <form id="form-client-register" onsubmit="handleClientRegister(event)">
+                    <div class="form-group">
+                        <label for="reg-nombre">Nombre y Apellidos</label>
+                        <input type="text" id="reg-nombre" class="form-control" placeholder="Ej. Juan Pérez" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-telefono">Teléfono de Contacto</label>
+                        <input type="tel" id="reg-telefono" class="form-control" placeholder="Ej. 611111111" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Correo Electrónico</label>
+                        <input type="email" id="reg-email" class="form-control" placeholder="juan@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Crea tu Contraseña</label>
+                        <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required minlength="4">
+                    </div>
+                    <button type="submit" id="btn-client-reg-submit" class="btn-primary">Crear mi Cuenta de Cliente</button>
+                </form>
+                <div class="sub-toggle" style="margin-top: 1rem;">
+                    <span>¿Ya tienes cuenta? <a onclick="toggleClientMode('login')">Inicia sesión</a></span>
+                </div>
             </div>
-            <button type="submit" id="btn-submit" class="btn-primary">Iniciar Sesión</button>
-        </form>
+
+        </div>
 
         <div class="links">
-            <a href="consulta-estado.html">¿Quieres consultar el estado de tu coche?</a>
-            <a href="../index.html">Volver al inicio</a>
+            <a href="consulta-estado.html">🔍 Consultar estado con código localizador (sin cuenta)</a>
+            <a href="../index.html">← Volver al inicio</a>
         </div>
     </div>
 
     <script src="../js/app.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('login-form');
-            const alertContainer = document.getElementById('alert-container');
-            const btnSubmit = document.getElementById('btn-submit');
+        function switchMainTab(tab) {
+            const staffBtn = document.getElementById('tab-staff-btn');
+            const clientBtn = document.getElementById('tab-client-btn');
+            const staffSec = document.getElementById('section-staff');
+            const clientSec = document.getElementById('section-client');
+            const alertCont = document.getElementById('alert-container');
+            alertCont.innerHTML = '';
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            if (tab === 'staff') {
+                staffBtn.classList.add('active');
+                clientBtn.classList.remove('active');
+                staffSec.style.display = 'block';
+                clientSec.style.display = 'none';
+            } else {
+                clientBtn.classList.add('active');
+                staffBtn.classList.remove('active');
+                staffSec.style.display = 'none';
+                clientSec.style.display = 'block';
+            }
+        }
 
-                const email = document.getElementById('email').value.trim();
-                const password = document.getElementById('password').value.trim();
+        function toggleClientMode(mode) {
+            const loginView = document.getElementById('client-login-view');
+            const regView = document.getElementById('client-register-view');
+            const alertCont = document.getElementById('alert-container');
+            alertCont.innerHTML = '';
 
-                alertContainer.innerHTML = '';
+            if (mode === 'register') {
+                loginView.style.display = 'none';
+                regView.style.display = 'block';
+            } else {
+                loginView.style.display = 'block';
+                regView.style.display = 'none';
+            }
+        }
 
-                if (typeof toggleLoading === 'function') {
-                    toggleLoading(btnSubmit, true);
+        // 1. Login Empleado (Usuario)
+        async function handleStaffLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-staff-submit');
+            const email = document.getElementById('staff-email').value.trim();
+            const password = document.getElementById('staff-password').value.trim();
+            const alertCont = document.getElementById('alert-container');
+
+            toggleLoading(btn, true);
+            alertCont.innerHTML = '';
+
+            try {
+                const res = await apiFetch('/usuarios/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                sessionStorage.setItem('usuario', JSON.stringify(res));
+
+                if (res.rol === 'ADMIN') {
+                    window.location.href = 'dashboard-admin.html';
+                } else if (res.rol === 'RECEPCIONISTA') {
+                    window.location.href = 'dashboard-recepcionista.html';
+                } else if (res.rol === 'MECANICO') {
+                    window.location.href = 'dashboard-mecanico.html';
                 } else {
-                    btnSubmit.disabled = true;
-                    btnSubmit.textContent = 'Cargando...';
+                    window.location.href = '../index.html';
                 }
+            } catch (err) {
+                mostrarAlerta(err.message || 'Error en las credenciales de empleado.', 'error', alertCont);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
 
-                try {
-                    let responseData;
-                    if (typeof apiFetch === 'function') {
-                        responseData = await apiFetch('/usuarios/login', {
-                            method: 'POST',
-                            body: JSON.stringify({ email, password })
-                        });
-                    } else {
-                        const API_BASE_URL = typeof API_BASE !== 'undefined' ? API_BASE : 'http://localhost:8080/api';
-                        const res = await fetch(`${API_BASE_URL}/usuarios/login`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ email, password })
-                        });
-                        
-                        if (!res.ok) {
-                            let errorMessage = 'Error en las credenciales';
-                            try {
-                                const errData = await res.json();
-                                errorMessage = errData.message || errorMessage;
-                            } catch (e) {
-                            }
-                            throw new Error(errorMessage);
-                        }
-                        responseData = await res.json();
-                    }
+        // 2. Login Cliente
+        async function handleClientLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-client-login-submit');
+            const emailOrTelefono = document.getElementById('client-user').value.trim();
+            const password = document.getElementById('client-password').value.trim();
+            const alertCont = document.getElementById('alert-container');
 
-                    sessionStorage.setItem('usuario', JSON.stringify(responseData));
-                    
-                    const rol = responseData.rol;
-                    if (rol === 'ADMIN') {
-                        window.location.href = 'dashboard-admin.html';
-                    } else if (rol === 'RECEPCIONISTA') {
-                        window.location.href = 'dashboard-recepcionista.html';
-                    } else if (rol === 'MECANICO') {
-                        window.location.href = 'dashboard-mecanico.html';
-                    } else {
-                        window.location.href = '../index.html'; 
-                    }
+            toggleLoading(btn, true);
+            alertCont.innerHTML = '';
 
-                } catch (error) {
-                    const errorMsg = error.message || 'Error al iniciar sesión';
-                    if (typeof mostrarAlerta === 'function') {
-                        mostrarAlerta(errorMsg, 'error', alertContainer);
-                    } else {
-                        alertContainer.innerHTML = `
-                            <div style="color: var(--color-danger); background: rgba(220, 38, 38, 0.1); border: 1px solid var(--color-danger); padding: 0.75rem; border-radius: 4px; font-size: 0.9rem;">
-                                ${errorMsg}
-                            </div>
-                        `;
-                    }
-                } finally {
-                    if (typeof toggleLoading === 'function') {
-                        toggleLoading(btnSubmit, false);
-                    } else {
-                        btnSubmit.disabled = false;
-                        btnSubmit.textContent = 'Iniciar Sesión';
-                    }
-                }
-            });
-        });
+            try {
+                const res = await apiFetch('/clientes/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emailOrTelefono, password })
+                });
+
+                sessionStorage.setItem('usuario', JSON.stringify(res));
+                window.location.href = 'dashboard-cliente.html';
+            } catch (err) {
+                mostrarAlerta(err.message || 'Error en las credenciales del cliente.', 'error', alertCont);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        // 3. Registro Cliente
+        async function handleClientRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-client-reg-submit');
+            const alertCont = document.getElementById('alert-container');
+
+            const payload = {
+                nombre: document.getElementById('reg-nombre').value.trim(),
+                telefono: document.getElementById('reg-telefono').value.trim(),
+                email: document.getElementById('reg-email').value.trim(),
+                password: document.getElementById('reg-password').value.trim()
+            };
+
+            toggleLoading(btn, true);
+            alertCont.innerHTML = '';
+
+            try {
+                const res = await apiFetch('/clientes/registro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Auto-login upon registration
+                sessionStorage.setItem('usuario', JSON.stringify({
+                    id: res.id,
+                    nombre: res.nombre,
+                    email: res.email,
+                    telefono: res.telefono,
+                    rol: 'CLIENTE'
+                }));
+
+                mostrarAlerta('¡Cuenta creada con éxito! Redirigiendo...', 'success', alertCont);
+                setTimeout(() => {
+                    window.location.href = 'dashboard-cliente.html';
+                }, 1000);
+            } catch (err) {
+                mostrarAlerta(err.message || 'Error al registrar la cuenta.', 'error', alertCont);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
     </script>
 </body>
 </html>

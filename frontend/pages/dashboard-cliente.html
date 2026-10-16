@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Cuenta - TallerPro</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .profile-card {
+            background-color: var(--color-bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .vincular-card {
+            background-color: var(--color-bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--color-border);
+        }
+        .vincular-form {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .vincular-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-dark);
+            color: var(--color-text);
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+        }
+        .repairs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .repair-card {
+            background-color: var(--color-bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .repair-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .repair-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--color-primary);
+        }
+        .repair-body {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .repair-meta {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            border-top: 1px solid var(--color-border);
+            padding-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            background: var(--color-bg-card);
+            border-radius: 8px;
+            border: 1px dashed var(--color-border);
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container flex justify-between items-center">
+            <div class="nav-brand">TallerPro</div>
+            <div class="nav-links flex items-center" style="gap: 1rem;">
+                <a href="consulta-estado.html">Consulta Pública</a>
+                <span id="nav-user-name" style="color: var(--color-text-muted); font-size: 0.95rem;"></span>
+                <button onclick="logout()" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container" style="margin-top: 2rem;">
+        <div id="alerts-container"></div>
+
+        <!-- Perfil del Cliente -->
+        <div class="profile-card">
+            <div>
+                <h2 id="profile-name" style="margin: 0 0 0.5rem 0;">Cargando perfil...</h2>
+                <div style="color: var(--color-text-muted); font-size: 0.95rem;">
+                    <span>📧 <span id="profile-email">-</span></span> | 
+                    <span>📱 <span id="profile-phone">-</span></span>
+                </div>
+            </div>
+            <div>
+                <span class="badge badge-process" style="font-size: 0.9rem;">Cuenta Cliente</span>
+            </div>
+        </div>
+
+        <!-- Formulario para Vincular Localizador -->
+        <div class="vincular-card">
+            <h3 style="margin: 0;">➕ Vincular Nueva Reparación a tu Cuenta</h3>
+            <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+                Introduce el código localizador que te dio el recepcionista para guardarlo en tu cuenta y ver siempre su estado.
+            </p>
+            <form id="form-vincular" class="vincular-form" onsubmit="vincularLocalizador(event)">
+                <input type="text" id="input-localizador" placeholder="Ej. A3F7K9X2" maxlength="12" required>
+                <button type="submit" id="btn-vincular" class="btn btn-primary">Vincular a mi Cuenta</button>
+            </form>
+        </div>
+
+        <!-- Mis Reparaciones Guardadas -->
+        <div>
+            <h3 style="margin-bottom: 1rem;">🚗 Mis Vehículos y Reparaciones Guardadas</h3>
+            <div id="repairs-container" class="repairs-grid">
+                <div class="empty-state">Cargando tus reparaciones...</div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = getUsuarioActual();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('nav-user-name').textContent = user.nombre || 'Cliente';
+            document.getElementById('profile-name').textContent = user.nombre || 'Cliente';
+            document.getElementById('profile-email').textContent = user.email || 'Sin correo registrado';
+            document.getElementById('profile-phone').textContent = user.telefono || 'Sin teléfono';
+
+            cargarMisReparaciones();
+        });
+
+        async function cargarMisReparaciones() {
+            const user = getUsuarioActual();
+            const container = document.getElementById('repairs-container');
+            const alerts = document.getElementById('alerts-container');
+
+            try {
+                const reparaciones = await apiFetch(`/clientes/${user.id}/mis-reparaciones`);
+                
+                if (!reparaciones || reparaciones.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <p style="margin: 0; font-size: 1.1rem; color: var(--color-text);">No tienes ninguna reparación vinculada todavía.</p>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Pide tu código localizador en el taller e introdúcelo arriba para guardarla aquí.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = '';
+                reparaciones.forEach(r => {
+                    const card = document.createElement('div');
+                    card.className = 'repair-card';
+                    card.innerHTML = `
+                        <div>
+                            <div class="repair-header">
+                                <span class="repair-title">${r.marca} ${r.modelo} (${r.matricula})</span>
+                                ${crearBadgeEstado(r.estado)}
+                            </div>
+                            <div class="repair-body">
+                                <strong>Avería:</strong>
+                                <p style="margin: 0.25rem 0 0 0; color: var(--color-text-muted);">${r.descripcionAveria || 'Sin avería especificada'}</p>
+                            </div>
+                        </div>
+                        <div class="repair-meta">
+                            <div><strong>Localizador:</strong> <span style="font-family: monospace; color: var(--color-primary); font-size: 1rem;">${r.localizador}</span></div>
+                            <div><strong>Fecha Entrada:</strong> ${r.fechaEntrada ? formatearFecha(r.fechaEntrada) : 'N/A'}</div>
+                            <div><strong>Mecánico:</strong> ${r.mecanico || 'Pendiente de asignar'}</div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                mostrarAlerta(error.message || 'Error al cargar tus reparaciones.', 'error', alerts);
+            }
+        }
+
+        async function vincularLocalizador(e) {
+            e.preventDefault();
+            const user = getUsuarioActual();
+            const btn = document.getElementById('btn-vincular');
+            const input = document.getElementById('input-localizador');
+            const codigo = input.value.trim().toUpperCase();
+            const alerts = document.getElementById('alerts-container');
+
+            if (!codigo) return;
+
+            toggleLoading(btn, true);
+
+            try {
+                const res = await apiFetch(`/clientes/${user.id}/vincular`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ localizador: codigo })
+                });
+
+                mostrarAlerta(res.mensaje || '¡Reparación vinculada con éxito!', 'success', alerts);
+                input.value = '';
+                cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message || 'No se pudo vincular la reparación.', 'error', alerts);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+    </script>
+</body>
+</html>

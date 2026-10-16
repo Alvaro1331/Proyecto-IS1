@@ -20,6 +20,7 @@ import java.util.Map;
  * │ POST   /api/reparaciones                          → Crear nueva reparación           │
  * │ GET    /api/reparaciones                          → Listar todas las reparaciones    │
  * │ GET    /api/reparaciones/{id}                     → Buscar reparación por ID          │
+ * │ GET    /api/reparaciones/localizador/{codigo}     → Buscar por código localizador     │
  * │ PUT    /api/reparaciones/{id}/asignar/{mecanicoId}→ Asignar mecánico                  │
  * │ PUT    /api/reparaciones/{id}/estado              → Actualizar estado                 │
  * │ GET    /api/reparaciones/estado/{estado}          → Filtrar por estado                │
@@ -54,6 +55,21 @@ public class ReparacionController {
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(reparacionService.obtenerPorId(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Busca una reparación por su código localizador.
+     * Este endpoint es PÚBLICO: lo usan los clientes para consultar
+     * el estado de su coche sin necesidad de iniciar sesión.
+     * GET /api/reparaciones/localizador/A3F7K9X2
+     */
+    @GetMapping("/localizador/{codigo}")
+    public ResponseEntity<?> obtenerPorLocalizador(@PathVariable String codigo) {
+        try {
+            return ResponseEntity.ok(reparacionService.obtenerPorLocalizador(codigo));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }

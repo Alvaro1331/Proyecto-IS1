@@ -41,9 +41,12 @@ public class DatosPrueba implements CommandLineRunner {
         usuarioRepository.save(mec2);
 
         // ======== CLIENTES ========
-        Cliente cliente1 = new Cliente("Juan Pérez", "611111111");
+        // Cliente 1: Juan tiene cuenta creada (puede iniciar sesión)
+        Cliente cliente1 = new Cliente("Juan Pérez", "611111111", "juan@email.com", "juan123");
+        // Cliente 2: María NO tiene cuenta (solo fue registrada por el recepcionista)
         Cliente cliente2 = new Cliente("María Sánchez", "622222222");
-        Cliente cliente3 = new Cliente("Carlos Fernández", "633333333");
+        // Cliente 3: Carlos tiene cuenta
+        Cliente cliente3 = new Cliente("Carlos Fernández", "633333333", "carlos@email.com", "carlos123");
 
         clienteRepository.save(cliente1);
         clienteRepository.save(cliente2);
@@ -69,7 +72,7 @@ public class DatosPrueba implements CommandLineRunner {
         materialRepository.save(new Material("Correa de distribución", "Kit completo con tensor", 3, 120.00));
         materialRepository.save(new Material("Bujías", "Set de 4 unidades, iridio", 25, 22.00));
 
-        // ======== REPARACIONES ========
+        // ======== REPARACIONES (cada una genera un localizador automáticamente) ========
         // Reparación 1: Pendiente (sin mecánico asignado)
         Reparacion rep1 = new Reparacion(v1, recep1, "El motor hace un ruido extraño al acelerar.");
         reparacionRepository.save(rep1);
@@ -86,10 +89,27 @@ public class DatosPrueba implements CommandLineRunner {
         rep3.setEstado(EstadoReparacion.FINALIZADA);
         reparacionRepository.save(rep3);
 
+        // Vincular reparaciones a las cuentas de los clientes que tienen cuenta
+        cliente1.getReparacionesVinculadas().add(rep1);
+        clienteRepository.save(cliente1);
+
+        cliente3.getReparacionesVinculadas().add(rep3);
+        clienteRepository.save(cliente3);
+
         System.out.println("=========================================");
         System.out.println("  DATOS DE PRUEBA CARGADOS CORRECTAMENTE");
         System.out.println("  4 usuarios, 3 clientes, 4 vehículos,");
         System.out.println("  7 materiales, 3 reparaciones");
+        System.out.println("=========================================");
+        System.out.println("  CUENTAS DE CLIENTE DE PRUEBA:");
+        System.out.println("  · juan@email.com / juan123");
+        System.out.println("  · carlos@email.com / carlos123");
+        System.out.println("  · María NO tiene cuenta (solo localizador)");
+        System.out.println("=========================================");
+        System.out.println("  LOCALIZADORES DE PRUEBA:");
+        System.out.println("  · Reparación 1 (Toyota): " + rep1.getLocalizador());
+        System.out.println("  · Reparación 2 (Seat):   " + rep2.getLocalizador());
+        System.out.println("  · Reparación 3 (VW):     " + rep3.getLocalizador());
         System.out.println("=========================================");
     }
 }
