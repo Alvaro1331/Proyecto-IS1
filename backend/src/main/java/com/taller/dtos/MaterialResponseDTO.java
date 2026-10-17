@@ -27,6 +27,7 @@ public class MaterialResponseDTO {
     public String getNombre() { return nombre; }
     public String getDescripcion() { return descripcion; }
     public Integer getStockDisponible() { return stockDisponible; }
+    public Integer getStock() { return stockDisponible; }
     public Double getPrecioUnitario() { return precioUnitario; }
     public String getMensaje() { return mensaje; }
 }

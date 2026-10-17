@@ -112,6 +112,12 @@ public class ReparacionService {
         // Validar que el flujo tenga sentido
         validarTransicionEstado(reparacion.getEstado(), nuevoEstado);
 
+        // Impedir que una reparación esté EN_PROCESO, FINALIZADA o ENTREGADA sin mecánico asignado
+        if (nuevoEstado != EstadoReparacion.PENDIENTE && reparacion.getMecanico() == null) {
+            throw new IllegalArgumentException(
+                    "No se puede cambiar el estado a " + nuevoEstado + " porque la reparación no tiene ningún mecánico asignado.");
+        }
+
         reparacion.setEstado(nuevoEstado);
 
         // Si se marca como finalizada o entregada, guardamos la fecha de salida

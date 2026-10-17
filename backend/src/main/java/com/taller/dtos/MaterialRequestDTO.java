@@ -39,6 +39,11 @@ public class MaterialRequestDTO {
 
     public Integer getStockDisponible() { return stockDisponible; }
     public void setStockDisponible(Integer stockDisponible) { this.stockDisponible = stockDisponible; }
+    public void setStock(Integer stock) {
+        if (this.stockDisponible == null) {
+            this.stockDisponible = stock;
+        }
+    }
 
     public Double getPrecioUnitario() { return precioUnitario; }
     public void setPrecioUnitario(Double precioUnitario) { this.precioUnitario = precioUnitario; }

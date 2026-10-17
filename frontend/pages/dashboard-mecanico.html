@@ -184,13 +184,14 @@
             tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding: 1rem;"><div class="spinner"></div> Cargando...</td></tr>';
             
             try {
-                const reparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
+                const todasReparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
+                const reparaciones = (todasReparaciones || []).filter(r => r.estado !== 'ENTREGADA');
                 
                 let enProcesoCount = 0;
                 let pendientesCount = 0;
                 
-                if (!reparaciones || reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="text-center empty-state" style="padding: 2rem;">No hay reparaciones asignadas.</td></tr>';
+                if (reparaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center empty-state" style="padding: 2rem;">No hay reparaciones activas asignadas en el taller.</td></tr>';
                     selectReparacion.innerHTML = '<option value="">No hay reparaciones en proceso</option>';
                     document.getElementById('stat-en-proceso').textContent = '0';
                     document.getElementById('stat-pendientes').textContent = '0';
@@ -201,12 +202,17 @@
                 selectReparacion.innerHTML = '<option value="">Seleccione una reparación</option>';
                 
                 reparaciones.forEach(rep => {
+                    const matricula = rep.matriculaVehiculo || rep.vehiculo?.matricula || '-';
+                    const marca = rep.marcaVehiculo || rep.vehiculo?.marca || '';
+                    const modelo = rep.modeloVehiculo || rep.vehiculo?.modelo || '';
+                    const clienteNombre = rep.nombreCliente || rep.vehiculo?.cliente?.nombre || rep.cliente?.nombre || 'N/A';
+
                     if (rep.estado === 'EN_PROCESO') {
                         enProcesoCount++;
                         // Add to dropdown
                         const opt = document.createElement('option');
                         opt.value = rep.id;
-                        opt.textContent = `[#${rep.id}] ${rep.vehiculo.matricula} - ${rep.vehiculo.marca} ${rep.vehiculo.modelo}`;
+                        opt.textContent = `[#${rep.id}] ${matricula} - ${marca} ${modelo}`.trim();
                         selectReparacion.appendChild(opt);
                     } else if (rep.estado === 'PENDIENTE') {
                         pendientesCount++;
@@ -218,14 +224,11 @@
                     const btnFinalizar = rep.estado === 'EN_PROCESO' 
                         ? `<button class="btn btn-success btn-sm" onclick="confirmarFinalizar(${rep.id})" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Marcar Finalizada</button>`
                         : '';
-                        
-                    // Add safe access for client and vehicle info in case it's nested differently
-                    const clienteNombre = rep.vehiculo?.cliente?.nombre || rep.cliente?.nombre || 'N/A';
                     
                     tr.innerHTML = `
                         <td style="padding: 0.75rem;">${rep.id}</td>
-                        <td style="padding: 0.75rem;">${rep.vehiculo?.matricula || '-'}</td>
-                        <td style="padding: 0.75rem;">${rep.vehiculo?.marca || ''} ${rep.vehiculo?.modelo || ''}</td>
+                        <td style="padding: 0.75rem;"><strong>${matricula}</strong></td>
+                        <td style="padding: 0.75rem;">${marca} ${modelo}</td>
                         <td style="padding: 0.75rem;">${clienteNombre}</td>
                         <td style="padding: 0.75rem;">${typeof crearBadgeEstado === 'function' ? crearBadgeEstado(rep.estado) : rep.estado}</td>
                         <td style="padding: 0.75rem;">${typeof formatearFecha === 'function' ? formatearFecha(rep.fechaEntrada) : rep.fechaEntrada}</td>
@@ -258,9 +261,10 @@
                 
                 selectMaterial.innerHTML = '<option value="">Seleccione un material</option>';
                 materiales.forEach(mat => {
+                    const stockVal = mat.stockDisponible ?? mat.stock ?? 0;
                     const opt = document.createElement('option');
                     opt.value = mat.id;
-                    opt.textContent = `${mat.nombre} (Stock: ${mat.stock})`;
+                    opt.textContent = `${mat.nombre} (Stock: ${stockVal})`;
                     selectMaterial.appendChild(opt);
                 });
                 
@@ -279,15 +283,16 @@
             }
             
             materiales.forEach(mat => {
+                const stockVal = mat.stockDisponible ?? mat.stock ?? 0;
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border)';
-                if (mat.stock < 5) tr.classList.add('stock-low');
+                if (stockVal < 5) tr.classList.add('stock-low');
                 
                 tr.innerHTML = `
                     <td style="padding: 0.75rem;">${mat.nombre}</td>
                     <td style="padding: 0.75rem;">${mat.descripcion || '-'}</td>
-                    <td style="padding: 0.75rem;">${mat.stock} ${mat.stock < 5 ? '<span class="badge" style="background: var(--accent); color: white; margin-left: 5px;">Bajo</span>' : ''}</td>
-                    <td style="padding: 0.75rem;">$${mat.precioUnitario?.toFixed(2) || '0.00'}</td>
+                    <td style="padding: 0.75rem;">${stockVal} ${stockVal < 5 ? '<span class="badge" style="background: var(--accent); color: white; margin-left: 5px;">Bajo</span>' : ''}</td>
+                    <td style="padding: 0.75rem;">${mat.precioUnitario?.toFixed(2) || '0.00'} €</td>
                 `;
                 tbody.appendChild(tr);
             });

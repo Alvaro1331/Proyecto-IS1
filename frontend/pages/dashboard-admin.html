@@ -77,19 +77,19 @@
         <div class="stats-grid">
             <div class="stat-card card">
                 <h3>Total Usuarios</h3>
-                <div id="stat-usuarios" class="stat-value spinner">...</div>
+                <div id="stat-usuarios" class="stat-value"><span class="spinner"></span></div>
             </div>
             <div class="stat-card card">
                 <h3>Total Vehículos</h3>
-                <div id="stat-vehiculos" class="stat-value spinner">...</div>
+                <div id="stat-vehiculos" class="stat-value"><span class="spinner"></span></div>
             </div>
             <div class="stat-card card">
                 <h3>Reparaciones en Proceso</h3>
-                <div id="stat-reparaciones" class="stat-value spinner">...</div>
+                <div id="stat-reparaciones" class="stat-value"><span class="spinner"></span></div>
             </div>
             <div class="stat-card card">
                 <h3>Materiales Stock Bajo</h3>
-                <div id="stat-materiales" class="stat-value spinner">...</div>
+                <div id="stat-materiales" class="stat-value"><span class="spinner"></span></div>
             </div>
         </div>
 
@@ -179,7 +179,7 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Matrícula</th>
+                                <th>Matrícula / Vehículo</th>
                                 <th>Cliente</th>
                                 <th>Mecánico</th>
                                 <th>Estado</th>
@@ -197,33 +197,39 @@
 
         <!-- TAB 3: INVENTARIO -->
         <div id="tab-inventario" class="tab-content">
-            <div class="card">
-                <h2>Añadir Nuevo Material</h2>
+            <div class="card" style="border-left: 4px solid var(--primary);">
+                <h2>➕ Dar de Alta un Nuevo Material en el Catálogo</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+                    Rellena este formulario para registrar una pieza o recambio nuevo que aún no exista en la tabla inferior.
+                </p>
                 <form id="form-crear-material">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label>Nombre</label>
-                            <input type="text" id="mat-nombre" required>
+                            <label>Nombre del Material</label>
+                            <input type="text" id="mat-nombre" placeholder="Ej. Pastillas de freno traseras" required>
                         </div>
                         <div class="form-group">
-                            <label>Descripción</label>
-                            <input type="text" id="mat-desc">
+                            <label>Descripción / Compatibilidad</label>
+                            <input type="text" id="mat-desc" placeholder="Ej. Juego trasero universal">
                         </div>
                         <div class="form-group">
-                            <label>Stock Inicial</label>
-                            <input type="number" id="mat-stock" required min="0">
+                            <label>Stock Inicial (Unidades)</label>
+                            <input type="number" id="mat-stock" placeholder="Ej. 20" required min="0">
                         </div>
                         <div class="form-group">
                             <label>Precio Unitario ($)</label>
-                            <input type="number" id="mat-precio" required min="0" step="0.01">
+                            <input type="number" id="mat-precio" placeholder="Ej. 35.00" required min="0" step="0.01">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" id="btn-submit-material" style="margin-top: 1rem;">Añadir Material</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-material" style="margin-top: 1rem;">+ Registrar Nuevo Material</button>
                 </form>
             </div>
 
             <div class="card" style="margin-top: 1.5rem;">
-                <h2>Inventario Actual</h2>
+                <h2>📦 Inventario Actual y Ajuste de Stock</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+                    En la columna derecha puedes cambiar la cantidad de unidades disponibles de cualquier material y pulsar <strong>Guardar Stock</strong>.
+                </p>
                 <div class="form-group" style="max-width: 400px; margin-bottom: 1rem;">
                     <input type="text" id="search-material" placeholder="Buscar material por nombre..." onkeyup="cargarMateriales()">
                 </div>
@@ -234,9 +240,9 @@
                                 <th>ID</th>
                                 <th>Nombre</th>
                                 <th>Descripción</th>
-                                <th>Stock</th>
+                                <th>Stock Disponible</th>
                                 <th>Precio</th>
-                                <th>Acciones</th>
+                                <th>Modificar Stock (Unidades)</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-materiales"></tbody>
@@ -259,6 +265,8 @@
                                     <th>Modelo</th>
                                     <th>Año</th>
                                     <th>Cliente Propietario</th>
+                                    <th>Mecánico</th>
+                                    <th>Estado</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-vehiculos"></tbody>
@@ -316,14 +324,28 @@
 
         async function cargarStats() {
             try {
-                const [usuarios, vehiculos, repEnProceso, matBajoStock] = await Promise.all([
+                const [usuarios, vehiculos, reparaciones, repEnProceso, matBajoStock] = await Promise.all([
                     apiFetch('/usuarios').catch(() => []),
                     apiFetch('/vehiculos').catch(() => []),
+                    apiFetch('/reparaciones').catch(() => []),
                     apiFetch('/reparaciones/estado/EN_PROCESO').catch(() => []),
                     apiFetch('/materiales/stock-bajo?umbral=5').catch(() => [])
                 ]);
+
+                const repPorMatricula = {};
+                if (Array.isArray(reparaciones)) {
+                    reparaciones.forEach(r => {
+                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
+                        if (mat) repPorMatricula[mat] = r;
+                    });
+                }
+                const vehiculosEnTaller = (vehiculos || []).filter(v => {
+                    const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+                    return !rep || rep.estado !== 'ENTREGADA';
+                });
+
                 document.getElementById('stat-usuarios').textContent = usuarios.length || 0;
-                document.getElementById('stat-vehiculos').textContent = vehiculos.length || 0;
+                document.getElementById('stat-vehiculos').textContent = vehiculosEnTaller.length || 0;
                 document.getElementById('stat-reparaciones').textContent = repEnProceso.length || 0;
                 document.getElementById('stat-materiales').textContent = matBajoStock.length || 0;
             } catch (error) {
@@ -337,16 +359,18 @@
             const btn = document.getElementById('btn-submit-usuario');
             if (typeof toggleLoading === 'function') toggleLoading(btn, true);
             
+            const pwd = document.getElementById('usu-password').value;
             const data = {
                 nombre: document.getElementById('usu-nombre').value,
                 email: document.getElementById('usu-email').value,
-                contrasena: document.getElementById('usu-password').value,
+                password: pwd,
+                contrasena: pwd,
                 telefono: document.getElementById('usu-telefono').value,
                 rol: document.getElementById('usu-rol').value
             };
             
             try {
-                await apiFetch('/usuarios', { method: 'POST', body: JSON.stringify(data) });
+                await apiFetch('/usuarios', { method: 'POST', silent: true, body: JSON.stringify(data) });
                 if (typeof mostrarAlerta === 'function') {
                     mostrarAlerta('Usuario creado exitosamente.', 'success', document.getElementById('alert-container'));
                 }
@@ -355,9 +379,7 @@
                 cargarStats();
             } catch (error) {
                 if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta('Error: ' + error.message, 'error', document.getElementById('alert-container'));
-                } else {
-                    alert('Error: ' + error.message);
+                    mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
                 }
             } finally {
                 if (typeof toggleLoading === 'function') toggleLoading(btn, false);
@@ -378,8 +400,8 @@
                 usuarios.forEach(u => {
                     let rolBadgeClass = 'badge';
                     if (u.rol === 'ADMIN') rolBadgeClass = 'badge badge-entregada';
-                    else if (u.rol === 'MECANICO') rolBadgeClass = 'badge badge-en-proceso';
-                    else if (u.rol === 'RECEPCIONISTA') rolBadgeClass = 'badge badge-finalizada';
+                    else if (u.rol === 'MECANICO') rolBadgeClass = 'badge badge-process';
+                    else if (u.rol === 'RECEPCIONISTA') rolBadgeClass = 'badge badge-finished';
                     
                     tbody.innerHTML += `
                         <tr>
@@ -402,48 +424,62 @@
             currentRepEstado = estado;
             const endpoint = estado ? `/reparaciones/estado/${estado}` : '/reparaciones';
             try {
-                const reparaciones = await apiFetch(endpoint);
+                let reparaciones = await apiFetch(endpoint);
+                // En la vista general del taller (''), ocultar los coches ya entregados
+                if (!estado && Array.isArray(reparaciones)) {
+                    reparaciones = reparaciones.filter(r => r.estado !== 'ENTREGADA');
+                }
                 const tbody = document.getElementById('tabla-reparaciones');
                 tbody.innerHTML = '';
                 
                 if (!reparaciones || reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No se encontraron reparaciones</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No se encontraron reparaciones en el taller</td></tr>';
                     return;
                 }
                 
                 const mecanicos = await apiFetch('/usuarios/rol/MECANICO').catch(()=>[]);
 
                 reparaciones.forEach(r => {
-                    const vehiculo = r.vehiculo ? r.vehiculo.matricula : '-';
-                    const cliente = r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-';
-                    const mecanico = r.mecanico ? r.mecanico.nombre : '<span class="text-muted">No asignado</span>';
+                    const mat = r.matriculaVehiculo || (r.vehiculo ? r.vehiculo.matricula : '-');
+                    const marcaMod = (r.marcaVehiculo || r.modeloVehiculo)
+                        ? ` <span style="color: var(--text-muted); font-size: 0.85rem;">(${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''})</span>`
+                        : '';
+                    const vehiculoHtml = `<strong>${mat}</strong>${marcaMod}`;
+
+                    const cliente = r.nombreCliente || (r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-');
+                    const nomMec = r.nombreMecanico || (r.mecanico ? r.mecanico.nombre : null);
+                    const tieneMecanico = nomMec && nomMec !== 'Sin asignar';
+                    const mecanico = tieneMecanico ? nomMec : '<span class="text-muted">Sin asignar</span>';
                     
                     const estadoHtml = typeof crearBadgeEstado === 'function' ? crearBadgeEstado(r.estado) : `<span class="badge">${r.estado}</span>`;
                     const fEntrada = typeof formatearFecha === 'function' ? formatearFecha(r.fechaEntrada) : r.fechaEntrada;
                     const fSalida = r.fechaSalida ? (typeof formatearFecha === 'function' ? formatearFecha(r.fechaSalida) : r.fechaSalida) : '-';
 
                     let acciones = '';
-                    if (r.estado === 'PENDIENTE') {
+                    // Si está pendiente o no tiene mecánico asignado, obligar primero a asignar mecánico
+                    if (r.estado === 'PENDIENTE' || !tieneMecanico) {
                         let opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
                         acciones = `
                             <div class="action-cell">
-                                <select id="mec-${r.id}" style="padding: 0.25rem;">
+                                <select id="mec-${r.id}" style="padding: 0.35rem; min-width: 145px;">
                                     <option value="">Seleccione mecánico...</option>
                                     ${opts}
                                 </select>
-                                <button class="btn btn-primary" style="padding: 0.25rem 0.5rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
+                                <button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
                             </div>
                         `;
                     } else if (r.estado === 'EN_PROCESO') {
-                        acciones = `<button class="btn btn-success" style="padding: 0.25rem 0.5rem;" onclick="cambiarEstadoReparacion(${r.id}, 'FINALIZADA')">Finalizar</button>`;
+                        acciones = `<button class="btn btn-success" style="padding: 0.35rem 0.65rem;" onclick="cambiarEstadoReparacion(${r.id}, 'FINALIZADA')">Finalizar</button>`;
                     } else if (r.estado === 'FINALIZADA') {
-                        acciones = `<button class="btn btn-primary" style="padding: 0.25rem 0.5rem;" onclick="cambiarEstadoReparacion(${r.id}, 'ENTREGADA')">Entregar</button>`;
+                        acciones = `<button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="cambiarEstadoReparacion(${r.id}, 'ENTREGADA')">Entregar</button>`;
+                    } else {
+                        acciones = '<span class="text-muted">Entregado fuera del taller</span>';
                     }
 
                     tbody.innerHTML += `
                         <tr>
                             <td>${r.id}</td>
-                            <td>${vehiculo}</td>
+                            <td>${vehiculoHtml}</td>
                             <td>${cliente}</td>
                             <td>${mecanico}</td>
                             <td>${estadoHtml}</td>
@@ -462,18 +498,17 @@
         async function asignarMecanico(repId) {
             const mecanicoId = document.getElementById(`mec-${repId}`).value;
             if (!mecanicoId) {
-                alert('Por favor, seleccione un mecánico.');
+                mostrarAlerta('Por favor, selecciona un mecánico antes de asignar.', 'error', document.getElementById('alert-container'));
                 return;
             }
             try {
-                await apiFetch(`/reparaciones/${repId}/asignar/${mecanicoId}`, { method: 'PUT' });
-                if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta('Mecánico asignado.', 'success', document.getElementById('alert-container'));
-                }
+                await apiFetch(`/reparaciones/${repId}/asignar/${mecanicoId}`, { method: 'PUT', silent: true });
+                mostrarAlerta('Mecánico asignado correctamente. La reparación pasa a EN PROCESO.', 'success', document.getElementById('alert-container'));
                 cargarReparaciones();
+                cargarVehiculosYClientes();
                 cargarStats();
             } catch (error) {
-                alert('Error al asignar mecánico: ' + error.message);
+                mostrarAlerta('Error al asignar mecánico: ' + error.message, 'error', document.getElementById('alert-container'));
             }
         }
 
@@ -481,15 +516,18 @@
             try {
                 await apiFetch(`/reparaciones/${repId}/estado`, {
                     method: 'PUT',
+                    silent: true,
                     body: JSON.stringify({ estado })
                 });
-                if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta(`Reparación marcada como ${estado}.`, 'success', document.getElementById('alert-container'));
-                }
+                const msg = estado === 'ENTREGADA'
+                    ? 'Vehículo entregado al cliente. Se ha dado de baja de la lista activa del taller.'
+                    : `Reparación marcada como ${estado}.`;
+                mostrarAlerta(msg, 'success', document.getElementById('alert-container'));
                 cargarReparaciones();
+                cargarVehiculosYClientes();
                 cargarStats();
             } catch (error) {
-                alert('Error al cambiar estado: ' + error.message);
+                mostrarAlerta('Error al cambiar estado: ' + error.message, 'error', document.getElementById('alert-container'));
             }
         }
 
@@ -499,17 +537,19 @@
             const btn = document.getElementById('btn-submit-material');
             if (typeof toggleLoading === 'function') toggleLoading(btn, true);
             
+            const stockVal = parseInt(document.getElementById('mat-stock').value, 10);
             const data = {
-                nombre: document.getElementById('mat-nombre').value,
-                descripcion: document.getElementById('mat-desc').value,
-                stock: parseInt(document.getElementById('mat-stock').value, 10),
+                nombre: document.getElementById('mat-nombre').value.trim(),
+                descripcion: document.getElementById('mat-desc').value.trim(),
+                stockDisponible: stockVal,
+                stock: stockVal,
                 precioUnitario: parseFloat(document.getElementById('mat-precio').value)
             };
             
             try {
-                await apiFetch('/materiales', { method: 'POST', body: JSON.stringify(data) });
+                await apiFetch('/materiales', { method: 'POST', silent: true, body: JSON.stringify(data) });
                 if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta('Material registrado.', 'success', document.getElementById('alert-container'));
+                    mostrarAlerta(`Material "${data.nombre}" añadido al inventario con ${stockVal} unidades.`, 'success', document.getElementById('alert-container'));
                 }
                 e.target.reset();
                 cargarMateriales();
@@ -517,8 +557,6 @@
             } catch (error) {
                 if (typeof mostrarAlerta === 'function') {
                     mostrarAlerta('Error: ' + error.message, 'error', document.getElementById('alert-container'));
-                } else {
-                    alert('Error: ' + error.message);
                 }
             } finally {
                 if (typeof toggleLoading === 'function') toggleLoading(btn, false);
@@ -529,7 +567,6 @@
             const query = document.getElementById('search-material').value;
             let endpoint = '/materiales';
             if (query && query.trim() !== '') {
-                // If the backend search is GET /api/materiales/buscar?nombre=X
                 endpoint = `/materiales/buscar?nombre=${encodeURIComponent(query.trim())}`;
             }
             
@@ -544,21 +581,26 @@
                 }
                 
                 materiales.forEach(m => {
-                    const isBajo = m.stock < 5;
+                    const stockActual = m.stockDisponible ?? m.stock ?? 0;
+                    const isBajo = stockActual < 5;
                     const rowStyle = isBajo ? 'background: rgba(245, 158, 11, 0.1);' : '';
-                    const stockStyle = isBajo ? 'color: var(--warning, #F59E0B); font-weight: bold;' : '';
+                    const stockBadge = isBajo
+                        ? `<span style="color: var(--warning, #F59E0B); font-weight: bold;">${stockActual} uds.</span> <span class="badge badge-pending" style="margin-left: 0.4rem;">Stock bajo</span>`
+                        : `<strong>${stockActual} uds.</strong>`;
                     
                     tbody.innerHTML += `
                         <tr style="${rowStyle}">
                             <td>${m.id}</td>
-                            <td>${m.nombre}</td>
+                            <td><strong>${m.nombre}</strong></td>
                             <td>${m.descripcion || '-'}</td>
-                            <td style="${stockStyle}">${m.stock}</td>
-                            <td>$${m.precioUnitario.toFixed(2)}</td>
+                            <td>${stockBadge}</td>
+                            <td>$${Number(m.precioUnitario || 0).toFixed(2)}</td>
                             <td>
                                 <div class="action-cell">
-                                    <input type="number" id="stock-${m.id}" value="${m.stock}" min="0" style="width: 70px; padding: 0.25rem;">
-                                    <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem;" onclick="actualizarStock(${m.id})">Actualizar</button>
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.55rem;" onclick="ajustarInputStock(${m.id}, -1)">-</button>
+                                    <input type="number" id="stock-${m.id}" value="${stockActual}" min="0" style="width: 75px; padding: 0.3rem; text-align: center; font-weight: bold;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.55rem;" onclick="ajustarInputStock(${m.id}, 1)">+</button>
+                                    <button type="button" class="btn btn-primary" style="padding: 0.3rem 0.75rem;" onclick="actualizarStock(${m.id}, '${m.nombre.replace(/'/g, "\\'")}')">Guardar Stock</button>
                                 </div>
                             </td>
                         </tr>
@@ -569,41 +611,84 @@
             }
         }
 
-        async function actualizarStock(id) {
-            const stock = parseInt(document.getElementById(`stock-${id}`).value, 10);
+        function ajustarInputStock(id, delta) {
+            const input = document.getElementById(`stock-${id}`);
+            if (!input) return;
+            const actual = parseInt(input.value, 10) || 0;
+            input.value = Math.max(0, actual + delta);
+        }
+
+        async function actualizarStock(id, nombreMat = '') {
+            const input = document.getElementById(`stock-${id}`);
+            const stock = parseInt(input.value, 10);
+            if (isNaN(stock) || stock < 0) {
+                mostrarAlerta('Introduce una cantidad de stock válida (0 o mayor).', 'error', document.getElementById('alert-container'));
+                return;
+            }
             try {
                 await apiFetch(`/materiales/${id}/stock`, {
                     method: 'PUT',
+                    silent: true,
                     body: JSON.stringify({ stock })
                 });
+                mostrarAlerta(`Stock${nombreMat ? ' de "' + nombreMat + '"' : ''} actualizado a ${stock} unidades.`, 'success', document.getElementById('alert-container'));
                 cargarMateriales();
                 cargarStats();
             } catch (error) {
-                alert('Error al actualizar stock: ' + error.message);
+                mostrarAlerta('Error al actualizar stock: ' + error.message, 'error', document.getElementById('alert-container'));
             }
         }
 
         // ================= VEHÍCULOS Y CLIENTES =================
         async function cargarVehiculosYClientes() {
             try {
-                const [vehiculos, clientes] = await Promise.all([
+                const [vehiculos, clientes, reparaciones] = await Promise.all([
                     apiFetch('/vehiculos').catch(()=>[]),
-                    apiFetch('/clientes').catch(()=>[])
+                    apiFetch('/clientes').catch(()=>[]),
+                    apiFetch('/reparaciones').catch(()=>[])
                 ]);
                 
+                const repPorMatricula = {};
+                if (Array.isArray(reparaciones)) {
+                    reparaciones.forEach(r => {
+                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
+                        if (mat) repPorMatricula[mat] = r;
+                    });
+                }
+
+                // Filtrar fuera del taller los vehículos cuya reparación ya ha sido ENTREGADA
+                const vehiculosEnTaller = (vehiculos || []).filter(v => {
+                    const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+                    return !rep || rep.estado !== 'ENTREGADA';
+                });
+
                 const tVehiculos = document.getElementById('tabla-vehiculos');
-                if (!vehiculos || vehiculos.length === 0) {
-                    tVehiculos.innerHTML = '<tr><td colspan="5" class="empty-state">No hay vehículos registrados</td></tr>';
+                if (vehiculosEnTaller.length === 0) {
+                    tVehiculos.innerHTML = '<tr><td colspan="7" class="empty-state">No hay vehículos actualmente en el taller</td></tr>';
                 } else {
-                    tVehiculos.innerHTML = vehiculos.map(v => `
-                        <tr>
-                            <td><strong>${v.matricula}</strong></td>
-                            <td>${v.marca}</td>
-                            <td>${v.modelo}</td>
-                            <td>${v.anio}</td>
-                            <td>${v.cliente ? v.cliente.nombre : '-'}</td>
-                        </tr>
-                    `).join('');
+                    tVehiculos.innerHTML = vehiculosEnTaller.map(v => {
+                        const anoVal = v.ano ?? v.anio ?? '-';
+                        const clienteVal = v.clienteNombre || (v.cliente ? v.cliente.nombre : '-');
+                        const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+                        let mecHtml = '<span class="text-muted">Sin reparación</span>';
+                        let estHtml = '<span class="badge" style="background: rgba(160,160,160,0.15); color: var(--text-muted); border: 1px solid var(--border);">Sin reparación</span>';
+                        if (rep) {
+                            const nomMec = rep.nombreMecanico || rep.mecanico?.nombre;
+                            mecHtml = (nomMec && nomMec !== 'Sin asignar') ? nomMec : '<span class="text-muted">Sin asignar</span>';
+                            estHtml = typeof crearBadgeEstado === 'function' ? crearBadgeEstado(rep.estado) : rep.estado;
+                        }
+                        return `
+                            <tr>
+                                <td><strong>${v.matricula}</strong></td>
+                                <td>${v.marca}</td>
+                                <td>${v.modelo}</td>
+                                <td>${anoVal}</td>
+                                <td>${clienteVal}</td>
+                                <td>${mecHtml}</td>
+                                <td>${estHtml}</td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
 
                 const tClientes = document.getElementById('tabla-clientes');

@@ -162,6 +162,7 @@
                                 <th>Estado</th>
                                 <th>Fecha Entrada</th>
                                 <th>Avería</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -203,6 +204,8 @@
                                 <th>Modelo</th>
                                 <th>Año</th>
                                 <th>Cliente</th>
+                                <th>Mecánico</th>
+                                <th>Estado</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -241,13 +244,27 @@
 
         async function loadStats() {
             try {
-                const vehiculos = await apiFetch('/vehiculos');
-                document.getElementById('stat-vehiculos').textContent = vehiculos ? vehiculos.length : 0;
-                
-                const clientes = await apiFetch('/clientes');
+                const [vehiculos, reparaciones, clientes, pendientes] = await Promise.all([
+                    apiFetch('/vehiculos').catch(() => []),
+                    apiFetch('/reparaciones').catch(() => []),
+                    apiFetch('/clientes').catch(() => []),
+                    apiFetch('/reparaciones/estado/PENDIENTE').catch(() => [])
+                ]);
+
+                const repPorMatricula = {};
+                if (Array.isArray(reparaciones)) {
+                    reparaciones.forEach(r => {
+                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
+                        if (mat) repPorMatricula[mat] = r;
+                    });
+                }
+                const vehiculosEnTaller = (vehiculos || []).filter(v => {
+                    const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+                    return !rep || rep.estado !== 'ENTREGADA';
+                });
+
+                document.getElementById('stat-vehiculos').textContent = vehiculosEnTaller.length;
                 document.getElementById('stat-clientes').textContent = clientes ? clientes.length : 0;
-                
-                const pendientes = await apiFetch('/reparaciones/estado/PENDIENTE');
                 document.getElementById('stat-pendientes').textContent = pendientes ? pendientes.length : 0;
             } catch (error) {
                 console.error("Error loading stats", error);
@@ -256,18 +273,31 @@
 
         async function loadVehiculosParaSelect() {
             try {
-                const vehiculos = await apiFetch('/vehiculos');
-                const select = document.getElementById('rep-vehiculo');
-                select.innerHTML = '<option value="">Seleccione un vehículo...</option>';
-                if(vehiculos) {
-                    vehiculos.forEach(v => {
-                        const option = document.createElement('option');
-                        option.value = v.id;
-                        const clientName = v.clienteNombre || v.cliente?.nombre || 'Sin cliente';
-                        option.textContent = `${v.matricula} - ${v.marca} ${v.modelo} (${clientName})`;
-                        select.appendChild(option);
+                const [vehiculos, reparaciones] = await Promise.all([
+                    apiFetch('/vehiculos').catch(() => []),
+                    apiFetch('/reparaciones').catch(() => [])
+                ]);
+                const repPorMatricula = {};
+                if (Array.isArray(reparaciones)) {
+                    reparaciones.forEach(r => {
+                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
+                        if (mat) repPorMatricula[mat] = r;
                     });
                 }
+                const vehiculosEnTaller = (vehiculos || []).filter(v => {
+                    const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+                    return !rep || rep.estado !== 'ENTREGADA';
+                });
+
+                const select = document.getElementById('rep-vehiculo');
+                select.innerHTML = '<option value="">Seleccione un vehículo...</option>';
+                vehiculosEnTaller.forEach(v => {
+                    const option = document.createElement('option');
+                    option.value = v.id;
+                    const clientName = v.clienteNombre || v.cliente?.nombre || 'Sin cliente';
+                    option.textContent = `${v.matricula} - ${v.marca} ${v.modelo} (${clientName})`;
+                    select.appendChild(option);
+                });
             } catch (error) {
                 console.error("Error loading vehiculos select", error);
             }
@@ -338,6 +368,7 @@
                 document.getElementById('form-reparacion').reset();
                 loadStats();
                 loadReparaciones();
+                loadVehiculos();
             } catch (error) {
                 mostrarAlerta(error.message, 'error', alertsContainer);
             } finally {
@@ -345,29 +376,52 @@
             }
         });
 
+        async function entregarVehiculo(repId) {
+            const alertsContainer = document.getElementById('alerts-container');
+            try {
+                await apiFetch(`/reparaciones/${repId}/estado`, {
+                    method: 'PUT',
+                    silent: true,
+                    body: JSON.stringify({ estado: 'ENTREGADA' })
+                });
+                mostrarAlerta('Vehículo entregado al cliente. Se ha retirado de la lista activa del taller.', 'success', alertsContainer);
+                loadStats();
+                loadVehiculosParaSelect();
+                loadReparaciones();
+                loadVehiculos();
+            } catch (error) {
+                mostrarAlerta('Error al entregar vehículo: ' + error.message, 'error', alertsContainer);
+            }
+        }
+
         async function loadReparaciones() {
             try {
                 const reparaciones = await apiFetch('/reparaciones');
+                const activas = (reparaciones || []).filter(r => r.estado !== 'ENTREGADA');
                 const tbody = document.querySelector('#tabla-reparaciones tbody');
                 tbody.innerHTML = '';
-                if(!reparaciones || reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay reparaciones</td></tr>';
+                if(activas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay reparaciones activas en el taller</td></tr>';
                     return;
                 }
-                reparaciones.forEach(r => {
+                activas.forEach(r => {
                     const tr = document.createElement('tr');
                     const matricula = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
                     const clienteNom = r.nombreCliente || r.vehiculo?.cliente?.nombre || '-';
                     const mecanicoNom = r.nombreMecanico || r.mecanico?.nombre || 'Sin asignar';
+                    const btnAccion = r.estado === 'FINALIZADA'
+                        ? `<button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="entregarVehiculo(${r.id})">Entregar</button>`
+                        : '<span class="text-muted">En taller</span>';
                     tr.innerHTML = `
                         <td>${r.id}</td>
                         <td><strong style="color:var(--primary); font-family:monospace; font-size:1.05rem;">${r.localizador || '-'}</strong></td>
-                        <td>${matricula}</td>
+                        <td><strong>${matricula}</strong></td>
                         <td>${clienteNom}</td>
                         <td>${mecanicoNom}</td>
                         <td>${crearBadgeEstado(r.estado)}</td>
                         <td>${formatearFecha(r.fechaEntrada)}</td>
                         <td>${r.descripcionAveria || '-'}</td>
+                        <td>${btnAccion}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -401,24 +455,60 @@
 
         async function loadVehiculos() {
             try {
-                const vehiculos = await apiFetch('/vehiculos');
+                const [vehiculos, reparaciones] = await Promise.all([
+                    apiFetch('/vehiculos'),
+                    apiFetch('/reparaciones').catch(() => [])
+                ]);
                 const tbody = document.querySelector('#tabla-vehiculos tbody');
                 tbody.innerHTML = '';
-                if(!vehiculos || vehiculos.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay vehículos</td></tr>';
+
+                // Mapa de la última reparación registrada por matrícula
+                const repPorMatricula = {};
+                if (Array.isArray(reparaciones)) {
+                    reparaciones.forEach(r => {
+                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
+                        if (mat) {
+                            repPorMatricula[mat] = r;
+                        }
+                    });
+                }
+
+                // Ocultar vehículos cuya reparación ya fue ENTREGADA
+                const vehiculosEnTaller = (vehiculos || []).filter(v => {
+                    const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+                    return !rep || rep.estado !== 'ENTREGADA';
+                });
+
+                if(vehiculosEnTaller.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay vehículos actualmente en el taller</td></tr>';
                     return;
                 }
-                vehiculos.forEach(v => {
+
+                vehiculosEnTaller.forEach(v => {
                     const tr = document.createElement('tr');
-                    const anoVal = v.ano || v.anio || '-';
+                    const anoVal = v.ano ?? v.anio ?? '-';
                     const clienteVal = v.clienteNombre || v.cliente?.nombre || '-';
+                    const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
+
+                    let mecanicoHtml = '<span class="text-muted">Sin reparación</span>';
+                    let estadoHtml = '<span class="badge" style="background: rgba(160,160,160,0.15); color: var(--text-muted); border: 1px solid var(--border);">Sin reparación</span>';
+
+                    if (rep) {
+                        const nomMec = rep.nombreMecanico || rep.mecanico?.nombre;
+                        const tieneMec = nomMec && nomMec !== 'Sin asignar';
+                        mecanicoHtml = tieneMec ? nomMec : '<span class="text-muted">Sin asignar</span>';
+                        estadoHtml = crearBadgeEstado(rep.estado);
+                    }
+
                     tr.innerHTML = `
                         <td>${v.id}</td>
-                        <td class="mat-cell">${v.matricula}</td>
+                        <td class="mat-cell"><strong>${v.matricula}</strong></td>
                         <td>${v.marca}</td>
                         <td>${v.modelo}</td>
                         <td>${anoVal}</td>
                         <td>${clienteVal}</td>
+                        <td>${mecanicoHtml}</td>
+                        <td>${estadoHtml}</td>
                     `;
                     tbody.appendChild(tr);
                 });

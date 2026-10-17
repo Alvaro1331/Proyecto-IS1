@@ -1,5 +1,6 @@
 package com.taller.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 /**
@@ -19,6 +20,7 @@ public class ReparacionMaterial {
 
     @ManyToOne
     @JoinColumn(name = "reparacion_id", nullable = false)
+    @JsonIgnore
     private Reparacion reparacion;
 
     @ManyToOne

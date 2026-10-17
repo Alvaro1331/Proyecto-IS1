@@ -1,5 +1,6 @@
 package com.taller.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.List;
@@ -28,11 +29,13 @@ public class Cliente {
     @Column(unique = true)
     private String email;
 
+    @JsonIgnore
     private String password;
 
     // Un cliente puede tener múltiples vehículos
     // mappedBy = "cliente" indica que el campo "cliente" en Vehiculo es el que gestiona la relación
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Vehiculo> vehiculos;
 
     // Reparaciones vinculadas a la cuenta del cliente para seguimiento
@@ -42,6 +45,7 @@ public class Cliente {
         joinColumns = @JoinColumn(name = "cliente_id"),
         inverseJoinColumns = @JoinColumn(name = "reparacion_id")
     )
+    @JsonIgnore
     private Set<Reparacion> reparacionesVinculadas = new HashSet<>();
 
     // --- Constructores ---
