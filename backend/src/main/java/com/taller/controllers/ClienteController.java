@@ -5,6 +5,7 @@ import com.taller.dtos.ClienteRegistroDTO;
 import com.taller.models.Cliente;
 import com.taller.repositories.ClienteRepository;
 import com.taller.services.ClienteService;
+import com.taller.services.RecuperacionPasswordService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,9 @@ public class ClienteController {
 
     @Autowired
     private ClienteService clienteService;
+
+    @Autowired
+    private RecuperacionPasswordService recuperacionPasswordService;
 
     @GetMapping
     public ResponseEntity<List<Cliente>> obtenerTodos() {
@@ -92,6 +96,55 @@ public class ClienteController {
             return ResponseEntity.ok(respuesta);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Recuperación de contraseña - Paso 1.
+     * Envía un código de 6 dígitos al correo del cliente (si existe como cliente).
+     * Body: { "email": "juan@email.com" }
+     */
+    @PostMapping("/recuperar/solicitar")
+    public ResponseEntity<?> solicitarCodigoRecuperacion(@RequestBody Map<String, String> body) {
+        try {
+            recuperacionPasswordService.solicitarCodigo(body.get("email"));
+            return ResponseEntity.ok(Map.of("mensaje", "Te hemos enviado un código a tu correo electrónico."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Recuperación de contraseña - Paso 2.
+     * Comprueba que el código introducido es correcto.
+     * Body: { "email": "...", "codigo": "123456" }
+     */
+    @PostMapping("/recuperar/verificar")
+    public ResponseEntity<?> verificarCodigoRecuperacion(@RequestBody Map<String, String> body) {
+        try {
+            recuperacionPasswordService.verificarCodigo(body.get("email"), body.get("codigo"));
+            return ResponseEntity.ok(Map.of("mensaje", "Código correcto."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Recuperación de contraseña - Paso 3.
+     * Guarda la nueva contraseña (introducida dos veces) si el código sigue siendo válido.
+     * Body: { "email": "...", "codigo": "123456", "nuevaPassword": "...", "confirmarPassword": "..." }
+     */
+    @PostMapping("/recuperar/restablecer")
+    public ResponseEntity<?> restablecerPassword(@RequestBody Map<String, String> body) {
+        try {
+            recuperacionPasswordService.restablecerPassword(
+                    body.get("email"), body.get("codigo"),
+                    body.get("nuevaPassword"), body.get("confirmarPassword"));
+            return ResponseEntity.ok(Map.of("mensaje", "Contraseña actualizada correctamente."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

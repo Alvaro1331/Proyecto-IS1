@@ -9,32 +9,36 @@ function isLoggedIn() {
     return !!getUsuarioActual();
 }
 
+// Ruta de login calculada a partir de la ubicación de este script (funciona con file:// y con servidor)
+const LOGIN_URL = new URL('../pages/login.html', document.currentScript.src).href;
+
 function logout() {
     sessionStorage.removeItem('usuario');
-    window.location.href = '/pages/login.html';
+    window.location.href = LOGIN_URL;
 }
 
 function requireAuth(rolesPermitidos = []) {
     const user = getUsuarioActual();
     if (!user) {
-        window.location.href = '/pages/login.html';
+        window.location.href = LOGIN_URL;
         return;
     }
     if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(user.rol)) {
-        window.location.href = '/pages/login.html';
+        window.location.href = LOGIN_URL;
     }
 }
 
 async function apiFetch(endpoint, options = {}) {
+    const { silent, ...fetchOptions } = options;
     try {
         const defaultHeaders = {
             'Content-Type': 'application/json'
         };
         const res = await fetch(`${API_BASE}${endpoint}`, {
-            ...options,
+            ...fetchOptions,
             headers: {
                 ...defaultHeaders,
-                ...options.headers
+                ...fetchOptions.headers
             }
         });
         
@@ -44,18 +48,24 @@ async function apiFetch(endpoint, options = {}) {
         }
 
         if (!res.ok) {
-            throw new Error(data?.message || `Error: ${res.status}`);
+            throw new Error(data?.error || data?.message || `Error: ${res.status}`);
         }
         return data;
     } catch (error) {
         console.error('API Error:', error);
-        mostrarAlerta(error.message, 'error');
+        if (error instanceof TypeError) {
+            error.message = 'No se puede conectar con el servidor. Comprueba que el backend está arrancado.';
+        }
+        if (!silent) mostrarAlerta(error.message, 'error');
         throw error;
     }
 }
 
-function mostrarAlerta(mensaje, tipo, contenedorId = 'alert-container') {
-    let contenedor = document.getElementById(contenedorId);
+function mostrarAlerta(mensaje, tipo, contenedorOrId = 'alert-container') {
+    let contenedor = (contenedorOrId instanceof HTMLElement)
+        ? contenedorOrId
+        : document.getElementById(contenedorOrId);
+
     if (!contenedor) {
         contenedor = document.createElement('div');
         contenedor.id = 'alert-container';
@@ -68,12 +78,13 @@ function mostrarAlerta(mensaje, tipo, contenedorId = 'alert-container') {
 
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${tipo}`;
+    const icono = tipo === 'error' ? '⚠️' : (tipo === 'success' ? '✅' : 'ℹ️');
     alertDiv.innerHTML = `
-        <span>${mensaje}</span>
+        <span class="alert-text"><strong class="alert-icon">${icono}</strong> ${mensaje}</span>
         <button type="button" class="close-alert" onclick="cerrarAlerta(this.parentElement)">&times;</button>
     `;
     contenedor.appendChild(alertDiv);
-    setTimeout(() => cerrarAlerta(alertDiv), 5000);
+    setTimeout(() => cerrarAlerta(alertDiv), 6000);
 }
 
 function cerrarAlerta(element) {

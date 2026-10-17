@@ -6,6 +6,16 @@
     <title>Acceso al Sistema - MotorFlow</title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
+        :root {
+            --color-primary: #E85D04;
+            --color-primary-dark: #D45200;
+            --color-primary-light: #FF7B29;
+            --color-bg-dark: #1E1E1E;
+            --color-bg-card: #2D2D2D;
+            --color-text: #F5F5F5;
+            --color-text-muted: #A0A0A0;
+            --color-border: #404040;
+        }
         body {
             display: flex;
             align-items: center;
@@ -85,25 +95,70 @@
         }
         .btn-primary {
             width: 100%;
-            padding: 0.85rem;
-            background-color: var(--color-primary);
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary) 55%, var(--color-primary-dark));
             color: white;
             border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 8px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 6px 18px rgba(232, 93, 4, 0.45);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
         }
-        .btn-primary:hover {
-            background-color: var(--color-primary-dark);
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 10px 26px rgba(232, 93, 4, 0.65);
+        }
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(232, 93, 4, 0.4);
         }
         .btn-primary:disabled {
-            background-color: var(--color-text-muted);
+            background: var(--color-text-muted);
+            box-shadow: none;
             cursor: not-allowed;
         }
         .alert-container {
             margin-bottom: 1rem;
+        }
+        .alert-container .alert {
+            padding: 0.9rem 1rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.4;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+            gap: 0.75rem;
+        }
+        .alert-container .alert-error {
+            background-color: rgba(220, 38, 38, 0.22);
+            border: 1px solid #EF4444;
+            border-left: 5px solid #EF4444;
+            color: #FECACA;
+            animation: alertShake 0.35s ease;
+        }
+        .alert-container .alert-success {
+            background-color: rgba(22, 163, 74, 0.22);
+            border: 1px solid #22C55E;
+            border-left: 5px solid #22C55E;
+            color: #BBF7D0;
+        }
+        .alert-container .alert-text {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .alert-container .alert-icon {
+            font-size: 1.1rem;
+        }
+        @keyframes alertShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
         }
         .sub-toggle {
             display: flex;
@@ -116,6 +171,36 @@
             color: var(--color-primary-light);
             text-decoration: underline;
             cursor: pointer;
+        }
+        .forgot-link {
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+        .forgot-link a {
+            color: var(--color-primary-light);
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .forgot-link a:hover {
+            text-decoration: underline;
+        }
+        .reset-title {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+        .reset-hint {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+        .code-input {
+            text-align: center;
+            font-size: 1.6rem;
+            letter-spacing: 0.5rem;
+            font-weight: 700;
         }
         .links {
             margin-top: 1.5rem;
@@ -146,14 +231,14 @@
         </div>
 
         <div class="tabs-header">
-            <button class="tab-btn active" id="tab-staff-btn" onclick="switchMainTab('staff')">Personal del Taller</button>
-            <button class="tab-btn" id="tab-client-btn" onclick="switchMainTab('client')">Área Clientes</button>
+            <button class="tab-btn active" id="tab-client-btn" onclick="switchMainTab('client')">Área Clientes</button>
+            <button class="tab-btn" id="tab-staff-btn" onclick="switchMainTab('staff')">Personal del Taller</button>
         </div>
 
         <div id="alert-container" class="alert-container"></div>
 
         <!-- FORMULARIO 1: Personal del taller (Admin, Recepcionista, Mecánico) -->
-        <div id="section-staff">
+        <div id="section-staff" style="display: none;">
             <form id="form-staff" onsubmit="handleStaffLogin(event)">
                 <div class="form-group">
                     <label for="staff-email">Correo Electrónico</label>
@@ -168,7 +253,7 @@
         </div>
 
         <!-- SECCIÓN 2: Clientes (Login o Registro) -->
-        <div id="section-client" style="display: none;">
+        <div id="section-client">
             
             <!-- Login Cliente -->
             <div id="client-login-view">
@@ -180,6 +265,9 @@
                     <div class="form-group">
                         <label for="client-password">Contraseña</label>
                         <input type="password" id="client-password" class="form-control" placeholder="••••••••" required>
+                        <div class="forgot-link">
+                            <a onclick="startPasswordReset()">¿Has olvidado tu contraseña?</a>
+                        </div>
                     </div>
                     <button type="submit" id="btn-client-login-submit" class="btn-primary">Entrar a mi Cuenta</button>
                 </form>
@@ -211,6 +299,60 @@
                 </form>
                 <div class="sub-toggle" style="margin-top: 1rem;">
                     <span>¿Ya tienes cuenta? <a onclick="toggleClientMode('login')">Inicia sesión</a></span>
+                </div>
+            </div>
+
+            <!-- Recuperar contraseña (Cliente): 3 pasos -->
+            <div id="client-reset-view" style="display: none;">
+                <h2 class="reset-title">Recuperar contraseña</h2>
+
+                <!-- Paso 1: correo -->
+                <div id="reset-step-email">
+                    <p class="reset-hint">Introduce el correo de tu cuenta y te enviaremos un código de 6 dígitos.</p>
+                    <form id="form-reset-email" onsubmit="handleResetRequest(event)">
+                        <div class="form-group">
+                            <label for="reset-email">Correo Electrónico</label>
+                            <input type="email" id="reset-email" class="form-control" placeholder="juan@email.com" required>
+                        </div>
+                        <button type="submit" id="btn-reset-email-submit" class="btn-primary">Enviar código</button>
+                    </form>
+                </div>
+
+                <!-- Paso 2: código -->
+                <div id="reset-step-code" style="display: none;">
+                    <p class="reset-hint">Hemos enviado un código a <strong id="reset-email-display"></strong>. Es válido durante 10 minutos.</p>
+                    <form id="form-reset-code" onsubmit="handleResetVerify(event)">
+                        <div class="form-group">
+                            <label for="reset-code">Código de verificación</label>
+                            <input type="text" id="reset-code" class="form-control code-input" placeholder="000000"
+                                   inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code" required>
+                        </div>
+                        <button type="submit" id="btn-reset-code-submit" class="btn-primary">Verificar código</button>
+                    </form>
+                    <div class="sub-toggle" style="margin-top: 1rem;">
+                        <a onclick="resendResetCode()">Reenviar código</a>
+                        <a onclick="showResetStep('email')">Cambiar correo</a>
+                    </div>
+                </div>
+
+                <!-- Paso 3: nueva contraseña (dos veces) -->
+                <div id="reset-step-password" style="display: none;">
+                    <p class="reset-hint">Elige tu nueva contraseña y repítela para confirmarla.</p>
+                    <form id="form-reset-password" onsubmit="handleResetPassword(event)">
+                        <div class="form-group">
+                            <label for="reset-new-password">Nueva contraseña</label>
+                            <input type="password" id="reset-new-password" class="form-control" minlength="4" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reset-confirm-password">Repite la nueva contraseña</label>
+                            <input type="password" id="reset-confirm-password" class="form-control" minlength="4" required>
+                        </div>
+                        <button type="submit" id="btn-reset-password-submit" class="btn-primary">Cambiar contraseña</button>
+                    </form>
+                </div>
+
+                <div class="sub-toggle" style="margin-top: 1rem;">
+                    <a onclick="toggleClientMode('login')">← Volver al inicio de sesión</a>
                 </div>
             </div>
 
@@ -248,16 +390,13 @@
         function toggleClientMode(mode) {
             const loginView = document.getElementById('client-login-view');
             const regView = document.getElementById('client-register-view');
+            const resetView = document.getElementById('client-reset-view');
             const alertCont = document.getElementById('alert-container');
             alertCont.innerHTML = '';
 
-            if (mode === 'register') {
-                loginView.style.display = 'none';
-                regView.style.display = 'block';
-            } else {
-                loginView.style.display = 'block';
-                regView.style.display = 'none';
-            }
+            loginView.style.display = (mode === 'login') ? 'block' : 'none';
+            regView.style.display = (mode === 'register') ? 'block' : 'none';
+            resetView.style.display = (mode === 'reset') ? 'block' : 'none';
         }
 
         // 1. Login Empleado (Usuario)
@@ -274,6 +413,7 @@
             try {
                 const res = await apiFetch('/usuarios/login', {
                     method: 'POST',
+                    silent: true,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
@@ -310,6 +450,7 @@
             try {
                 const res = await apiFetch('/clientes/login', {
                     method: 'POST',
+                    silent: true,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ emailOrTelefono, password })
                 });
@@ -342,6 +483,7 @@
             try {
                 const res = await apiFetch('/clientes/registro', {
                     method: 'POST',
+                    silent: true,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
@@ -361,6 +503,126 @@
                 }, 1000);
             } catch (err) {
                 mostrarAlerta(err.message || 'Error al registrar la cuenta.', 'error', alertCont);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        // 4. Recuperación de contraseña (cliente): correo -> código -> nueva contraseña
+        let resetEmail = '';
+        let resetCode = '';
+
+        function showResetStep(step) {
+            ['email', 'code', 'password'].forEach(s => {
+                document.getElementById('reset-step-' + s).style.display = (s === step) ? 'block' : 'none';
+            });
+        }
+
+        function startPasswordReset() {
+            resetEmail = '';
+            resetCode = '';
+            document.getElementById('form-reset-email').reset();
+            document.getElementById('form-reset-code').reset();
+            document.getElementById('form-reset-password').reset();
+
+            // Si ya había escrito su correo en el login, lo reutilizamos
+            const typed = document.getElementById('client-user').value.trim();
+            if (typed.includes('@')) {
+                document.getElementById('reset-email').value = typed;
+            }
+            toggleClientMode('reset');
+            showResetStep('email');
+        }
+
+        async function requestResetCode(email, btn) {
+            const alertCont = document.getElementById('alert-container');
+            toggleLoading(btn, true);
+            alertCont.innerHTML = '';
+            try {
+                await apiFetch('/clientes/recuperar/solicitar', {
+                    method: 'POST',
+                    silent: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                resetEmail = email;
+                document.getElementById('reset-email-display').textContent = email;
+                document.getElementById('reset-code').value = '';
+                showResetStep('code');
+                mostrarAlerta('Te hemos enviado un código de 6 dígitos a tu correo.', 'success', alertCont);
+            } catch (err) {
+                mostrarAlerta(err.message || 'No se pudo enviar el código.', 'error', alertCont);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        function handleResetRequest(e) {
+            e.preventDefault();
+            const email = document.getElementById('reset-email').value.trim();
+            requestResetCode(email, document.getElementById('btn-reset-email-submit'));
+        }
+
+        function resendResetCode() {
+            requestResetCode(resetEmail, document.getElementById('btn-reset-code-submit'));
+        }
+
+        async function handleResetVerify(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-reset-code-submit');
+            const codigo = document.getElementById('reset-code').value.trim();
+            const alertCont = document.getElementById('alert-container');
+
+            toggleLoading(btn, true);
+            alertCont.innerHTML = '';
+            try {
+                await apiFetch('/clientes/recuperar/verificar', {
+                    method: 'POST',
+                    silent: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetEmail, codigo })
+                });
+                resetCode = codigo;
+                showResetStep('password');
+                mostrarAlerta('Código correcto. Elige tu nueva contraseña.', 'success', alertCont);
+            } catch (err) {
+                mostrarAlerta(err.message || 'Código incorrecto.', 'error', alertCont);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-reset-password-submit');
+            const nuevaPassword = document.getElementById('reset-new-password').value;
+            const confirmarPassword = document.getElementById('reset-confirm-password').value;
+            const alertCont = document.getElementById('alert-container');
+            alertCont.innerHTML = '';
+
+            if (nuevaPassword !== confirmarPassword) {
+                mostrarAlerta('Las contraseñas no coinciden. Vuelve a escribirlas.', 'error', alertCont);
+                return;
+            }
+
+            toggleLoading(btn, true);
+            try {
+                await apiFetch('/clientes/recuperar/restablecer', {
+                    method: 'POST',
+                    silent: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetEmail, codigo: resetCode, nuevaPassword, confirmarPassword })
+                });
+                const email = resetEmail;
+                resetEmail = '';
+                resetCode = '';
+                toggleClientMode('login');
+                document.getElementById('client-user').value = email;
+                document.getElementById('client-password').value = '';
+                document.getElementById('client-password').focus();
+                mostrarAlerta('Contraseña actualizada correctamente. Ya puedes iniciar sesión.', 'success', alertCont);
+            } catch (err) {
+                mostrarAlerta(err.message || 'No se pudo cambiar la contraseña.', 'error', alertCont);
             } finally {
                 toggleLoading(btn, false);
             }

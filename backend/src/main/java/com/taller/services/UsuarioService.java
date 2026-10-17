@@ -88,10 +88,10 @@ public class UsuarioService {
      */
     public UsuarioResponseDTO login(String email, String password) {
         Usuario usuario = usuarioRepository.findByEmail(email.toLowerCase())
-                .orElseThrow(() -> new IllegalArgumentException("Email o contraseña incorrectos."));
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: no existe ningún empleado con ese correo."));
 
         if (!usuario.getPassword().equals(password)) {
-            throw new IllegalArgumentException("Email o contraseña incorrectos.");
+            throw new IllegalArgumentException("Contraseña incorrecta.");
         }
 
         return convertirAResponseDTO(usuario, "Login correcto. Bienvenido, " + usuario.getNombre() + ".");

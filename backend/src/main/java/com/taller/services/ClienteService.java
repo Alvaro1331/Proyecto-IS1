@@ -109,7 +109,7 @@ public class ClienteService {
             }
             return clienteToLoginResponse(c);
         }
-        throw new IllegalArgumentException("No se encontró ninguna cuenta con esos datos.");
+        throw new IllegalArgumentException("Usuario no encontrado: no existe ninguna cuenta con ese correo o teléfono.");
     }
 
     /**
