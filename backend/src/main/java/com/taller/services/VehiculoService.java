@@ -22,23 +22,49 @@ public class VehiculoService {
 
     /**
      * Registra un nuevo vehículo en el sistema.
+     * Crea automáticamente el cliente si no existe por su teléfono,
+     * o asocia el vehículo al cliente existente.
      */
     public VehiculoResponseDTO registrarVehiculo(VehiculoRequestDTO dto) {
-        if (vehiculoRepository.existsByMatricula(dto.getMatricula().toUpperCase())) {
-            throw new IllegalArgumentException("Ya existe un vehículo con la matrícula: " + dto.getMatricula());
+        if (dto.getMatricula() == null || dto.getMatricula().isBlank()) {
+            throw new IllegalArgumentException("La matrícula no puede estar vacía.");
+        }
+        String matricula = dto.getMatricula().toUpperCase().trim();
+
+        if (vehiculoRepository.existsByMatricula(matricula)) {
+            throw new IllegalArgumentException("Ya existe un vehículo con la matrícula: " + matricula);
         }
 
-        Cliente cliente = clienteRepository.findByTelefono(dto.getClienteTelefono())
+        Integer ano = dto.getAno();
+        if (ano == null || ano < 1900) {
+            throw new IllegalArgumentException("El año del vehículo debe ser válido y posterior a 1900.");
+        }
+
+        String clienteNombre = dto.getClienteNombre();
+        if (clienteNombre == null || clienteNombre.isBlank()) {
+            throw new IllegalArgumentException("El nombre del cliente no puede estar vacío.");
+        }
+
+        String clienteTelefono = dto.getClienteTelefono();
+        if (clienteTelefono == null || clienteTelefono.isBlank()) {
+            throw new IllegalArgumentException("El teléfono del cliente no puede estar vacío.");
+        }
+
+        final String nom = clienteNombre.trim();
+        final String tel = clienteTelefono.trim();
+
+        // Buscar cliente existente por teléfono o crearlo nuevo
+        Cliente cliente = clienteRepository.findByTelefono(tel)
                 .orElseGet(() -> {
-                    Cliente nuevoCliente = new Cliente(dto.getClienteNombre(), dto.getClienteTelefono());
+                    Cliente nuevoCliente = new Cliente(nom, tel);
                     return clienteRepository.save(nuevoCliente);
                 });
 
         Vehiculo vehiculo = new Vehiculo(
-                dto.getMatricula().toUpperCase(),
-                dto.getMarca(),
-                dto.getModelo(),
-                dto.getAno(),
+                matricula,
+                dto.getMarca().trim(),
+                dto.getModelo().trim(),
+                ano,
                 cliente
         );
         vehiculoRepository.save(vehiculo);
@@ -69,13 +95,13 @@ public class VehiculoService {
      * Busca un vehículo por su matrícula.
      */
     public VehiculoResponseDTO obtenerPorMatricula(String matricula) {
-        Vehiculo vehiculo = vehiculoRepository.findByMatricula(matricula.toUpperCase())
+        Vehiculo vehiculo = vehiculoRepository.findByMatricula(matricula.toUpperCase().trim())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "No se encontró el vehículo con matrícula: " + matricula));
+                        "No se encontró un vehículo con la matrícula: " + matricula));
         return convertirAResponseDTO(vehiculo, null);
     }
 
-    // --- Método auxiliar ---
+    // --- Método auxiliar: convierte entidad a DTO de respuesta ---
     private VehiculoResponseDTO convertirAResponseDTO(Vehiculo vehiculo, String mensaje) {
         return new VehiculoResponseDTO(
                 vehiculo.getId(),

@@ -1,14 +1,12 @@
 package com.taller.dtos;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 /**
  * DTO (Data Transfer Object) para registrar un vehículo.
- * Este es el objeto que el Frontend debe enviar en el cuerpo (body) de la petición.
+ * Soporta tanto formato plano como formato con objeto anidado para mayor flexibilidad:
  *
- * Ejemplo de JSON que debe enviar el frontend:
+ * Formato plano recomendado:
  * {
  *   "matricula": "1234ABC",
  *   "marca": "Toyota",
@@ -16,6 +14,15 @@ import jakarta.validation.constraints.NotNull;
  *   "ano": 2020,
  *   "clienteNombre": "Juan García",
  *   "clienteTelefono": "600123456"
+ * }
+ *
+ * Formato alternativo con objeto anidado:
+ * {
+ *   "matricula": "1234ABC",
+ *   "marca": "Toyota",
+ *   "modelo": "Corolla",
+ *   "anio": 2020,
+ *   "cliente": { "nombre": "Juan García", "telefono": "600123456" }
  * }
  */
 public class VehiculoRequestDTO {
@@ -29,15 +36,23 @@ public class VehiculoRequestDTO {
     @NotBlank(message = "El modelo no puede estar vacío")
     private String modelo;
 
-    @NotNull(message = "El año no puede estar vacío")
-    @Min(value = 1900, message = "El año debe ser posterior a 1900")
     private Integer ano;
+    private Integer anio;
 
-    @NotBlank(message = "El nombre del cliente no puede estar vacío")
     private String clienteNombre;
-
-    @NotBlank(message = "El teléfono del cliente no puede estar vacío")
     private String clienteTelefono;
+
+    private ClienteNestedDTO cliente;
+
+    public static class ClienteNestedDTO {
+        private String nombre;
+        private String telefono;
+
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getTelefono() { return telefono; }
+        public void setTelefono(String telefono) { this.telefono = telefono; }
+    }
 
     // --- Getters y Setters ---
     public String getMatricula() { return matricula; }
@@ -49,12 +64,26 @@ public class VehiculoRequestDTO {
     public String getModelo() { return modelo; }
     public void setModelo(String modelo) { this.modelo = modelo; }
 
-    public Integer getAno() { return ano; }
+    public Integer getAno() { return ano != null ? ano : anio; }
     public void setAno(Integer ano) { this.ano = ano; }
 
-    public String getClienteNombre() { return clienteNombre; }
+    public Integer getAnio() { return anio != null ? anio : ano; }
+    public void setAnio(Integer anio) { this.anio = anio; }
+
+    public String getClienteNombre() {
+        if (clienteNombre != null && !clienteNombre.isBlank()) return clienteNombre;
+        if (cliente != null && cliente.getNombre() != null) return cliente.getNombre();
+        return null;
+    }
     public void setClienteNombre(String clienteNombre) { this.clienteNombre = clienteNombre; }
 
-    public String getClienteTelefono() { return clienteTelefono; }
+    public String getClienteTelefono() {
+        if (clienteTelefono != null && !clienteTelefono.isBlank()) return clienteTelefono;
+        if (cliente != null && cliente.getTelefono() != null) return cliente.getTelefono();
+        return null;
+    }
     public void setClienteTelefono(String clienteTelefono) { this.clienteTelefono = clienteTelefono; }
+
+    public ClienteNestedDTO getCliente() { return cliente; }
+    public void setCliente(ClienteNestedDTO cliente) { this.cliente = cliente; }
 }
