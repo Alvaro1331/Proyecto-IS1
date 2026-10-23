@@ -25,17 +25,28 @@ public class MaterialService {
     @Autowired
     private ReparacionMaterialRepository reparacionMaterialRepository;
 
+    @Autowired
+    private ReparacionService reparacionService;
+
     /**
-     * Crea un nuevo material en el inventario.
+     * Crea un nuevo material en el inventario y descuenta su compra inicial de la cuenta del taller.
      */
     public MaterialResponseDTO crearMaterial(MaterialRequestDTO dto) {
+        int stockInicial = dto.getStockDisponible() != null ? dto.getStockDisponible() : 0;
+        double precioUnit = dto.getPrecioUnitario() != null ? dto.getPrecioUnitario() : 0.0;
+        double costeCompra = stockInicial * precioUnit;
+
         Material material = new Material(
                 dto.getNombre(),
                 dto.getDescripcion(),
-                dto.getStockDisponible(),
-                dto.getPrecioUnitario()
+                stockInicial,
+                precioUnit
         );
         materialRepository.save(material);
+
+        if (costeCompra > 0 && reparacionService != null) {
+            reparacionService.registrarGastoCompraStock(costeCompra);
+        }
 
         return convertirAResponseDTO(material, "Material creado correctamente.");
     }
@@ -61,7 +72,6 @@ public class MaterialService {
 
     /**
      * Busca materiales por nombre (búsqueda parcial).
-     * Ej: buscar "filtro" devuelve "Filtro de aceite", "Filtro de aire", etc.
      */
     public List<MaterialResponseDTO> buscarPorNombre(String nombre) {
         return materialRepository.findByNombreContainingIgnoreCase(nombre).stream()
@@ -71,7 +81,6 @@ public class MaterialService {
 
     /**
      * Actualiza el stock de un material.
-     * Útil cuando llega un pedido nuevo al taller.
      */
     public MaterialResponseDTO actualizarStock(Long id, Integer nuevoStock) {
         Material material = materialRepository.findById(id)
@@ -82,17 +91,23 @@ public class MaterialService {
             throw new IllegalArgumentException("El stock no puede ser negativo.");
         }
 
+        int stockAnterior = material.getStockDisponible() != null ? material.getStockDisponible() : 0;
+        int diferencia = nuevoStock - stockAnterior;
+        double precioUnit = material.getPrecioUnitario() != null ? material.getPrecioUnitario() : 0.0;
+
         material.setStockDisponible(nuevoStock);
         materialRepository.save(material);
+
+        if (diferencia > 0 && reparacionService != null) {
+            reparacionService.registrarGastoCompraStock(diferencia * precioUnit);
+        }
 
         return convertirAResponseDTO(material, "Stock actualizado correctamente.");
     }
 
     /**
      * Registra el uso de un material en una reparación.
-     * Descuenta automáticamente la cantidad del stock disponible.
-     *
-     * Este método lo llamará el mecánico cuando use una pieza.
+     * Valida tanto el stock físico como que el coste no supere el presupuesto asignado al mecánico por el Administrador.
      */
     public MaterialResponseDTO usarMaterialEnReparacion(Long reparacionId, Long materialId, Integer cantidad) {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
@@ -114,6 +129,26 @@ public class MaterialService {
                             + ", solicitado: " + cantidad);
         }
 
+        // Calcular coste del material solicitado y presupuesto del mecánico restante en la reparación
+        double precioUnit = material.getPrecioUnitario() != null ? material.getPrecioUnitario() : 0.0;
+        double costeNuevo = cantidad * precioUnit;
+        double costeGastado = reparacionMaterialRepository.findByReparacionId(reparacionId).stream()
+                .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
+                .sum();
+        double precioCliente = reparacion.getPresupuesto() != null ? reparacion.getPresupuesto() : 200.0;
+        double presupuestoMecanico = reparacion.getPresupuestoMecanico() != null
+                ? reparacion.getPresupuestoMecanico()
+                : (reparacion.getPresupuestoEstimado() != null ? reparacion.getPresupuestoEstimado() : Math.round(precioCliente * 50.0) / 100.0);
+        double presupuestoDisponible = Math.max(0.0, presupuestoMecanico - costeGastado);
+
+        if (costeNuevo > presupuestoDisponible + 0.001) {
+            throw new IllegalArgumentException(String.format(
+                    "Presupuesto del mecánico insuficiente en la reparación #%d. Estas piezas cuestan %.2f € (%dx %.2f €), "
+                            + "pero solo te quedan %.2f € disponibles del límite de %.2f € fijado por el Administrador. "
+                            + "Solicita al Administrador que amplíe tu presupuesto de reparación.",
+                    reparacionId, costeNuevo, cantidad, precioUnit, presupuestoDisponible, presupuestoMecanico));
+        }
+
         // Registrar el uso del material en la reparación
         ReparacionMaterial uso = new ReparacionMaterial(reparacion, material, cantidad);
         reparacionMaterialRepository.save(uso);
@@ -122,15 +157,14 @@ public class MaterialService {
         material.setStockDisponible(material.getStockDisponible() - cantidad);
         materialRepository.save(material);
 
+        double restanteTrasUso = Math.max(0.0, presupuestoDisponible - costeNuevo);
         return convertirAResponseDTO(material,
-                "Se han usado " + cantidad + " unidades de " + material.getNombre()
-                        + " en la reparación #" + reparacionId
-                        + ". Stock restante: " + material.getStockDisponible());
+                String.format("Se han usado %d ud(s) de %s (%.2f €) en la reparación #%d. Presupuesto restante del mecánico: %.2f €.",
+                        cantidad, material.getNombre(), costeNuevo, reparacionId, restanteTrasUso));
     }
 
     /**
      * Devuelve los materiales con stock bajo (menos de X unidades).
-     * Útil para que el jefe sepa qué hay que reponer.
      */
     public List<MaterialResponseDTO> obtenerStockBajo(Integer umbral) {
         return materialRepository.findByStockDisponibleLessThan(umbral).stream()

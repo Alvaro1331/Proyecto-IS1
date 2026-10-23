@@ -13,20 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controlador REST para la gestión de reparaciones.
- *
- * ENDPOINTS:
- * ┌──────────────────────────────────────────────────────────────────────────────────────┐
- * │ POST   /api/reparaciones                          → Crear nueva reparación           │
- * │ GET    /api/reparaciones                          → Listar todas las reparaciones    │
- * │ GET    /api/reparaciones/{id}                     → Buscar reparación por ID          │
- * │ GET    /api/reparaciones/localizador/{codigo}     → Buscar por código localizador     │
- * │ PUT    /api/reparaciones/{id}/asignar/{mecanicoId}→ Asignar mecánico                  │
- * │ PUT    /api/reparaciones/{id}/estado              → Actualizar estado                 │
- * │ GET    /api/reparaciones/estado/{estado}          → Filtrar por estado                │
- * │ GET    /api/reparaciones/mecanico/{mecanicoId}    → Reparaciones de un mecánico       │
- * │ GET    /api/reparaciones/vehiculo/{vehiculoId}    → Reparaciones de un vehículo       │
- * └──────────────────────────────────────────────────────────────────────────────────────┘
+ * Controlador REST para la gestión de reparaciones y finanzas del taller.
  */
 @RestController
 @RequestMapping("/api/reparaciones")
@@ -51,6 +38,15 @@ public class ReparacionController {
         return ResponseEntity.ok(reparacionService.obtenerTodas());
     }
 
+    /**
+     * Devuelve el resumen financiero de la Cuenta General del Taller.
+     * GET /api/reparaciones/cuenta-taller
+     */
+    @GetMapping("/cuenta-taller")
+    public ResponseEntity<Map<String, Object>> obtenerCuentaTaller() {
+        return ResponseEntity.ok(reparacionService.obtenerCuentaTaller());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerPorId(@PathVariable Long id) {
         try {
@@ -60,12 +56,6 @@ public class ReparacionController {
         }
     }
 
-    /**
-     * Busca una reparación por su código localizador.
-     * Este endpoint es PÚBLICO: lo usan los clientes para consultar
-     * el estado de su coche sin necesidad de iniciar sesión.
-     * GET /api/reparaciones/localizador/A3F7K9X2
-     */
     @GetMapping("/localizador/{codigo}")
     public ResponseEntity<?> obtenerPorLocalizador(@PathVariable String codigo) {
         try {
@@ -75,10 +65,6 @@ public class ReparacionController {
         }
     }
 
-    /**
-     * Asigna un mecánico a una reparación.
-     * PUT /api/reparaciones/5/asignar/3   → Asigna el mecánico con ID 3 a la reparación 5
-     */
     @PutMapping("/{id}/asignar/{mecanicoId}")
     public ResponseEntity<?> asignarMecanico(@PathVariable Long id, @PathVariable Long mecanicoId) {
         try {
@@ -89,10 +75,6 @@ public class ReparacionController {
         }
     }
 
-    /**
-     * Actualiza el estado de una reparación.
-     * El frontend envía: { "estado": "FINALIZADA" }
-     */
     @PutMapping("/{id}/estado")
     public ResponseEntity<?> actualizarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {
@@ -102,6 +84,27 @@ public class ReparacionController {
             }
             ReparacionResponseDTO respuesta = reparacionService.actualizarEstado(id, nuevoEstado);
             return ResponseEntity.ok(respuesta);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * El Administrador actualiza o amplía el presupuesto asignado al mecánico para una reparación.
+     * PUT /api/reparaciones/{id}/presupuesto  con body { "presupuestoMecanico": 100.0 } o { "presupuesto": 100.0 }
+     */
+    @PutMapping("/{id}/presupuesto")
+    public ResponseEntity<?> actualizarPresupuesto(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            Object val = body.get("presupuestoMecanico") != null ? body.get("presupuestoMecanico") : body.get("presupuesto");
+            if (val == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El campo 'presupuestoMecanico' es obligatorio."));
+            }
+            Double nuevoPresupuesto = Double.valueOf(val.toString());
+            ReparacionResponseDTO respuesta = reparacionService.actualizarPresupuesto(id, nuevoPresupuesto);
+            return ResponseEntity.ok(respuesta);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El presupuesto debe ser un número válido."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

@@ -70,6 +70,17 @@
     </nav>
 
     <main class="container">
+        <section class="bienvenida-banner">
+            <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
+            <div>
+                <p class="bienvenida-saludo">Panel de Recepción · Gestión de clientes y vehículos</p>
+                <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
+                <div class="bienvenida-meta">
+                    <span class="bienvenida-rol" id="bienvenida-rol">-</span>
+                    <span id="bienvenida-fecha" style="text-transform: capitalize;"></span>
+                </div>
+            </div>
+        </section>
         <!-- Stats -->
         <div class="stats-container">
             <div class="card stat-card">
@@ -83,6 +94,10 @@
             <div class="card stat-card">
                 <h3>Reparaciones Pendientes</h3>
                 <p id="stat-pendientes" class="stat-value"><span class="spinner"></span></p>
+            </div>
+            <div class="card stat-card">
+                <h3>Ganancia Prevista (En Taller)</h3>
+                <p id="stat-beneficio" class="stat-value" style="color: var(--success);"><span class="spinner"></span></p>
             </div>
         </div>
 
@@ -144,6 +159,23 @@
                         <label>Descripción de la avería</label>
                         <textarea id="rep-descripcion" rows="4" required></textarea>
                     </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+                        <div class="form-group">
+                            <label>Precio Acordado con el Cliente (€)</label>
+                            <input type="number" id="rep-presupuesto" min="1" step="0.50" value="200.00" required oninput="actualizarPreviewMargenRecepcion()">
+                            <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                                Importe que se le cobrará al cliente al recoger el coche (ej. 200 €).
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label>Presupuesto Pensado para Arreglarlo (€)</label>
+                            <input type="number" id="rep-presupuesto-estimado" min="1" step="0.50" value="100.00" required oninput="actualizarPreviewMargenRecepcion()">
+                            <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                                Propuesta inicial de gasto (ej. 100 €). El Administrador decidirá el límite definitivo del mecánico.
+                            </small>
+                        </div>
+                    </div>
+                    <div id="preview-margen-recepcion" style="margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); font-size: 0.9rem;"></div>
                     <button type="submit" class="btn btn-primary" id="btn-submit-reparacion">Crear Reparación</button>
                 </form>
             </div>
@@ -161,7 +193,8 @@
                                 <th>Mecánico</th>
                                 <th>Estado</th>
                                 <th>Fecha Entrada</th>
-                                <th>Avería</th>
+                                <th>Avería y Piezas</th>
+                                <th>Presupuesto / Ganancia</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -224,7 +257,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const user = getUsuarioActual();
             if (user) {
-                document.getElementById('user-info').innerHTML = `${user.nombre} <span class="badge">${user.rol}</span>`;
+                pintarCabeceraUsuario(user);
             }
             document.getElementById('veh-anio').max = new Date().getFullYear();
             
@@ -233,7 +266,38 @@
             loadReparaciones();
             loadClientes();
             loadVehiculos();
+            actualizarPreviewMargenRecepcion();
         });
+
+        function actualizarPreviewMargenRecepcion() {
+            const box = document.getElementById('preview-margen-recepcion');
+            const inputPrecio = document.getElementById('rep-presupuesto');
+            const inputEstimado = document.getElementById('rep-presupuesto-estimado');
+            if (!box || !inputPrecio || !inputEstimado) return;
+
+            const precioCliente = parseFloat(inputPrecio.value) || 0;
+            const estimado = parseFloat(inputEstimado.value) || 0;
+            const margenMinimo = precioCliente - estimado;
+
+            if (precioCliente > 0 && estimado >= precioCliente) {
+                box.style.borderColor = '#ef4444';
+                box.style.background = 'rgba(220, 38, 38, 0.12)';
+                box.innerHTML = `<span style="color: #fca5a5; font-weight: 600;">⚠️ El presupuesto pensado para arreglarlo (${formatearEuros(estimado)}) no puede igualar ni superar el precio cobrado al cliente (${formatearEuros(precioCliente)}), porque no habría ganancias para el taller.</span>`;
+            } else {
+                box.style.borderColor = 'var(--border)';
+                box.style.background = 'rgba(255,255,255,0.03)';
+                box.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                        <span>Cobro al cliente: <strong>${formatearEuros(precioCliente)}</strong></span>
+                        <span>Pensado para el arreglo: <strong style="color: var(--info);">${formatearEuros(estimado)}</strong></span>
+                        <span>Ganancia mínima estimada: <strong style="color: var(--success);">+${formatearEuros(Math.max(0, margenMinimo))}</strong></span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">
+                        💡 El Administrador revisará esta propuesta y fijará el presupuesto definitivo que podrá gastar el mecánico.
+                    </div>
+                `;
+            }
+        }
 
         function openTab(tabId, event) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -266,6 +330,10 @@
                 document.getElementById('stat-vehiculos').textContent = vehiculosEnTaller.length;
                 document.getElementById('stat-clientes').textContent = clientes ? clientes.length : 0;
                 document.getElementById('stat-pendientes').textContent = pendientes ? pendientes.length : 0;
+                const repActivas = (reparaciones || []).filter(r => r.estado !== 'ENTREGADA').map(enriquecerReparacionFinanzas);
+                const beneficioEnTaller = repActivas.reduce((acc, r) => acc + (r.beneficio || 0), 0);
+                const elBen = document.getElementById('stat-beneficio');
+                if (elBen) elBen.textContent = formatearEuros(beneficioEnTaller);
             } catch (error) {
                 console.error("Error loading stats", error);
             }
@@ -347,14 +415,29 @@
         document.getElementById('form-reparacion').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-reparacion');
-            toggleLoading(btn, true);
             const alertsContainer = document.getElementById('alerts-container');
             const user = getUsuarioActual();
             
+            const presupuestoVal = parseFloat(document.getElementById('rep-presupuesto').value) || 200.0;
+            const estimadoVal = parseFloat(document.getElementById('rep-presupuesto-estimado').value) || 100.0;
+
+            if (estimadoVal <= 0 || presupuestoVal <= 0) {
+                mostrarAlerta('El precio acordado y el presupuesto estimado deben ser mayores que 0 €.', 'error', alertsContainer);
+                return;
+            }
+            if (estimadoVal >= presupuestoVal) {
+                mostrarAlerta(`El presupuesto pensado para arreglarlo (${formatearEuros(estimadoVal)}) debe ser menor que el precio cobrado al cliente (${formatearEuros(presupuestoVal)}) para que el taller tenga ganancias.`, 'error', alertsContainer);
+                return;
+            }
+
+            toggleLoading(btn, true);
             const payload = {
                 vehiculoId: parseInt(document.getElementById('rep-vehiculo').value, 10),
                 recepcionistaId: user.id,
-                descripcionAveria: document.getElementById('rep-descripcion').value
+                descripcionAveria: document.getElementById('rep-descripcion').value,
+                presupuesto: presupuestoVal,
+                presupuestoEstimado: estimadoVal,
+                presupuestoMecanico: estimadoVal
             };
             
             try {
@@ -363,9 +446,15 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const locMsg = res.localizador ? ` - Código localizador: <strong>${res.localizador}</strong> (entrégalo al cliente)` : '';
+                if (res && res.id) guardarPresupuestoCreacionLocal(res.id, presupuestoVal, estimadoVal);
+                const locMsg = res.localizador
+                    ? ` - Código localizador: <strong>${res.localizador}</strong> (Cobro cliente: ${formatearEuros(presupuestoVal)} · Propuesta arreglo: ${formatearEuros(estimadoVal)})`
+                    : '';
                 mostrarAlerta(`Reparación creada correctamente.${locMsg}`, 'success', alertsContainer);
                 document.getElementById('form-reparacion').reset();
+                document.getElementById('rep-presupuesto').value = '200.00';
+                document.getElementById('rep-presupuesto-estimado').value = '100.00';
+                actualizarPreviewMargenRecepcion();
                 loadStats();
                 loadReparaciones();
                 loadVehiculos();
@@ -384,7 +473,8 @@
                     silent: true,
                     body: JSON.stringify({ estado: 'ENTREGADA' })
                 });
-                mostrarAlerta('Vehículo entregado al cliente. Se ha retirado de la lista activa del taller.', 'success', alertsContainer);
+                marcarConfirmadaPorAdminLocal(repId, false);
+                mostrarAlerta('Vehículo entregado al cliente y cobrado correctamente. Se ha sumado a la Cuenta del Taller.', 'success', alertsContainer);
                 loadStats();
                 loadVehiculosParaSelect();
                 loadReparaciones();
@@ -397,11 +487,13 @@
         async function loadReparaciones() {
             try {
                 const reparaciones = await apiFetch('/reparaciones');
-                const activas = (reparaciones || []).filter(r => r.estado !== 'ENTREGADA');
+                const activas = (reparaciones || [])
+                    .filter(r => r.estado !== 'ENTREGADA')
+                    .map(enriquecerReparacionFinanzas);
                 const tbody = document.querySelector('#tabla-reparaciones tbody');
                 tbody.innerHTML = '';
                 if(activas.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay reparaciones activas en el taller</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No hay reparaciones activas en el taller</td></tr>';
                     return;
                 }
                 activas.forEach(r => {
@@ -409,9 +501,23 @@
                     const matricula = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
                     const clienteNom = r.nombreCliente || r.vehiculo?.cliente?.nombre || '-';
                     const mecanicoNom = r.nombreMecanico || r.mecanico?.nombre || 'Sin asignar';
-                    const btnAccion = r.estado === 'FINALIZADA'
-                        ? `<button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="entregarVehiculo(${r.id})">Entregar</button>`
-                        : '<span class="text-muted">En taller</span>';
+                    let btnAccion = '<span class="text-muted">En taller</span>';
+                    if (r.estado === 'CONFIRMADA') {
+                        btnAccion = `<button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="entregarVehiculo(${r.id})">Entregar y Cobrar</button>`;
+                    } else if (r.estado === 'FINALIZADA') {
+                        btnAccion = `<span style="color: #C084FC; font-size: 0.82rem; font-weight: 600;">⏳ Pendiente visto bueno Admin</span>`;
+                    }
+                    const piezasHtml = (r.materialesDetalle && r.materialesDetalle.length > 0)
+                        ? `<div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--info);">🔩 ${r.materialesDetalle.join(' · ')}</div>`
+                        : `<div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--text-muted);">Sin materiales usados</div>`;
+                    const finanzasHtml = `
+                        <div style="font-size: 0.84rem; line-height: 1.4;">
+                            <div>Precio cliente: <strong>${formatearEuros(r.presupuesto)}</strong></div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem;">Pensado: ${formatearEuros(r.presupuestoEstimado)} · <span style="color: var(--info);">Límite Admin: <strong>${formatearEuros(r.presupuestoMecanico)}</strong></span></div>
+                            <div style="color: var(--warning);">Coste piezas: <strong>-${formatearEuros(r.costeMateriales)}</strong></div>
+                            <div style="color: var(--success); font-weight: 700;">Ganancia: +${formatearEuros(r.beneficio)}</div>
+                        </div>
+                    `;
                     tr.innerHTML = `
                         <td>${r.id}</td>
                         <td><strong style="color:var(--primary); font-family:monospace; font-size:1.05rem;">${r.localizador || '-'}</strong></td>
@@ -420,7 +526,11 @@
                         <td>${mecanicoNom}</td>
                         <td>${crearBadgeEstado(r.estado)}</td>
                         <td>${formatearFecha(r.fechaEntrada)}</td>
-                        <td>${r.descripcionAveria || '-'}</td>
+                        <td>
+                            <div>${r.descripcionAveria || '-'}</div>
+                            ${piezasHtml}
+                        </td>
+                        <td>${finanzasHtml}</td>
                         <td>${btnAccion}</td>
                     `;
                     tbody.appendChild(tr);
@@ -468,7 +578,7 @@
                     reparaciones.forEach(r => {
                         const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
                         if (mat) {
-                            repPorMatricula[mat] = r;
+                            repPorMatricula[mat] = enriquecerReparacionFinanzas(r);
                         }
                     });
                 }

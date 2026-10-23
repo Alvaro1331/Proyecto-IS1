@@ -83,6 +83,14 @@
             flex-direction: column;
             gap: 0.35rem;
         }
+        .repair-card { border-top: 4px solid var(--border); transition: transform 0.15s, box-shadow 0.15s; }
+        .repair-card:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); }
+        .repair-card.estado-PENDIENTE { border-top-color: var(--warning); }
+        .repair-card.estado-EN_PROCESO { border-top-color: var(--info); }
+        .repair-card.estado-FINALIZADA { border-top-color: #A855F7; }
+        .repair-card.estado-CONFIRMADA { border-top-color: var(--success); }
+        .repair-card.estado-ENTREGADA { border-top-color: var(--text-muted); opacity: 0.8; }
+        .vincular-card { border-left: 4px solid var(--primary); }
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
@@ -95,13 +103,14 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="container flex justify-between items-center">
-            <div class="nav-brand">MotorFlow</div>
-            <div class="nav-links flex items-center" style="gap: 1rem;">
-                <a href="consulta-estado.html">Consulta Pública</a>
-                <span id="nav-user-name" style="color: var(--color-text-muted); font-size: 0.95rem;"></span>
-                <button onclick="logout()" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
-            </div>
+        <div class="nav-brand">MotorFlow</div>
+        <div class="nav-links">
+            <a href="dashboard-cliente.html" class="active">Mi Cuenta</a>
+            <a href="consulta-estado.html">Consulta Pública</a>
+        </div>
+        <div class="nav-user">
+            <span id="user-info"></span>
+            <button onclick="logout()" class="btn btn-danger">Cerrar Sesión</button>
         </div>
     </nav>
 
@@ -109,18 +118,22 @@
         <div id="alerts-container"></div>
 
         <!-- Perfil del Cliente -->
-        <div class="profile-card">
+        <section class="bienvenida-banner">
+            <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
             <div>
-                <h2 id="profile-name" style="margin: 0 0 0.5rem 0;">Cargando perfil...</h2>
-                <div style="color: var(--color-text-muted); font-size: 0.95rem;">
-                    <span>📧 <span id="profile-email">-</span></span> | 
+                <p class="bienvenida-saludo">Mi Cuenta · Hola de nuevo</p>
+                <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
+                <div class="bienvenida-meta">
+                    <span class="bienvenida-rol" id="bienvenida-rol">CLIENTE</span>
+                    <span>📧 <span id="profile-email">-</span></span>
                     <span>📱 <span id="profile-phone">-</span></span>
                 </div>
             </div>
-            <div>
-                <span class="badge badge-process" style="font-size: 0.9rem;">Cuenta Cliente</span>
+            <div class="bienvenida-extra">
+                <div style="font-size: 2.2rem; font-weight: 700; color: var(--primary); line-height: 1;" id="resumen-activas">-</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">reparaciones en curso</div>
             </div>
-        </div>
+        </section>
 
         <!-- Formulario para Vincular Localizador -->
         <div class="vincular-card">
@@ -152,8 +165,7 @@
                 return;
             }
 
-            document.getElementById('nav-user-name').textContent = user.nombre || 'Cliente';
-            document.getElementById('profile-name').textContent = user.nombre || 'Cliente';
+            pintarCabeceraUsuario(user, 'CLIENTE');
             document.getElementById('profile-email').textContent = user.email || 'Sin correo registrado';
             document.getElementById('profile-phone').textContent = user.telefono || 'Sin teléfono';
 
@@ -167,6 +179,9 @@
 
             try {
                 const reparaciones = await apiFetch(`/clientes/${user.id}/mis-reparaciones`);
+                const activas = (reparaciones || []).filter(r => r.estado !== 'ENTREGADA').length;
+                const resumen = document.getElementById('resumen-activas');
+                if (resumen) resumen.textContent = activas;
                 
                 if (!reparaciones || reparaciones.length === 0) {
                     container.innerHTML = `
@@ -181,7 +196,7 @@
                 container.innerHTML = '';
                 reparaciones.forEach(r => {
                     const card = document.createElement('div');
-                    card.className = 'repair-card';
+                    card.className = `repair-card estado-${r.estado}`;
                     card.innerHTML = `
                         <div>
                             <div class="repair-header">
@@ -196,7 +211,7 @@
                         <div class="repair-meta">
                             <div><strong>Localizador:</strong> <span style="font-family: monospace; color: var(--color-primary); font-size: 1rem;">${r.localizador}</span></div>
                             <div><strong>Fecha Entrada:</strong> ${r.fechaEntrada ? formatearFecha(r.fechaEntrada) : 'N/A'}</div>
-                            <div><strong>Mecánico:</strong> ${r.mecanico || 'Pendiente de asignar'}</div>
+                            <div><strong>Mecánico:</strong> ${r.mecanico ? `<span style="color: var(--text-light); font-weight: 600;">🔧 ${r.mecanico}</span>` : '<span style="color: var(--warning);">Pendiente de asignar</span>'}</div>
                         </div>
                     `;
                     container.appendChild(card);

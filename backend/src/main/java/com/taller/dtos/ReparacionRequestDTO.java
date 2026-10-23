@@ -10,10 +10,10 @@ import jakarta.validation.constraints.NotNull;
  * {
  *   "vehiculoId": 1,
  *   "recepcionistaId": 2,
- *   "descripcionAveria": "El motor hace un ruido extraño al acelerar"
+ *   "descripcionAveria": "El motor hace un ruido extraño al acelerar",
+ *   "presupuesto": 200.00,
+ *   "presupuestoEstimado": 100.00
  * }
- *
- * Nota: El mecánico se asigna después (no hace falta al crear la reparación).
  */
 public class ReparacionRequestDTO {
 
@@ -26,6 +26,15 @@ public class ReparacionRequestDTO {
     @NotBlank(message = "La descripción de la avería no puede estar vacía")
     private String descripcionAveria;
 
+    // Precio acordado con el cliente (ej. 200 €)
+    private Double presupuesto;
+
+    // Presupuesto estimado por la recepcionista para arreglarlo (ej. 100 €)
+    private Double presupuestoEstimado;
+
+    // Presupuesto máximo aprobado por el administrador para el mecánico
+    private Double presupuestoMecanico;
+
     // --- Getters y Setters ---
     public Long getVehiculoId() { return vehiculoId; }
     public void setVehiculoId(Long vehiculoId) { this.vehiculoId = vehiculoId; }
@@ -35,4 +44,13 @@ public class ReparacionRequestDTO {
 
     public String getDescripcionAveria() { return descripcionAveria; }
     public void setDescripcionAveria(String descripcionAveria) { this.descripcionAveria = descripcionAveria; }
+
+    public Double getPresupuesto() { return presupuesto; }
+    public void setPresupuesto(Double presupuesto) { this.presupuesto = presupuesto; }
+
+    public Double getPresupuestoEstimado() { return presupuestoEstimado; }
+    public void setPresupuestoEstimado(Double presupuestoEstimado) { this.presupuestoEstimado = presupuestoEstimado; }
+
+    public Double getPresupuestoMecanico() { return presupuestoMecanico; }
+    public void setPresupuestoMecanico(Double presupuestoMecanico) { this.presupuestoMecanico = presupuestoMecanico; }
 }
