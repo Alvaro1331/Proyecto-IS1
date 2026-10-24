@@ -7,7 +7,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 /**
- * Carga datos de prueba en la base de datos H2 en memoria al arrancar el servidor.
+ * Carga datos de prueba en la base de datos al arrancar el servidor.
+ *
+ * Con MySQL los datos se guardan de forma permanente, así que este
+ * archivo solo inserta los datos la primera vez (cuando la base de datos
+ * está vacía). Si ya hay datos, se salta la carga para no duplicar nada.
  */
 @Component
 public class DatosPrueba implements CommandLineRunner {
@@ -21,6 +25,16 @@ public class DatosPrueba implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+
+        // En MySQL los datos persisten entre reinicios. Si ya hay datos en la base de datos,
+        // no volvemos a insertarlos para no duplicar ni provocar errores de clave duplicada.
+        if (usuarioRepository.count() > 0) {
+            System.out.println("=========================================");
+            System.out.println("  BASE DE DATOS MYSQL CONECTADA");
+            System.out.println("  Los datos ya existen, se mantiene la información.");
+            System.out.println("=========================================");
+            return;
+        }
 
         // ======== USUARIOS (personal del taller) ========
         Usuario admin = new Usuario("Antonio García", "admin@taller.com", "admin123", "600000001", Rol.ADMIN);

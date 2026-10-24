@@ -1,14 +1,31 @@
+# Node y dependencias web
 node_modules/
 .env
 dist/
 build/
 .DS_Store
 
-# Compilados de Java e IDE
-backend/target/
+# Compilados de Java y Maven
+target/
+**/target/
 *.class
-.idea/
-*.iml
 
-# Archivos temporales de Office
+# IDEs (IntelliJ, Eclipse, VS Code)
+.idea/
+**/.idea/
+*.iml
+**/*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# Logs y temporales
+*.log
+*.tmp
+*.bak
+
+# Archivos temporales de Office y Windows
 ~$*
+Thumbs.db
+desktop.ini
