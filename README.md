@@ -2,7 +2,7 @@
 
 ## NOMBRE DEL SOFTWARE: MOTORFLOW
 
-Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión de un taller. Con el fin de automatizar los procesos que existen en un taller buscamos desarrollar un software que permita: al cliente del taller ver el estado de su coche en tiempo real según sus datos; al recepcionista registrar los coches en la base de datos; al mecanico notificar el proceso de reparacion y los materiales usados; y al mecanico jefe/administrador/dueño poder administrar la aplicacion con distintas funcionalidades.
+Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión de un taller mecánico. Con el fin de automatizar los procesos que existen en un taller hemos desarrollado un software que permite: a los clientes del taller ver el estado de su coche en tiempo real según sus datos; a los recepcionistas registrar a los clientes, sus coches coches y abrir nuevas órdenes de reparación; a los mecánicos ver qué coches tienen asignados, actualizar el avance de la reparación y anotar los materiales usados; y al mecánico jefe/administrador/dueño poder gestionarlo todo (crear empleados, supervisar el inventario, controlar el dinero del taller y dar el visto bueno final antes de entregar los coches).
 <br>
 <br>
 
@@ -14,22 +14,29 @@ Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión d
   ·Álvaro Sánchez Camacho<br>
 <br>
 ## Información para nuevos desarrolladores:
-Esta sección se tiene y se ira rellenando a medida que se vayan desarrollando el software. 
-En la wiki esta documentado el proceso de desarrollo, es muy útil para saber los hitos completados y los objetivos próximos. Además en el apartado de projects hay una sección que permite visionar las historias de usuario relacionadas con el proyecto, y su estado de desarrollo actual.
+Esta sección se tiene y se ira rellenando a medida que se vaya desarrollando el software. 
+En la wiki está documentado el proceso de desarrollo, es muy útil para saber los hitos completados y los objetivos próximos. Además en el apartado de projects hay una sección que permite visionar las historias de usuario relacionadas con el proyecto, y su estado de desarrollo actual.
 
-¿Qué tecnologías hemos elegido y por qué?
+### ¿Qué tecnologías hemos elegido y por qué?
 
-Una de las primeras decisiones importantes fue elegir con qué herramientas íbamos a construir la aplicación. Estas son las que hemos decidido usar:
+Estas son las herramientas que hemos decidido usar para construir la aplicación:
 
-Java con Spring Boot para el backend (la parte del servidor que no se ve). Lo elegimos porque es el lenguaje que conocemos de clase y porque Spring Boot es un framework muy utilizado en la industria que nos facilita muchísimo el trabajo: con muy poco código consigues que el servidor funcione, se conecte a la base de datos y exponga los datos al frontend.
+Java con Spring Boot para el backend: es el lenguaje que conocemos de clase. Spring Boot nos facilita muchísimo el trabajo: con muy poco código consigues que el servidor funcione, se conecte a la base de datos y exponga los datos al frontend.
 
-HTML, CSS y JavaScript para el frontend (la parte visual que verá el usuario). Al no tener experiencia con frameworks como React o Angular, optamos por lo más básico y sólido. Así el equipo de frontend puede trabajar sin depender de instalaciones complejas.
+HTML, CSS y JavaScript para el frontend. Al no tener experiencia con frameworks como React o Angular, optamos por lo más básico y sólido. Así el equipo de frontend puede trabajar sin depender de instalaciones complejas.
 
-H2 como base de datos durante el desarrollo. H2 es una base de datos que vive en la memoria del ordenador mientras el servidor está encendido, y desaparece cuando lo apagas. La ventaja es que no hay que instalar nada: cualquier miembro del equipo puede descargarse el proyecto y arrancarlo directamente. Cuando el proyecto esté más avanzado, cambiaremos a una base de datos real como MySQL.
+MySQL como base de datos definitiva. Durante los primeros sprints usamos una base de datos temporal (H2) para probar cosas rápido sin instalar nada. Actualmente, hemos migrado la base de datos a MySQL, un motor más profesional, de forma que ya tenemos una base de datos (tallerdb) persistente.
 
 Git y GitHub para el control de versiones, usando TortoiseGit como interfaz gráfica. Esto nos permite trabajar los cinco de forma paralela sin pisarnos el código.
 
-Organización del equipo
+### ¿Cómo arrancar el proyecto en tu ordenador?
+Si te acabas de clonar el repositorio, solo necesitas 3 pasos:
+1. Tener **MySQL** instalado en tu equipo.
+2. Abrir MySQL Workbench y ejecutar una sola vez esta línea para crear la base: "CREATE DATABASE tallerdb;"
+3. Abrir el proyecto en IntelliJ y darle al botón verde de Play (en "application.properties" la contraseña por defecto de MySQL es "admin123").
+<br>
+
+### Organización del equipo
 
 Dado que somos 5 personas y que el proyecto tiene una parte visual (frontend) y una parte de lógica y datos (backend), decidimos dividir el equipo en dos partes a las que se dedicará mayor o menor tiempo según las necesidades del poyecto y cómo este avance:
 
@@ -38,39 +45,55 @@ Equipo Frontend: Se encargan de todo lo que el usuario ve en pantalla: los formu
 Equipo Backend: Se encargan de la lógica del servidor: recibir peticiones, validar datos, guardarlos en la base de datos y devolverlos al frontend. Trabajan dentro de la carpeta backend.
 
 
-Lógica principal del backend:
+## Lógica principal del backend:
 
-El servidor Java con Spring Boot ya es capaz de gestionar usuarios, el inventario del taller y el flujo completo de una reparación desde que entra el coche hasta que se entrega. Ahora mismo la API ofrece 25 puntos de conexión (endpoints) para que el frontend pueda ir desarrollándose. Ahora la base de datos funciona así:<br>
+El servidor Java con Spring Boot ya es capaz de gestionar usuarios, el inventario del taller y el flujo completo de una reparación desde que entra el coche hasta que se entrega. Ahora mismo la API ofrece 25 puntos de conexión (endpoints) para que el frontend pueda ir desarrollándose. La información se organiza en estas tablas principales:<br>
 
-Usuarios: Aquí guardamos al personal del taller. Cada uno tiene un rol: ADMIN, RECEPCIONISTA o MECANICO. (Nota: Los clientes no van en esta tabla porque de momento no necesitan iniciar sesión, van en su propia tabla Clientes, hay que cambiarlo).<br><br>
+Usuarios: Aquí guardamos al personal del taller. Cada uno tiene un rol: ADMIN, RECEPCIONISTA o MECANICO. <br><br>
+
+Clientes: Los dueños de los vehículos. Tienen su propia tabla independiente. Un cliente puede estar registrado sin cuenta (solo con su nombre y teléfono cuando deja el coche), o crearse una cuenta con correo y contraseña para ver su historial. Además, cuenta con un sistema para recuperar la contraseña si se le olvida. <br><br>
+
+Vehículos: Los coches del taller, cada uno con su matrícula, marca, modelo y asociado a su dueño.<br><br>
 
 Materiales: Es nuestro inventario. Guardamos el nombre de las piezas (filtros, aceite, pastillas de freno), su precio y el stock disponible.<br><br>
-Reparaciones: Una reparación une todo:<br>
-Sabe qué coche se está arreglando.<br>
-Sabe qué recepcionista lo registró.<br>
-Sabe qué mecánico se encarga (cuando el jefe se lo asigna).<br><br>
-Reparación-Materiales (Tabla intermedia): Como en una reparación se pueden usar muchas piezas distintas, esta tabla apunta qué piezas y cuántas unidades se han gastado en cada reparación concreta. Además hemos hecho que una reparación no pueda estar en cualquier estado.  Sigue un camino estricto: empieza como PENDIENTE, pasa a EN_PROCESO (cuando se le asigna un mecánico), después pasa a FINALIZADA (el coche está arreglado pero sigue en el taller) y termina en ENTREGADA (el cliente se lo lleva). Hemos programado la siguiente regla: el sistema da un error si intentas saltarte pasos hacia atrás (por ejemplo, pasar un coche "Entregado" a "Pendiente").
+
+Reparaciones (El núcleo del taller): Une el coche, el recepcionista que lo atendió, el mecánico que lo arregla y la descripción de la avería.<br><br>
+
+Privacidad por Localizador: En lugar de buscar coches por matrícula, cada reparación genera automáticamente un código alfanumérico único de 8 letras y números (por ejemplo: "Y6NDCVRP"). Así ningún cliente puede ver coches ajenos.<br><br>
+
+Flujo estricto de estados:** Una reparación no puede saltarse pasos. Sigue este orden obligatorio:  
+    "PENDIENTE" ➔ "EN_PROCESO" ➔ "FINALIZADA" (el mecánico acaba) ➔ "CONFIRMADA" (el administrador da el visto bueno) ➔ "ENTREGADA" (se cobra y el cliente se lleva el coche).<br><br>
+Control del dinero y presupuestos: El taller gestiona números reales:<br>
+    -Presupuesto cliente: lo que se le cobra al dueño del coche.<br>
+    -Estimación de recepción: lo que calcula la recepcionista que costará arreglarlo.<br>
+    -Presupuesto del mecánico: el tope máximo de dinero que el administrador autoriza al mecánico para gastar en piezas.<br>
+    -Caja del taller: cuenta con un fondo inicial de 2.000 € y calcula beneficios y gastos en tiempo real.<br>
+Reparación-Materiales: Apunta exactamente cuántas piezas ha gastado el mecánico en cada coche. Al usarlas, se descuentan solas del inventario del almacén y del presupuesto del mecánico.
 <br><br>
 
-Estructura del frontend
+## Estructura del frontend
 
 Para la parte visual hemos decidido usar HTML, CSS y JavaScript nativo. Todas las páginas están conectadas con nuestro servidor de Java y muestran datos reales de la base de datos. 
 
-La web tiene un diseño negro y naranja(a modificar) y está dividida en varias pantallas según quién la use:
+La web tiene un diseño negro y naranja y está dividida en varias pantallas según quién la use:
 
 1. Página de inicio (index.html): Es la portada de bienvenida de la web. Explica un poco qué hace el taller y tiene un botón grande para que los clientes puedan consultar su coche rápidamente, además de un enlace para que los trabajadores inicien sesión.
 
-2. Consulta para clientes (pages/consulta-estado.html): Por ahora los clientes no necesitan crearse una cuenta (a modificar), en esta pantalla cualquiera puede escribir la matrícula de su coche o su número de teléfono. Al darle a buscar, la página le enseña una tarjeta con los datos de su coche y unas etiquetas de colores que le dicen si la reparación está Pendiente, En proceso, Finalizada o si ya se ha Entregado.
+2. Consulta para clientes (pages/consulta-estado.html): Pensada para quien no tiene cuenta o tiene prisa. Metes tu código localizador de 8 letras y ves al instante en qué punto está tu coche con etiquetas de colores, sin necesidad de contraseñas.
 
-3. Inicio de sesión (pages/login.html): Aquí entra el personal del taller con su correo y contraseña. Lo hemos programado para que sea inteligente: cuando inicias sesión, el sistema mira si eres el jefe, la recepcionista o un mecánico, y te manda automáticamente a tu panel correspondiente.
+3. Inicio de sesión (pages/login.html): Tiene dos pestañas inteligentes:
+   * Área Clientes: Para iniciar sesión, registrarse como nuevo usuario o solicitar un código de 6 dígitos al correo si has olvidado tu contraseña.
+   * Personal del Taller: Para que entren el jefe, el recepcionista o los mecánicos y el sistema los mande a su pantalla correspondiente.
+  
+4. Panel privado del Cliente (pages/dashboard-cliente.html): Aquí el cliente ve sus datos, la lista de todos sus coches con sus reparaciones activas, y un cajetín donde puede pegar nuevos localizadores para dejarlos guardados en su cuenta para siempre.
+  
+5. Panel del recepcionista (pages/dashboard-recepcionista.html): Tiene tres pestañas para hacer el trabajo del día a día: una para registrar un coche nuevo junto a su dueño, otra para abrir una nueva avería, y una lista para ver todos los clientes y coches que tenemos guardados.
 
-4. Panel de la recepcionista (pages/dashboard-recepcionista.html): Tiene tres pestañas para hacer el trabajo del día a día: una para registrar un coche nuevo junto a su dueño, otra para abrir una nueva avería, y una lista para ver todos los clientes y coches que tenemos guardados.
+6. Panel del mecánico (pages/dashboard-mecanico.html): Aquí cada mecánico ve una lista con solo las reparaciones que el jefe le ha asignado a él. Puede darle a un botón para cambiar el estado a "En proceso" o "Finalizada", y además tiene un apartado para marcar qué piezas ha gastado del almacén (por ejemplo, 2 filtros de aceite), lo que resta automáticamente esas piezas del stock para no tener que contarlas a mano.
 
-5. Panel del mecánico (pages/dashboard-mecanico.html): Aquí cada mecánico ve una lista con solo las reparaciones que el jefe le ha asignado a él. Puede darle a un botón para cambiar el estado a "En proceso" o "Finalizada", y además tiene un apartado para marcar qué piezas ha gastado del almacén (por ejemplo, 2 filtros de aceite), lo que resta automáticamente esas piezas del stock para no tener que contarlas a mano.
+7. Panel del administrador / jefe (pages/dashboard-admin.html): Es el panel más completo porque el jefe tiene que poder controlarlo todo. Desde aquí puede crear nuevos empleados, ver todas las reparaciones y decidir qué mecánico se encarga de cada una, y gestionar el almacén de piezas (con avisos automáticos en rojo si alguna pieza se está agotando).
 
-6. Panel del administrador / jefe (pages/dashboard-admin.html): Es el panel más completo porque el jefe tiene que poder controlarlo todo. Desde aquí puede crear nuevos empleados, ver todas las reparaciones y decidir qué mecánico se encarga de cada una, y gestionar el almacén de piezas (con avisos automáticos en rojo si alguna pieza se está agotando).
-
-7. Archivos compartidos (app.js y styles.css): Hemos creado un archivo de JavaScript común que se encarga de hablar con el servidor Java (haciendo peticiones a http://localhost:8080/api) y de mostrar los avisos y carteles en pantalla, además de una hoja de estilos para que toda la web tenga los mismos colores y botones.
+8. Archivos compartidos (app.js y styles.css): Hemos creado un archivo de JavaScript común que se encarga de hablar con el servidor Java (haciendo peticiones a http://localhost:8080/api) y de mostrar los avisos y carteles en pantalla, además de una hoja de estilos para que toda la web tenga los mismos colores y botones.
 <br>
 <br>
 
