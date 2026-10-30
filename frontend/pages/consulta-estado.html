@@ -7,24 +7,9 @@
     <link rel="stylesheet" href="../css/styles.css">
     <style>
         .search-container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 2rem auto;
             text-align: center;
-        }
-        .search-options {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 1.5rem;
-        }
-        .radio-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-        .radio-group input {
-            cursor: pointer;
         }
         .search-input-group {
             display: flex;
@@ -40,28 +25,29 @@
             color: var(--color-text);
         }
         .results-container {
-            margin-top: 3rem;
-        }
-        .vehicle-result {
-            margin-bottom: 2rem;
+            margin-top: 2.5rem;
+            margin-bottom: 3rem;
         }
         .vehicle-info {
             background-color: var(--color-bg-card);
             border: 1px solid var(--color-border);
+            border-top: 4px solid var(--primary);
             border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
         }
         .vehicle-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             margin-bottom: 1rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--color-border);
         }
         .vehicle-title {
-            font-size: 1.25rem;
+            font-size: 1.35rem;
             font-weight: bold;
             color: var(--color-primary);
         }
@@ -70,50 +56,12 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
             color: var(--color-text-muted);
+            background: rgba(0, 0, 0, 0.22);
+            padding: 1rem;
+            border-radius: 6px;
         }
         .vehicle-details span {
             color: var(--color-text);
-        }
-        .repairs-timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            padding-left: 1.5rem;
-            border-left: 2px solid var(--color-border);
-            margin-left: 1rem;
-        }
-        .repair-card {
-            background-color: var(--color-bg-card);
-            border-radius: 8px;
-            padding: 1.5rem;
-            position: relative;
-        }
-        .repair-card::before {
-            content: '';
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: var(--color-primary);
-            border-radius: 50%;
-            left: -1.5rem;
-            top: 1.5rem;
-            transform: translateX(-50%);
-        }
-        .repair-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .repair-desc {
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-        .repair-meta {
-            display: flex;
-            gap: 2rem;
-            font-size: 0.9rem;
-            color: var(--color-text-muted);
         }
     </style>
 </head>
@@ -130,44 +78,44 @@
 
     <main class="container">
         <div class="search-container">
-            <h2>Consulta el estado de tu vehículo</h2>
-            <p style="color: var(--color-text-muted); margin-bottom: 2rem;">
-                Introduce el <strong>código localizador</strong> que te facilitó el recepcionista al dejar tu coche en el taller.
+            <h2>Consulta en Vivo el Estado de tu Vehículo</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.75rem;">
+                Introduce el <strong>código localizador</strong> que te facilitó Recepción para ver la línea temporal interactiva, los días estimados, las fotos subidas por el mecánico y tu factura desglosada.
             </p>
 
             <form id="searchForm" onsubmit="handleSearch(event)">
                 <div class="search-input-group">
                     <input type="text" id="searchInput" placeholder="Ej. A3F7K9X2" maxlength="12" style="text-transform: uppercase; letter-spacing: 2px; font-weight: bold; font-size: 1.1rem; text-align: center;" required>
-                    <button type="submit" class="btn btn-primary" id="searchBtn">Consultar</button>
+                    <button type="submit" class="btn btn-primary" id="searchBtn">Consultar Estado</button>
                 </div>
             </form>
-            
+
             <div id="alertContainer"></div>
 
             <div class="card mt-4" style="text-align: center; padding: 1.25rem; background: rgba(232, 93, 4, 0.07); border: 1px dashed var(--color-primary); margin-top: 1.5rem;">
                 <p style="margin: 0 0 0.75rem 0; color: var(--color-text);"><strong>¿Tienes cuenta de cliente?</strong></p>
-                <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0 0 1rem 0;">Inicia sesión para guardar tus localizadores y consultar tus vehículos sin tener que memorizar códigos.</p>
+                <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0 0 1rem 0;">Inicia sesión para guardar tus localizadores y consultar tus vehículos y facturas en cualquier momento.</p>
                 <a href="login.html" class="btn btn-primary btn-sm">Iniciar Sesión / Crear Cuenta</a>
             </div>
         </div>
 
-        <div id="resultsContainer" class="results-container">
-            <!-- Results will be injected here -->
-        </div>
+        <div id="resultsContainer" class="results-container"></div>
     </main>
 
     <script src="../js/app.js"></script>
     <script>
+        let ultimaReparacionConsultada = null;
+
         async function handleSearch(event) {
             event.preventDefault();
             const btn = document.getElementById('searchBtn');
             const codigo = document.getElementById('searchInput').value.trim().toUpperCase();
             const resultsContainer = document.getElementById('resultsContainer');
             const alertContainer = document.getElementById('alertContainer');
-            
+
             resultsContainer.innerHTML = '';
             alertContainer.innerHTML = '';
-            
+
             if (!codigo) return;
 
             toggleLoading(btn, true);
@@ -175,7 +123,8 @@
             try {
                 const rep = await apiFetch(`/reparaciones/localizador/${codigo}`);
                 if (!rep) throw new Error('No se encontró ninguna reparación con ese código localizador.');
-                renderReparacion(rep, resultsContainer);
+                ultimaReparacionConsultada = enriquecerReparacionFinanzas(rep);
+                renderReparacion(ultimaReparacionConsultada, resultsContainer);
             } catch (error) {
                 mostrarAlerta(error.message || 'Código localizador no válido o no encontrado.', 'error', alertContainer);
             } finally {
@@ -186,27 +135,69 @@
         function renderReparacion(rep, container) {
             const wrapper = document.createElement('div');
             wrapper.className = 'vehicle-result';
-            
-            const infoHtml = `
+
+            const timelineHtml = renderizarLineaTemporalHTML(rep);
+            const incidenciasHtml = renderizarIncidenciasHTML(rep.incidencias || []);
+
+            const piezasUsadasHtml = (rep.materialesDetalle && rep.materialesDetalle.length > 0)
+                ? `<div style="margin-top: 0.75rem; font-size: 0.88rem; color: var(--info);">🔩 <strong>Piezas sustituidas / empleadas:</strong> ${rep.materialesDetalle.join(' · ')}</div>`
+                : '';
+
+            let facturaHtml = '';
+            if (rep.factura) {
+                facturaHtml = `
+                    <div style="margin-top: 1.5rem; border-top: 1px solid var(--color-border); padding-top: 1.25rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem;">
+                            <h3 style="margin:0; color: var(--success);">🧾 Factura Oficial Disponible (${rep.factura.numeroFactura})</h3>
+                            <button type="button" class="btn btn-primary" onclick="abrirModalFacturaObjeto(ultimaReparacionConsultada.factura)">
+                                🖨️ Abrir Vista de Impresión
+                            </button>
+                        </div>
+                        ${renderizarFacturaDesglosadaHTML(rep.factura)}
+                    </div>
+                `;
+            } else {
+                facturaHtml = `
+                    <div style="margin-top: 1.25rem; padding: 1rem; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted);">Estimación inicial orientativa en Recepción</div>
+                            <div style="font-size: 1.15rem; font-weight: 700;">${formatearEuros(rep.estimacionInicial)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted);">Importe acumulado previsto (con IVA 21%)</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary-light);">${formatearEuros(rep.totalCalculadoPrevisto)}</div>
+                        </div>
+                        <div style="font-size: 0.82rem; color: var(--text-muted);">
+                            <em>La factura definitiva se emitirá al finalizar la reparación.</em>
+                        </div>
+                    </div>
+                `;
+            }
+
+            wrapper.innerHTML = `
                 <div class="vehicle-info">
                     <div class="vehicle-header">
-                        <div class="vehicle-title">${rep.marcaVehiculo} ${rep.modeloVehiculo} (${rep.matriculaVehiculo})</div>
+                        <div class="vehicle-title">🚗 ${rep.marcaVehiculo} ${rep.modeloVehiculo} (${rep.matriculaVehiculo})</div>
                         <div>${crearBadgeEstado(rep.estado)}</div>
                     </div>
                     <div class="vehicle-details" style="margin-bottom: 1rem;">
                         <div><strong>Código Localizador:</strong> <span style="font-family: monospace; font-size: 1.15rem; color: var(--color-primary);">${rep.localizador}</span></div>
                         <div><strong>Fecha de Entrada:</strong> <span>${rep.fechaEntrada ? formatearFecha(rep.fechaEntrada) : 'N/A'}</span></div>
-                        <div><strong>Fecha Estimada/Salida:</strong> <span>${rep.fechaSalida ? formatearFecha(rep.fechaSalida) : 'En taller'}</span></div>
-                        <div><strong>Mecánico Asignado:</strong> <span>${rep.nombreMecanico || 'Pendiente de asignar'}</span></div>
+                        <div><strong>Entrega Estimada:</strong> <span>${rep.fechaEstimadaFin ? formatearFecha(rep.fechaEstimadaFin) : 'En taller'} (${rep.diasEstimados || 3} días)</span></div>
+                        <div><strong>Mecánico Asignado:</strong> <span>🔧 ${rep.nombreMecanico || 'Pendiente de asignar'}</span></div>
                     </div>
                     <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
                         <strong>Descripción de la avería:</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-muted);">${rep.descripcionAveria || 'Sin descripción'}</p>
+                        <p style="margin: 0.4rem 0 0 0; color: var(--color-text-muted);">${rep.descripcionAveria || 'Sin descripción'}</p>
+                        ${piezasUsadasHtml}
                     </div>
+
+                    ${timelineHtml}
+                    ${incidenciasHtml}
+                    ${facturaHtml}
                 </div>
             `;
 
-            wrapper.innerHTML = infoHtml;
             container.appendChild(wrapper);
         }
     </script>

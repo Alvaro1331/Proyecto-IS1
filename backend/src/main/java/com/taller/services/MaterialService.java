@@ -107,7 +107,8 @@ public class MaterialService {
 
     /**
      * Registra el uso de un material en una reparación.
-     * Valida tanto el stock físico como que el coste no supere el presupuesto asignado al mecánico por el Administrador.
+     * El mecánico trabaja libremente sin tope presupuestario artificial:
+     * únicamente se comprueba que haya stock disponible suficiente en el almacén.
      */
     public MaterialResponseDTO usarMaterialEnReparacion(Long reparacionId, Long materialId, Integer cantidad) {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
@@ -118,7 +119,7 @@ public class MaterialService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró el material con ID: " + materialId));
 
-        if (cantidad <= 0) {
+        if (cantidad == null || cantidad <= 0) {
             throw new IllegalArgumentException("La cantidad debe ser mayor que 0.");
         }
 
@@ -129,38 +130,24 @@ public class MaterialService {
                             + ", solicitado: " + cantidad);
         }
 
-        // Calcular coste del material solicitado y presupuesto del mecánico restante en la reparación
         double precioUnit = material.getPrecioUnitario() != null ? material.getPrecioUnitario() : 0.0;
         double costeNuevo = cantidad * precioUnit;
-        double costeGastado = reparacionMaterialRepository.findByReparacionId(reparacionId).stream()
-                .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
-                .sum();
-        double precioCliente = reparacion.getPresupuesto() != null ? reparacion.getPresupuesto() : 200.0;
-        double presupuestoMecanico = reparacion.getPresupuestoMecanico() != null
-                ? reparacion.getPresupuestoMecanico()
-                : (reparacion.getPresupuestoEstimado() != null ? reparacion.getPresupuestoEstimado() : Math.round(precioCliente * 50.0) / 100.0);
-        double presupuestoDisponible = Math.max(0.0, presupuestoMecanico - costeGastado);
-
-        if (costeNuevo > presupuestoDisponible + 0.001) {
-            throw new IllegalArgumentException(String.format(
-                    "Presupuesto del mecánico insuficiente en la reparación #%d. Estas piezas cuestan %.2f € (%dx %.2f €), "
-                            + "pero solo te quedan %.2f € disponibles del límite de %.2f € fijado por el Administrador. "
-                            + "Solicita al Administrador que amplíe tu presupuesto de reparación.",
-                    reparacionId, costeNuevo, cantidad, precioUnit, presupuestoDisponible, presupuestoMecanico));
-        }
 
         // Registrar el uso del material en la reparación
         ReparacionMaterial uso = new ReparacionMaterial(reparacion, material, cantidad);
         reparacionMaterialRepository.save(uso);
 
-        // Descontar del stock
+        // Descontar del stock físico del almacén
         material.setStockDisponible(material.getStockDisponible() - cantidad);
         materialRepository.save(material);
 
-        double restanteTrasUso = Math.max(0.0, presupuestoDisponible - costeNuevo);
+        double costeAcumulado = reparacionMaterialRepository.findByReparacionId(reparacionId).stream()
+                .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
+                .sum();
+
         return convertirAResponseDTO(material,
-                String.format("Se han usado %d ud(s) de %s (%.2f €) en la reparación #%d. Presupuesto restante del mecánico: %.2f €.",
-                        cantidad, material.getNombre(), costeNuevo, reparacionId, restanteTrasUso));
+                String.format("Se han usado %d ud(s) de %s (%.2f €) en la reparación #%d. Coste total acumulado en piezas: %.2f €.",
+                        cantidad, material.getNombre(), costeNuevo, reparacionId, costeAcumulado));
     }
 
     /**

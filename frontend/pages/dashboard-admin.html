@@ -6,42 +6,42 @@
     <title>MotorFlow - Dashboard Administrador</title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
-        .tabs { 
-            display: flex; 
-            gap: 1rem; 
-            margin-bottom: 1.5rem; 
-            border-bottom: 1px solid var(--border); 
+        .tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
             padding-bottom: 0.5rem;
             flex-wrap: wrap;
         }
-        .tab-btn { 
-            background: none; 
-            border: none; 
-            color: var(--text-light); 
-            padding: 0.5rem 1rem; 
-            cursor: pointer; 
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
             border-radius: 4px;
-            font-size: 1rem;
+            font-size: 0.96rem;
             transition: background 0.3s;
         }
         .tab-btn:hover {
             background: var(--card-bg);
         }
-        .tab-btn.active { 
-            background: var(--primary); 
+        .tab-btn.active {
+            background: var(--primary);
             font-weight: bold;
         }
-        .tab-content { 
-            display: none; 
+        .tab-content {
+            display: none;
         }
-        .tab-content.active { 
-            display: block; 
+        .tab-content.active {
+            display: block;
         }
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 1rem; 
-            margin-bottom: 2rem; 
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
         .stat-value {
             font-size: 2rem;
@@ -53,6 +53,7 @@
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            flex-wrap: wrap;
         }
         .admin-control-panel {
             margin-bottom: 2rem;
@@ -73,23 +74,10 @@
             flex-direction: column;
             justify-content: space-between;
             gap: 0.75rem;
-            transition: transform 0.15s, border-color 0.15s;
         }
-        .task-card:hover {
-            transform: translateY(-2px);
-        }
-        .task-card.task-confirm {
-            border-top: 3px solid #A855F7;
-        }
-        .task-card.task-assign {
-            border-top: 3px solid var(--warning);
-        }
-        .task-card.task-budget {
-            border-top: 3px solid #EF4444;
-        }
-        .task-card.task-stock {
-            border-top: 3px solid var(--info);
-        }
+        .task-card.task-confirm { border-top: 3px solid #A855F7; }
+        .task-card.task-assign  { border-top: 3px solid var(--warning); }
+        .task-card.task-stock   { border-top: 3px solid var(--info); }
         .notif-pill {
             display: inline-flex;
             align-items: center;
@@ -108,7 +96,7 @@
     <nav class="navbar">
         <div class="navbar-brand">MotorFlow</div>
         <div class="navbar-links">
-            <a href="dashboard-admin.html">Dashboard</a>
+            <a href="dashboard-admin.html" class="active">Dashboard</a>
             <a href="consulta-estado.html">Consulta Pública</a>
         </div>
         <div class="navbar-user">
@@ -121,7 +109,7 @@
         <section class="bienvenida-banner">
             <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
             <div>
-                <p class="bienvenida-saludo">Panel de Administración · Control general del taller</p>
+                <p class="bienvenida-saludo">Panel de Administración · Control general, facturación y tesorería</p>
                 <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
                 <div class="bienvenida-meta">
                     <span class="bienvenida-rol" id="bienvenida-rol">-</span>
@@ -133,7 +121,7 @@
                 <div style="color: var(--text-muted); font-size: 0.82rem;">tareas por validar</div>
             </div>
         </section>
-        
+
         <div id="alert-container"></div>
 
         <div class="stats-grid">
@@ -142,7 +130,7 @@
                 <div id="stat-usuarios" class="stat-value"><span class="spinner"></span></div>
             </div>
             <div class="stat-card card">
-                <h3>Total Vehículos</h3>
+                <h3>Vehículos en Taller</h3>
                 <div id="stat-vehiculos" class="stat-value"><span class="spinner"></span></div>
             </div>
             <div class="stat-card card">
@@ -150,41 +138,44 @@
                 <div id="stat-reparaciones" class="stat-value"><span class="spinner"></span></div>
             </div>
             <div class="stat-card card">
-                <h3>Materiales Stock Bajo</h3>
-                <div id="stat-materiales" class="stat-value"><span class="spinner"></span></div>
+                <h3>Facturas Emitidas</h3>
+                <div id="stat-facturas" class="stat-value" style="color: var(--success);"><span class="spinner"></span></div>
             </div>
         </div>
 
-        <!-- CUENTA GENERAL DEL TALLER (TESORERÍA DEL ADMIN) -->
+        <!-- TESORERÍA GENERAL DEL TALLER BASADA EN FACTURAS REALES -->
         <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--success); background: linear-gradient(90deg, rgba(22, 163, 74, 0.12), var(--card-bg) 55%);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
                 <div>
-                    <h2 style="margin: 0; font-size: 1.35rem;">💰 Cuenta General del Taller (Tesorería)</h2>
+                    <h2 style="margin: 0; font-size: 1.35rem;">💰 Tesorería General y Beneficio Real del Taller</h2>
                     <p style="margin: 0.2rem 0 0 0; font-size: 0.88rem; color: var(--text-muted);">
-                        Fondo inicial: <strong>2.000,00 €</strong> · Se descuentan automáticamente los materiales usados por los mecánicos y se suman los cobros al entregar vehículos.
+                        Calculada a partir de las <strong>Facturas Reales</strong> emitidas (Materiales + Mano de Obra + Margen <span id="lbl-config-margen">15%</span> + IVA 21%) y el gasto real de almacén.
                     </p>
                 </div>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem;" onclick="irATab('tab-configuracion', 'tab-btn-config')">
+                    ⚙️ Configurar Tarifas (<span id="lbl-config-hora">35,00 €</span>/h)
+                </button>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem;">
                 <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">Saldo Actual en Cuenta</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">Saldo Actual en Caja</div>
                     <div id="cuenta-saldo" style="font-size: 1.75rem; font-weight: 700; color: var(--success); margin-top: 0.25rem;">2.000,00 €</div>
-                    <div style="font-size: 0.78rem; color: var(--text-muted);">Disponible en caja del taller</div>
+                    <div id="cuenta-fondo-sub" style="font-size: 0.78rem; color: var(--text-muted);">Fondo inicial: 2.000,00 €</div>
                 </div>
                 <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
                     <div style="font-size: 0.82rem; color: var(--text-muted);">Gastos en Materiales y Stock</div>
                     <div id="cuenta-gastos" style="font-size: 1.75rem; font-weight: 700; color: var(--warning); margin-top: 0.25rem;">0,00 €</div>
-                    <div id="cuenta-gastos-sub" style="font-size: 0.78rem; color: var(--text-muted);">Piezas usadas + reposición de stock</div>
+                    <div id="cuenta-gastos-sub" style="font-size: 0.78rem; color: var(--text-muted);">Piezas usadas + compras de stock</div>
                 </div>
                 <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">Ingresos Cobrados / En Curso</div>
-                    <div id="cuenta-ingresos" style="font-size: 1.5rem; font-weight: 700; color: var(--info); margin-top: 0.25rem;">0,00 €</div>
-                    <div id="cuenta-ingresos-sub" style="font-size: 0.78rem; color: var(--text-muted);">En taller pendiente de cobro: 0,00 €</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">Total Facturado (c/IVA)</div>
+                    <div id="cuenta-ingresos" style="font-size: 1.65rem; font-weight: 700; color: var(--info); margin-top: 0.25rem;">0,00 €</div>
+                    <div id="cuenta-ingresos-sub" style="font-size: 0.78rem; color: var(--text-muted);">Previsión en taller: 0,00 €</div>
                 </div>
                 <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">Ganancia Neta Total (Reparaciones)</div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">Beneficio Neto Real (M.O. + Margen)</div>
                     <div id="cuenta-beneficio" style="font-size: 1.75rem; font-weight: 700; color: var(--primary-light); margin-top: 0.25rem;">0,00 €</div>
-                    <div style="font-size: 0.78rem; color: var(--text-muted);">Presupuestos menos coste de piezas</div>
+                    <div id="cuenta-beneficio-sub" style="font-size: 0.78rem; color: var(--text-muted);">Mano de obra + margen comercial</div>
                 </div>
             </div>
         </div>
@@ -198,10 +189,10 @@
                         <span id="admin-tareas-badge" class="badge badge-pending">Cargando...</span>
                     </h2>
                     <p style="margin: 0.2rem 0 0 0; font-size: 0.88rem; color: var(--text-muted);">
-                        Valida las reparaciones terminadas por los mecánicos (para que Recepción pueda entregarlas y cobrar) y aprueba presupuestos de nuevas reparaciones.
+                        Asigna mecánico a las nuevas reparaciones y confirma las reparaciones terminadas para autorizar su facturación y entrega en Recepción.
                     </p>
                 </div>
-                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;" onclick="cargarStats(); cargarReparaciones();">↻ Actualizar</button>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;" onclick="cargarStats(); cargarReparaciones(); cargarFacturasAdmin();">↻ Actualizar</button>
             </div>
             <div id="admin-tareas-container" class="control-grid">
                 <div class="text-muted">Cargando notificaciones pendientes...</div>
@@ -209,14 +200,196 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('tab-usuarios', this)">Gestión de Usuarios</button>
-            <button class="tab-btn" id="tab-btn-reparaciones" onclick="showTab('tab-reparaciones', this)">Reparaciones <span id="tab-badge-rep" class="notif-pill" style="display: none;">0</span></button>
+            <button class="tab-btn active" id="tab-btn-reparaciones" onclick="showTab('tab-reparaciones', this)">Reparaciones <span id="tab-badge-rep" class="notif-pill" style="display: none;">0</span></button>
+            <button class="tab-btn" id="tab-btn-facturas" onclick="showTab('tab-facturas', this)">📁 Archivo de Facturas</button>
+            <button class="tab-btn" id="tab-btn-config" onclick="showTab('tab-configuracion', this)">⚙️ Configuración del Taller</button>
             <button class="tab-btn" id="tab-btn-inventario" onclick="showTab('tab-inventario', this)">Inventario <span id="tab-badge-inv" class="notif-pill" style="display: none;">0</span></button>
+            <button class="tab-btn" onclick="showTab('tab-usuarios', this)">Gestión de Usuarios</button>
             <button class="tab-btn" onclick="showTab('tab-vehiculos', this)">Vehículos y Clientes</button>
         </div>
 
-        <!-- TAB 1: USUARIOS -->
-        <div id="tab-usuarios" class="tab-content active">
+        <!-- TAB 1: REPARACIONES -->
+        <div id="tab-reparaciones" class="tab-content active">
+            <div class="card">
+                <h2>Gestión de Reparaciones y Seguimiento</h2>
+                <div style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" id="filter-reparaciones">
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('')">Todas (En Taller)</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('PENDIENTE')">Pendientes</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('EN_PROCESO')">En Proceso</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('FINALIZADA')">Por Confirmar (Finalizadas)</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('CONFIRMADA')">Confirmadas (Para Entregar)</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('ENTREGADA')">Entregadas</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID / Loc.</th>
+                                <th>Matrícula / Vehículo</th>
+                                <th>Cliente</th>
+                                <th>Mecánico</th>
+                                <th>Estado / Plazo</th>
+                                <th>Avería, Piezas e Incidencias</th>
+                                <th>Horas y Desglose Económico</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-reparaciones"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ARCHIVO DE FACTURAS -->
+        <div id="tab-facturas" class="tab-content">
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div>
+                        <h2 style="margin: 0;">📁 Archivo de Facturas y Desglose de Beneficio Real</h2>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--text-muted);">
+                            Consulta todas las facturas oficiales emitidas con su desglose de materiales, horas de mano de obra, margen del taller, IVA (21%) y beneficio neto.
+                        </p>
+                    </div>
+                    <input type="text" id="buscar-factura-admin" placeholder="Filtrar por Nº factura, cliente o matrícula..." style="max-width: 320px;" oninput="filtrarFacturasAdmin()">
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: rgba(0,0,0,0.25); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Total Facturado (c/IVA)</div>
+                        <div id="res-fact-total" style="font-size: 1.35rem; font-weight: 700; color: var(--info);">0,00 €</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Coste Piezas Facturadas</div>
+                        <div id="res-fact-materiales" style="font-size: 1.35rem; font-weight: 700; color: var(--warning);">0,00 €</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Ingresos Mano de Obra</div>
+                        <div id="res-fact-mano-obra" style="font-size: 1.35rem; font-weight: 700; color: var(--text-light);">0,00 €</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Margen Comercial Taller</div>
+                        <div id="res-fact-margen" style="font-size: 1.35rem; font-weight: 700; color: var(--primary-light);">0,00 €</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--success);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Beneficio Neto Real (M.O. + Margen)</div>
+                        <div id="res-fact-beneficio" style="font-size: 1.35rem; font-weight: 700; color: var(--success);">0,00 €</div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nº Factura</th>
+                                <th>Fecha</th>
+                                <th>Vehículo / Cliente</th>
+                                <th>Coste Materiales</th>
+                                <th>Mano de Obra</th>
+                                <th>Margen Taller</th>
+                                <th>Base Imponible</th>
+                                <th>IVA (21%)</th>
+                                <th>Total Factura</th>
+                                <th>Beneficio Neto</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-facturas-admin"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CONFIGURACIÓN DEL TALLER -->
+        <div id="tab-configuracion" class="tab-content">
+            <div class="card" style="max-width: 720px; border-left: 4px solid var(--primary);">
+                <h2>⚙️ Configuración Económica del Taller</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1.25rem; font-size: 0.92rem;">
+                    Define los parámetros oficiales con los que se calculan las facturas del taller: tarifa por hora de mano de obra de los mecánicos y porcentaje de margen de beneficio comercial sobre (materiales + mano de obra).
+                </p>
+                <form id="form-configuracion-taller">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                        <div class="form-group">
+                            <label>Precio por Hora de Mano de Obra (€/h)</label>
+                            <input type="number" id="cfg-precio-hora" min="1" step="0.50" value="35.00" required oninput="actualizarEjemploFacturaConfig()">
+                            <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                                Se multiplica por las horas reales anotadas por el mecánico.
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label>Margen de Beneficio del Taller (%)</label>
+                            <input type="number" id="cfg-margen-porcentaje" min="0" max="500" step="0.5" value="15.0" required oninput="actualizarEjemploFacturaConfig()">
+                            <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                                Porcentaje aplicado sobre (Coste materiales + Mano de obra).
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label>Fondo Inicial de Tesorería (€)</label>
+                            <input type="number" id="cfg-fondo-inicial" min="0" step="50" value="2000.00" required>
+                            <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                                Capital inicial en la Cuenta General del Taller.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div id="ejemplo-calculo-config" style="margin: 1rem 0 1.25rem; padding: 1rem; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); font-size: 0.88rem;"></div>
+
+                    <button type="submit" class="btn btn-primary" id="btn-guardar-config">💾 Guardar Configuración del Taller</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 4: INVENTARIO -->
+        <div id="tab-inventario" class="tab-content">
+            <div class="card" style="border-left: 4px solid var(--primary);">
+                <h2>➕ Dar de Alta un Nuevo Material en el Catálogo</h2>
+                <form id="form-crear-material">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Nombre del Material</label>
+                            <input type="text" id="mat-nombre" placeholder="Ej. Pastillas de freno traseras" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Descripción / Compatibilidad</label>
+                            <input type="text" id="mat-desc" placeholder="Ej. Juego trasero universal">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Inicial (Unidades)</label>
+                            <input type="number" id="mat-stock" placeholder="Ej. 20" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Unitario (€)</label>
+                            <input type="number" id="mat-precio" placeholder="Ej. 35.00" required min="0" step="0.01">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-material" style="margin-top: 1rem;">+ Registrar Nuevo Material</button>
+                </form>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <h2>📦 Inventario Actual y Ajuste de Stock</h2>
+                <div class="form-group" style="max-width: 400px; margin-bottom: 1rem;">
+                    <input type="text" id="search-material" placeholder="Buscar material por nombre..." onkeyup="cargarMateriales()">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Stock Disponible</th>
+                                <th>Precio</th>
+                                <th>Modificar Stock (Unidades)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-materiales"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: USUARIOS -->
+        <div id="tab-usuarios" class="tab-content">
             <div class="card">
                 <h2>Crear Nuevo Usuario</h2>
                 <form id="form-crear-usuario">
@@ -278,96 +451,7 @@
             </div>
         </div>
 
-        <!-- TAB 2: REPARACIONES -->
-        <div id="tab-reparaciones" class="tab-content">
-            <div class="card">
-                <h2>Gestión de Reparaciones</h2>
-                <div style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;" id="filter-reparaciones">
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('')">Todas (En Taller)</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('PENDIENTE')">Pendientes</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('EN_PROCESO')">En Proceso</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('FINALIZADA')">Por Confirmar (Finalizadas)</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('CONFIRMADA')">Confirmadas (Para Entregar)</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('ENTREGADA')">Entregadas</button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Matrícula / Vehículo</th>
-                                <th>Cliente</th>
-                                <th>Mecánico</th>
-                                <th>Estado</th>
-                                <th>Entrada / Salida</th>
-                                <th>Avería y Piezas Usadas</th>
-                                <th>Presupuesto / Coste / Ganancia</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-reparaciones"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 3: INVENTARIO -->
-        <div id="tab-inventario" class="tab-content">
-            <div class="card" style="border-left: 4px solid var(--primary);">
-                <h2>➕ Dar de Alta un Nuevo Material en el Catálogo</h2>
-                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
-                    Rellena este formulario para registrar una pieza o recambio nuevo que aún no exista en la tabla inferior.
-                </p>
-                <form id="form-crear-material">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>Nombre del Material</label>
-                            <input type="text" id="mat-nombre" placeholder="Ej. Pastillas de freno traseras" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Descripción / Compatibilidad</label>
-                            <input type="text" id="mat-desc" placeholder="Ej. Juego trasero universal">
-                        </div>
-                        <div class="form-group">
-                            <label>Stock Inicial (Unidades)</label>
-                            <input type="number" id="mat-stock" placeholder="Ej. 20" required min="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Precio Unitario (€)</label>
-                            <input type="number" id="mat-precio" placeholder="Ej. 35.00" required min="0" step="0.01">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="btn-submit-material" style="margin-top: 1rem;">+ Registrar Nuevo Material</button>
-                </form>
-            </div>
-
-            <div class="card" style="margin-top: 1.5rem;">
-                <h2>📦 Inventario Actual y Ajuste de Stock</h2>
-                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
-                    En la columna derecha puedes cambiar la cantidad de unidades disponibles de cualquier material y pulsar <strong>Guardar Stock</strong>.
-                </p>
-                <div class="form-group" style="max-width: 400px; margin-bottom: 1rem;">
-                    <input type="text" id="search-material" placeholder="Buscar material por nombre..." onkeyup="cargarMateriales()">
-                </div>
-                <div style="overflow-x: auto;">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Descripción</th>
-                                <th>Stock Disponible</th>
-                                <th>Precio</th>
-                                <th>Modificar Stock (Unidades)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-materiales"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: VEHÍCULOS Y CLIENTES -->
+        <!-- TAB 6: VEHÍCULOS Y CLIENTES -->
         <div id="tab-vehiculos" class="tab-content">
             <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
                 <div class="card">
@@ -407,33 +491,37 @@
                 </div>
             </div>
         </div>
-
     </main>
 
     <script src="../js/app.js"></script>
     <script>
+        let facturasAdminCache = [];
+        let configuracionActual = { margenBeneficioPorcentaje: 15.0, precioHoraManoObra: 35.0, fondoInicial: 2000.0 };
+
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof requireAuth === 'function') {
-                requireAuth(['ADMIN']);
-                
-                const user = getUsuarioActual();
-                if (user) {
-                    pintarCabeceraUsuario(user);
-                }
+            requireAuth(['ADMIN']);
+            const user = getUsuarioActual();
+            if (user) {
+                pintarCabeceraUsuario(user);
             }
-            
+
+            cargarConfiguracionTaller();
             cargarStats();
             cargarUsuarios();
             cargarReparaciones();
+            cargarFacturasAdmin();
             cargarMateriales();
             cargarVehiculosYClientes();
+
+            document.getElementById('form-configuracion-taller').addEventListener('submit', guardarConfiguracionTaller);
         });
 
         function showTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
+            if (btn) btn.classList.add('active');
+            if (tabId === 'tab-facturas') cargarFacturasAdmin();
         }
 
         function irATab(tabId, btnId) {
@@ -441,14 +529,83 @@
             if (btn) showTab(tabId, btn);
         }
 
+        async function cargarConfiguracionTaller() {
+            try {
+                const cfg = await apiFetch('/configuracion');
+                if (cfg) {
+                    configuracionActual = cfg;
+                    document.getElementById('cfg-precio-hora').value = Number(cfg.precioHoraManoObra || 35).toFixed(2);
+                    document.getElementById('cfg-margen-porcentaje').value = Number(cfg.margenBeneficioPorcentaje || 15).toFixed(1);
+                    document.getElementById('cfg-fondo-inicial').value = Number(cfg.fondoInicial || 2000).toFixed(2);
+                    document.getElementById('lbl-config-margen').textContent = `${cfg.margenBeneficioPorcentaje}%`;
+                    document.getElementById('lbl-config-hora').textContent = formatearEuros(cfg.precioHoraManoObra);
+                    actualizarEjemploFacturaConfig();
+                }
+            } catch (e) {
+                console.error("Error cargando configuración:", e);
+            }
+        }
+
+        function actualizarEjemploFacturaConfig() {
+            const box = document.getElementById('ejemplo-calculo-config');
+            if (!box) return;
+            const precioHora = parseFloat(document.getElementById('cfg-precio-hora').value) || 35;
+            const margenPct = parseFloat(document.getElementById('cfg-margen-porcentaje').value) || 15;
+            const matEjemplo = 50.0;
+            const horasEjemplo = 2.0;
+            const manoObra = horasEjemplo * precioHora;
+            const base = matEjemplo + manoObra;
+            const margen = base * (margenPct / 100);
+            const baseImp = base + margen;
+            const iva = baseImp * 0.21;
+            const total = baseImp + iva;
+
+            box.innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 0.35rem; color: var(--primary-light);">💡 Simulación de Factura con estas tarifas (Ej: 50,00 € en piezas + 2 horas de trabajo):</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; color: var(--text-muted);">
+                    <span>Materiales: <strong style="color: var(--text-light);">${formatearEuros(matEjemplo)}</strong></span>
+                    <span>Mano de Obra (2h): <strong style="color: var(--text-light);">${formatearEuros(manoObra)}</strong></span>
+                    <span>Margen Taller (${margenPct}%): <strong style="color: var(--primary-light);">${formatearEuros(margen)}</strong></span>
+                    <span>IVA (21%): <strong style="color: var(--text-light);">${formatearEuros(iva)}</strong></span>
+                    <span>Total Factura: <strong style="color: var(--success);">${formatearEuros(total)}</strong></span>
+                </div>
+            `;
+        }
+
+        async function guardarConfiguracionTaller(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-guardar-config');
+            const precioHoraManoObra = parseFloat(document.getElementById('cfg-precio-hora').value);
+            const margenBeneficioPorcentaje = parseFloat(document.getElementById('cfg-margen-porcentaje').value);
+            const fondoInicial = parseFloat(document.getElementById('cfg-fondo-inicial').value);
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch('/configuracion', {
+                    method: 'PUT',
+                    body: JSON.stringify({ precioHoraManoObra, margenBeneficioPorcentaje, fondoInicial })
+                });
+                mostrarAlerta(res.mensaje || 'Configuración del taller actualizada correctamente.', 'success', document.getElementById('alert-container'));
+                await cargarConfiguracionTaller();
+                await cargarStats();
+                await cargarReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
         async function cargarStats() {
             try {
-                const [usuarios, vehiculos, reparaciones, repEnProceso, matBajoStock] = await Promise.all([
+                const [usuarios, vehiculos, reparaciones, repEnProceso, matBajoStock, cuenta, facturas] = await Promise.all([
                     apiFetch('/usuarios').catch(() => []),
                     apiFetch('/vehiculos').catch(() => []),
                     apiFetch('/reparaciones').catch(() => []),
                     apiFetch('/reparaciones/estado/EN_PROCESO').catch(() => []),
-                    apiFetch('/materiales/stock-bajo?umbral=5').catch(() => [])
+                    apiFetch('/materiales/stock-bajo?umbral=5').catch(() => []),
+                    apiFetch('/reparaciones/cuenta-taller').catch(() => null),
+                    apiFetch('/facturas').catch(() => [])
                 ]);
 
                 const repEnriquecidas = (reparaciones || []).map(enriquecerReparacionFinanzas);
@@ -465,21 +622,18 @@
                 document.getElementById('stat-usuarios').textContent = usuarios.length || 0;
                 document.getElementById('stat-vehiculos').textContent = vehiculosEnTaller.length || 0;
                 document.getElementById('stat-reparaciones').textContent = repEnProceso.length || 0;
-                document.getElementById('stat-materiales').textContent = matBajoStock.length || 0;
+                document.getElementById('stat-facturas').textContent = facturas.length || 0;
 
-                // Actualizar Cuenta General del Taller
-                const cuenta = calcularCuentaTallerDesdeReparaciones(reparaciones || []);
-                document.getElementById('cuenta-saldo').textContent = formatearEuros(cuenta.saldoActual);
-                document.getElementById('cuenta-gastos').textContent = '-' + formatearEuros(cuenta.gastosMateriales);
-                const elGastosSub = document.getElementById('cuenta-gastos-sub');
-                if (elGastosSub) {
-                    elGastosSub.textContent = `Reparaciones: ${formatearEuros(cuenta.gastosPiezasUsadas)} · Compras stock: ${formatearEuros(cuenta.gastosComprasStock)}`;
+                if (cuenta) {
+                    document.getElementById('cuenta-saldo').textContent = formatearEuros(cuenta.saldoActual);
+                    document.getElementById('cuenta-fondo-sub').textContent = `Fondo inicial: ${formatearEuros(cuenta.fondoInicial)}`;
+                    document.getElementById('cuenta-gastos').textContent = '-' + formatearEuros(cuenta.gastosMateriales);
+                    document.getElementById('cuenta-ingresos').textContent = '+' + formatearEuros(cuenta.totalFacturado ?? cuenta.ingresosCobrados);
+                    document.getElementById('cuenta-ingresos-sub').textContent = `Previsión en curso (sin facturar): ${formatearEuros(cuenta.ingresosEnCurso)}`;
+                    document.getElementById('cuenta-beneficio').textContent = '+' + formatearEuros(cuenta.beneficioTotal);
+                    document.getElementById('cuenta-beneficio-sub').textContent = `M.O.: ${formatearEuros(cuenta.beneficioManoObra || 0)} + Margen: ${formatearEuros(cuenta.beneficioMargen || 0)}`;
                 }
-                document.getElementById('cuenta-ingresos').textContent = '+' + formatearEuros(cuenta.ingresosCobrados);
-                document.getElementById('cuenta-ingresos-sub').textContent = 'En taller pendiente de entrega: ' + formatearEuros(cuenta.ingresosEnCurso);
-                document.getElementById('cuenta-beneficio').textContent = '+' + formatearEuros(cuenta.beneficioTotal);
 
-                // Renderizar Centro de Control y Notificaciones del Admin
                 const mecanicos = (usuarios || []).filter(u => u.rol === 'MECANICO');
                 renderizarCentroControlAdmin(repEnriquecidas, matBajoStock || [], mecanicos);
             } catch (error) {
@@ -496,29 +650,20 @@
             if (!container) return;
 
             const porConfirmar = reparaciones.filter(r => r.estado === 'FINALIZADA');
-            const porAsignar = reparaciones.filter(r => r.estado === 'PENDIENTE' || (!r.nombreMecanico || r.nombreMecanico === 'Sin asignar') && r.estado !== 'ENTREGADA');
-            const presupuestoAjustado = reparaciones.filter(r => r.estado === 'EN_PROCESO' && r.presupuestoRestante <= 20);
+            const porAsignar = reparaciones.filter(r => r.estado === 'PENDIENTE' || ((!r.nombreMecanico || r.nombreMecanico === 'Sin asignar') && r.estado !== 'ENTREGADA'));
 
-            const totalRepTareas = porConfirmar.length + porAsignar.length + presupuestoAjustado.length;
+            const totalRepTareas = porConfirmar.length + porAsignar.length;
             const totalNotificaciones = totalRepTareas + (matBajoStock.length > 0 ? 1 : 0);
 
             if (bannerCount) bannerCount.textContent = totalNotificaciones;
 
             if (tabBadgeRep) {
-                if (totalRepTareas > 0) {
-                    tabBadgeRep.style.display = 'inline-flex';
-                    tabBadgeRep.textContent = totalRepTareas;
-                } else {
-                    tabBadgeRep.style.display = 'none';
-                }
+                tabBadgeRep.style.display = totalRepTareas > 0 ? 'inline-flex' : 'none';
+                tabBadgeRep.textContent = totalRepTareas;
             }
             if (tabBadgeInv) {
-                if (matBajoStock.length > 0) {
-                    tabBadgeInv.style.display = 'inline-flex';
-                    tabBadgeInv.textContent = matBajoStock.length;
-                } else {
-                    tabBadgeInv.style.display = 'none';
-                }
+                tabBadgeInv.style.display = matBajoStock.length > 0 ? 'inline-flex' : 'none';
+                tabBadgeInv.textContent = matBajoStock.length;
             }
 
             if (badge) {
@@ -537,7 +682,7 @@
                         <span style="font-size: 1.4rem;">✅</span>
                         <div>
                             <strong>No tienes tareas ni validaciones pendientes en este momento.</strong>
-                            <div style="font-size: 0.85rem; color: var(--text-muted);">Todas las reparaciones terminadas han sido confirmadas y todas las reparaciones activas tienen mecánico y presupuesto asignados.</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Todas las reparaciones terminadas han sido confirmadas y todas las reparaciones activas tienen mecánico asignado.</div>
                         </div>
                     </div>
                 `;
@@ -546,7 +691,6 @@
 
             const cards = [];
 
-            // 1. Tareas de confirmar reparaciones terminadas por mecánicos
             porConfirmar.forEach(r => {
                 const mat = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
                 const marca = r.marcaVehiculo || r.vehiculo?.marca || '';
@@ -560,32 +704,32 @@
                 cards.push(`
                     <div class="task-card task-confirm">
                         <div>
-                            <div style="margin-bottom: 0.55rem;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 0.55rem;">
                                 <span class="badge badge-finished">1º MECÁNICO TERMINÓ · FALTA TU CONFIRMACIÓN</span>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Rep. #${r.id}</span>
                             </div>
                             <div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem;">
                                 🚗 ${mat} <span style="font-weight: 400; color: var(--text-muted); font-size: 0.9rem;">(${marca} ${modelo} · ${cliente})</span>
                             </div>
                             <div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.35rem;">
-                                🔧 Mecánico: <strong>${mec}</strong> · Avería: <em>${r.descripcionAveria || '-'}</em>
+                                🔧 Mecánico: <strong>${mec}</strong> (${Number(r.horasTrabajoMecanico || 0).toFixed(1)} h) · Avería: <em>${r.descripcionAveria || '-'}</em>
                             </div>
                             <div style="font-size: 0.8rem; color: var(--info); margin-bottom: 0.45rem;">
                                 🔩 Piezas usadas: ${piezas}
                             </div>
                             <div style="font-size: 0.84rem; padding: 0.45rem 0.65rem; background: rgba(255,255,255,0.04); border-radius: 4px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
-                                <span>Cobro: <strong>${formatearEuros(r.presupuesto)}</strong></span>
-                                <span style="color: var(--warning);">Coste: <strong>-${formatearEuros(r.costeMateriales)}</strong></span>
-                                <span style="color: var(--success); font-weight: 700;">Ganancia: +${formatearEuros(r.beneficio)}</span>
+                                <span>Piezas: <strong>${formatearEuros(r.costeMateriales)}</strong></span>
+                                <span>M.O.: <strong>${formatearEuros(r.subtotalManoObra)}</strong></span>
+                                <span style="color: var(--success); font-weight: 700;">Total Factura: ${formatearEuros(r.totalCalculadoPrevisto)}</span>
                             </div>
                         </div>
                         <button type="button" class="btn btn-success" style="width: 100%; font-size: 0.88rem; padding: 0.55rem;" onclick="confirmarReparacionAdmin(${r.id})">
-                            ✅ Confirmar Reparación (Autorizar Entrega a Recepción)
+                            ✅ Confirmar Reparación (Autorizar Entrega y Factura)
                         </button>
                     </div>
                 `);
             });
 
-            // 2. Tareas de nuevas reparaciones creadas por Recepción pendientes de fijar presupuesto del mecánico y asignar mecánico
             porAsignar.forEach(r => {
                 const mat = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
                 const marca = r.marcaVehiculo || r.vehiculo?.marca || '';
@@ -596,8 +740,9 @@
                 cards.push(`
                     <div class="task-card task-assign">
                         <div>
-                            <div style="margin-bottom: 0.55rem;">
-                                <span class="badge badge-pending">📋 NUEVA REPARACIÓN · FIJAR PRESUPUESTO Y MECÁNICO</span>
+                            <div style="display:flex; justify-content:space-between; margin-bottom: 0.55rem;">
+                                <span class="badge badge-pending">📋 NUEVA REPARACIÓN · ASIGNAR MECÁNICO</span>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Rep. #${r.id}</span>
                             </div>
                             <div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem;">
                                 🚗 ${mat} <span style="font-weight: 400; color: var(--text-muted); font-size: 0.9rem;">(${marca} ${modelo} · ${cliente})</span>
@@ -606,66 +751,29 @@
                                 Avería: <span style="color: var(--text-light);">${r.descripcionAveria || '-'}</span>
                             </div>
                             <div style="font-size: 0.84rem; padding: 0.45rem 0.65rem; background: rgba(255,255,255,0.04); border-radius: 4px; margin-bottom: 0.55rem;">
-                                <div>Cobro acordado con cliente: <strong>${formatearEuros(r.presupuesto)}</strong></div>
-                                <div style="color: var(--info);">Propuesto por Laura (Recepción): <strong>${formatearEuros(r.presupuestoEstimado)}</strong></div>
+                                <div>Estimación inicial orientativa: <strong>${formatearEuros(r.estimacionInicial)}</strong> · Plazo estimado: <strong>${r.diasEstimados || 3} día(s)</strong></div>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 0.5rem; align-items: end;">
-                                <div>
-                                    <label style="font-size: 0.76rem; margin-bottom: 0.2rem; color: var(--text-muted);">Presupuesto Mecánico (€)</label>
-                                    <input type="number" id="ctrl-pres-${r.id}" value="${Number(r.presupuestoMecanico).toFixed(2)}" min="1" step="0.50" style="padding: 0.4rem; font-weight: bold;">
-                                </div>
-                                <div>
-                                    <label style="font-size: 0.76rem; margin-bottom: 0.2rem; color: var(--text-muted);">Asignar Mecánico</label>
-                                    <select id="ctrl-mec-${r.id}" style="padding: 0.42rem;">
-                                        <option value="">Seleccione mecánico...</option>
-                                        ${opts}
-                                    </select>
-                                </div>
+                            <div>
+                                <label style="font-size: 0.78rem; margin-bottom: 0.25rem; color: var(--text-muted);">Seleccionar Mecánico Responsable</label>
+                                <select id="ctrl-mec-${r.id}" style="padding: 0.45rem;">
+                                    <option value="">Seleccione mecánico...</option>
+                                    ${opts}
+                                </select>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-primary" style="width: 100%; font-size: 0.88rem; padding: 0.55rem;" onclick="validarYAsignarDesdeControl(${r.id}, ${r.presupuesto})">
-                            🔧 Validar Presupuesto y Asignar Mecánico
+                        <button type="button" class="btn btn-primary" style="width: 100%; font-size: 0.88rem; padding: 0.55rem;" onclick="validarYAsignarDesdeControl(${r.id})">
+                            🔧 Asignar Mecánico e Iniciar Reparación
                         </button>
                     </div>
                 `);
             });
 
-            // 3. Avisos de presupuesto casi agotado en reparaciones en curso
-            presupuestoAjustado.forEach(r => {
-                const mat = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
-                const mec = r.nombreMecanico || r.mecanico?.nombre || '-';
-                const sugerido = Math.min(r.presupuesto - 5, r.presupuestoMecanico + 30);
-
-                cards.push(`
-                    <div class="task-card task-budget">
-                        <div>
-                            <div style="margin-bottom: 0.55rem;">
-                                <span class="badge" style="background: rgba(239,68,68,0.2); color: #FCA5A5; border: 1px solid #EF4444;">⚠️ PRESUPUESTO MECÁNICO AJUSTADO</span>
-                            </div>
-                            <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem;">
-                                🚗 ${mat} · Mecánico: ${mec}
-                            </div>
-                            <div style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                                Quedan <strong style="color: #EF4444;">${formatearEuros(r.presupuestoRestante)}</strong> disponibles de su límite actual de <strong>${formatearEuros(r.presupuestoMecanico)}</strong> (Cobro cliente: ${formatearEuros(r.presupuesto)}).
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="number" id="ctrl-amp-${r.id}" value="${Number(sugerido).toFixed(2)}" min="1" step="0.50" style="width: 95px; padding: 0.4rem; font-weight: bold;">
-                            <button type="button" class="btn btn-secondary" style="flex: 1; padding: 0.45rem;" onclick="ampliarPresupuestoDesdeControl(${r.id}, ${r.presupuesto}, ${r.costeMateriales})">
-                                ➕ Ampliar Límite Mecánico
-                            </button>
-                        </div>
-                    </div>
-                `);
-            });
-
-            // 4. Aviso de materiales con stock bajo
             if (matBajoStock.length > 0) {
                 const listaMat = matBajoStock.map(m => `${m.nombre} (<strong>${m.stockDisponible ?? m.stock ?? 0} uds</strong>)`).join(', ');
                 cards.push(`
                     <div class="task-card task-stock">
                         <div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <div style="margin-bottom: 0.5rem;">
                                 <span class="badge badge-process">📦 STOCK BAJO EN ALMACÉN (${matBajoStock.length})</span>
                             </div>
                             <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem;">
@@ -685,33 +793,16 @@
             container.innerHTML = cards.join('');
         }
 
-        async function validarYAsignarDesdeControl(repId, precioCliente = 200) {
-            const inputPres = document.getElementById(`ctrl-pres-${repId}`);
+        async function validarYAsignarDesdeControl(repId) {
             const selectMec = document.getElementById(`ctrl-mec-${repId}`);
-            const valPres = inputPres ? parseFloat(inputPres.value) : 0;
             const mecId = selectMec ? selectMec.value : '';
-
-            if (isNaN(valPres) || valPres <= 0 || valPres >= precioCliente) {
-                mostrarAlerta(`El presupuesto del mecánico (${formatearEuros(valPres || 0)}) debe ser mayor que 0 € y menor que el precio cobrado al cliente (${formatearEuros(precioCliente)}).`, 'error', document.getElementById('alert-container'));
-                return;
-            }
             if (!mecId) {
                 mostrarAlerta('Selecciona un mecánico para asignarle la reparación.', 'error', document.getElementById('alert-container'));
                 return;
             }
-
-            guardarPresupuestoMecanicoLocal(repId, valPres);
-            try {
-                await apiFetch(`/reparaciones/${repId}/presupuesto`, {
-                    method: 'PUT',
-                    silent: true,
-                    body: JSON.stringify({ presupuestoMecanico: valPres, presupuesto: valPres })
-                });
-            } catch (e) {}
-
             try {
                 await apiFetch(`/reparaciones/${repId}/asignar/${mecId}`, { method: 'PUT', silent: true });
-                mostrarAlerta(`Presupuesto del mecánico fijado en ${formatearEuros(valPres)} y reparación #${repId} asignada en estado EN PROCESO.`, 'success', document.getElementById('alert-container'));
+                mostrarAlerta(`Mecánico asignado correctamente a la reparación #${repId} (EN PROCESO).`, 'success', document.getElementById('alert-container'));
                 cargarStats();
                 cargarReparaciones();
                 cargarVehiculosYClientes();
@@ -720,37 +811,278 @@
             }
         }
 
-        async function ampliarPresupuestoDesdeControl(repId, precioCliente = 200, costeMateriales = 0) {
-            const input = document.getElementById(`ctrl-amp-${repId}`);
-            if (!input) return;
-            const nuevoPres = parseFloat(input.value);
-            if (isNaN(nuevoPres) || nuevoPres <= 0 || nuevoPres >= precioCliente) {
-                mostrarAlerta(`El nuevo límite (${formatearEuros(nuevoPres || 0)}) debe ser menor que el precio cobrado al cliente (${formatearEuros(precioCliente)}).`, 'error', document.getElementById('alert-container'));
-                return;
-            }
-            if (nuevoPres + 0.001 < costeMateriales) {
-                mostrarAlerta(`El límite no puede ser menor a lo ya gastado (${formatearEuros(costeMateriales)}).`, 'error', document.getElementById('alert-container'));
-                return;
-            }
-            guardarPresupuestoMecanicoLocal(repId, nuevoPres);
+        // ================= REPARACIONES =================
+        let currentRepEstado = '';
+        async function cargarReparaciones(estado = currentRepEstado) {
+            currentRepEstado = estado;
             try {
-                await apiFetch(`/reparaciones/${repId}/presupuesto`, {
+                let todas = await apiFetch('/reparaciones');
+                let reparaciones = (todas || []).map(enriquecerReparacionFinanzas);
+                if (!estado) {
+                    reparaciones = reparaciones.filter(r => r.estado !== 'ENTREGADA');
+                } else {
+                    reparaciones = reparaciones.filter(r => r.estado === estado);
+                }
+                const tbody = document.getElementById('tabla-reparaciones');
+                tbody.innerHTML = '';
+
+                if (reparaciones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No se encontraron reparaciones con este filtro</td></tr>';
+                    return;
+                }
+
+                const mecanicos = await apiFetch('/usuarios/rol/MECANICO').catch(() => []);
+
+                reparaciones.forEach(r => {
+                    const mat = r.matriculaVehiculo || (r.vehiculo ? r.vehiculo.matricula : '-');
+                    const marcaMod = (r.marcaVehiculo || r.modeloVehiculo)
+                        ? ` <span style="color: var(--text-muted); font-size: 0.85rem;">(${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''})</span>`
+                        : '';
+                    const vehiculoHtml = `<strong>${mat}</strong>${marcaMod}`;
+
+                    const cliente = r.nombreCliente || (r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-');
+                    const nomMec = r.nombreMecanico || (r.mecanico ? r.mecanico.nombre : null);
+                    const tieneMecanico = nomMec && nomMec !== 'Sin asignar';
+                    const mecanico = tieneMecanico ? nomMec : '<span class="text-muted">Sin asignar</span>';
+
+                    const estadoHtml = crearBadgeEstado(r.estado);
+                    const fEntrada = formatearFecha(r.fechaEntrada);
+                    const fEstimada = formatearFecha(r.fechaEstimadaFin);
+
+                    const piezasHtml = (r.materialesDetalle && r.materialesDetalle.length > 0)
+                        ? `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--info);">🔩 ${r.materialesDetalle.join(' · ')}</div>`
+                        : `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">Sin gasto de piezas aún</div>`;
+
+                    const numInc = Array.isArray(r.incidencias) ? r.incidencias.length : 0;
+                    const incHtml = numInc > 0
+                        ? `<div style="margin-top: 0.25rem; font-size: 0.78rem; color: var(--primary-light);">📸 ${numInc} incidencia(s) ${r.incidencias.map(i => i.rutaFoto ? `<a href="${resolverUrlFoto(i.rutaFoto)}" target="_blank" style="text-decoration:underline; margin-left:0.3rem;">[Foto]</a>` : '').join('')}</div>`
+                        : '';
+
+                    const tieneFactura = !!r.factura;
+                    const finanzasHtml = `
+                        <div style="font-size: 0.83rem; line-height: 1.45; min-width: 220px;">
+                            <div style="color: var(--text-muted);">Estimación inicial: <strong>${formatearEuros(r.estimacionInicial)}</strong></div>
+                            <div>Piezas: <strong style="color: var(--warning);">${formatearEuros(r.costeMateriales)}</strong> · M.O. (${Number(r.horasTrabajoMecanico || 0).toFixed(1)}h): <strong>${formatearEuros(r.subtotalManoObra)}</strong></div>
+                            ${tieneFactura
+                                ? `<div style="color: var(--info); font-weight: 700;">🧾 ${r.factura.numeroFactura}: ${formatearEuros(r.factura.totalFactura)}</div>`
+                                : `<div style="color: var(--info);">Previsto (c/IVA): <strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong></div>`
+                            }
+                            <div style="color: var(--success); font-weight: 700;">Beneficio neto taller: +${formatearEuros(r.beneficio)}</div>
+                        </div>
+                    `;
+
+                    let acciones = '';
+                    if (r.estado === 'PENDIENTE' || !tieneMecanico) {
+                        let opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+                        acciones = `
+                            <div class="action-cell">
+                                <select id="mec-${r.id}" style="padding: 0.35rem; min-width: 145px;">
+                                    <option value="">Seleccione mecánico...</option>
+                                    ${opts}
+                                </select>
+                                <button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
+                            </div>
+                        `;
+                    } else if (r.estado === 'EN_PROCESO') {
+                        acciones = `<span style="color: var(--info); font-size: 0.82rem; font-weight: 600;">🔧 En manos del mecánico</span>`;
+                    } else if (r.estado === 'FINALIZADA') {
+                        acciones = `
+                            <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                                <button class="btn btn-success" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;" onclick="confirmarReparacionAdmin(${r.id})">✅ Confirmar Reparación</button>
+                                ${tieneFactura ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>` : ''}
+                            </div>
+                        `;
+                    } else if (r.estado === 'CONFIRMADA') {
+                        acciones = `
+                            <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                                <span style="color: #4ADE80; font-size: 0.82rem; font-weight: 600;">✓ Confirmada (Lista en Recepción)</span>
+                                ${tieneFactura
+                                    ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>`
+                                    : `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="emitirFacturaDesdeAdmin(${r.id})">🧾 Emitir Factura</button>`
+                                }
+                            </div>
+                        `;
+                    } else {
+                        acciones = `
+                            <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                                <span class="text-muted" style="font-size:0.8rem;">Cobrada y entregada</span>
+                                ${tieneFactura ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <strong>#${r.id}</strong>
+                                <div style="font-family:monospace; color:var(--primary); font-size:0.85rem;">${r.localizador || ''}</div>
+                            </td>
+                            <td>${vehiculoHtml}</td>
+                            <td>${cliente}</td>
+                            <td>${mecanico}</td>
+                            <td style="font-size: 0.84rem;">
+                                ${estadoHtml}
+                                <div style="margin-top:0.3rem; color: var(--text-muted);">Entrada: ${fEntrada}<br>Plazo: ${r.diasEstimados || 3}d (Fin: ${fEstimada})</div>
+                            </td>
+                            <td>
+                                <div>${r.descripcionAveria || '-'}</div>
+                                ${piezasHtml}
+                                ${incHtml}
+                            </td>
+                            <td>${finanzasHtml}</td>
+                            <td>${acciones}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function asignarMecanico(repId) {
+            const mecanicoId = document.getElementById(`mec-${repId}`).value;
+            if (!mecanicoId) {
+                mostrarAlerta('Por favor, selecciona un mecánico antes de asignar.', 'error', document.getElementById('alert-container'));
+                return;
+            }
+            try {
+                await apiFetch(`/reparaciones/${repId}/asignar/${mecanicoId}`, { method: 'PUT', silent: true });
+                mostrarAlerta('Mecánico asignado correctamente. La reparación pasa a EN PROCESO.', 'success', document.getElementById('alert-container'));
+                cargarReparaciones();
+                cargarVehiculosYClientes();
+                cargarStats();
+            } catch (error) {
+                mostrarAlerta('Error al asignar mecánico: ' + error.message, 'error', document.getElementById('alert-container'));
+            }
+        }
+
+        async function confirmarReparacionAdmin(repId) {
+            marcarConfirmadaPorAdminLocal(repId, true);
+            try {
+                await apiFetch(`/reparaciones/${repId}/estado`, {
                     method: 'PUT',
                     silent: true,
-                    body: JSON.stringify({ presupuestoMecanico: nuevoPres, presupuesto: nuevoPres })
+                    body: JSON.stringify({ estado: 'CONFIRMADA' })
                 });
+                // También generamos/actualizamos su factura oficial para que quede lista en Recepción
+                await apiFetch(`/reparaciones/${repId}/factura`, {
+                    method: 'POST',
+                    silent: true,
+                    body: JSON.stringify({})
+                }).catch(() => {});
             } catch (e) {}
-            mostrarAlerta(`Límite de gasto del mecánico en la reparación #${repId} ampliado a ${formatearEuros(nuevoPres)}.`, 'success', document.getElementById('alert-container'));
-            cargarStats();
+            mostrarAlerta(`Reparación #${repId} confirmada y factura lista. Recepción ya puede entregar el vehículo y cobrar al cliente.`, 'success', document.getElementById('alert-container'));
             cargarReparaciones();
+            cargarFacturasAdmin();
+            cargarVehiculosYClientes();
+            cargarStats();
+        }
+
+        async function emitirFacturaDesdeAdmin(repId) {
+            try {
+                const factura = await apiFetch(`/reparaciones/${repId}/factura`, {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+                abrirModalFacturaObjeto(factura);
+                cargarReparaciones();
+                cargarFacturasAdmin();
+                cargarStats();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+            }
+        }
+
+        async function verFacturaReparacionAdmin(repId) {
+            try {
+                const factura = await apiFetch(`/reparaciones/${repId}/factura`);
+                abrirModalFacturaObjeto(factura);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+            }
+        }
+
+        // ================= ARCHIVO DE FACTURAS (ADMIN) =================
+        async function cargarFacturasAdmin() {
+            const tbody = document.getElementById('tabla-facturas-admin');
+            if (!tbody) return;
+            try {
+                const facturas = await apiFetch('/facturas');
+                facturasAdminCache = facturas || [];
+                renderizarFacturasAdmin(facturasAdminCache);
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="11" style="color: var(--accent);">Error al cargar facturas: ${error.message}</td></tr>`;
+            }
+        }
+
+        function filtrarFacturasAdmin() {
+            const q = (document.getElementById('buscar-factura-admin')?.value || '').toLowerCase().trim();
+            const filtradas = facturasAdminCache.filter(f =>
+                (f.numeroFactura || '').toLowerCase().includes(q) ||
+                (f.nombreCliente || '').toLowerCase().includes(q) ||
+                (f.matriculaVehiculo || '').toLowerCase().includes(q) ||
+                (f.localizador || '').toLowerCase().includes(q)
+            );
+            renderizarFacturasAdmin(filtradas);
+        }
+
+        function renderizarFacturasAdmin(lista) {
+            const tbody = document.getElementById('tabla-facturas-admin');
+            const sumTotal = lista.reduce((a, f) => a + Number(f.totalFactura || 0), 0);
+            const sumMat = lista.reduce((a, f) => a + Number(f.costeMateriales || 0), 0);
+            const sumMO = lista.reduce((a, f) => a + Number(f.subtotalManoObra || 0), 0);
+            const sumMargen = lista.reduce((a, f) => a + Number(f.importeMargen || 0), 0);
+            const sumBeneficio = lista.reduce((a, f) => a + Number(f.beneficioNetoTaller ?? (Number(f.subtotalManoObra || 0) + Number(f.importeMargen || 0))), 0);
+
+            document.getElementById('res-fact-total').textContent = formatearEuros(sumTotal);
+            document.getElementById('res-fact-materiales').textContent = formatearEuros(sumMat);
+            document.getElementById('res-fact-mano-obra').textContent = formatearEuros(sumMO);
+            document.getElementById('res-fact-margen').textContent = formatearEuros(sumMargen);
+            document.getElementById('res-fact-beneficio').textContent = '+' + formatearEuros(sumBeneficio);
+
+            if (!lista || lista.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No hay facturas emitidas todavía.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = lista.map(f => {
+                const benNeto = Number(f.beneficioNetoTaller ?? (Number(f.subtotalManoObra || 0) + Number(f.importeMargen || 0)));
+                return `
+                    <tr>
+                        <td><strong style="color: var(--primary); font-family: monospace;">${f.numeroFactura}</strong></td>
+                        <td>${formatearFecha(f.fechaEmision)}</td>
+                        <td>
+                            <strong>${f.matriculaVehiculo}</strong> (${f.marcaVehiculo} ${f.modeloVehiculo})
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">👤 ${f.nombreCliente} · 🔧 ${f.nombreMecanico}</div>
+                        </td>
+                        <td style="color: var(--warning);">${formatearEuros(f.costeMateriales)}</td>
+                        <td>${formatearEuros(f.subtotalManoObra)} <small style="color: var(--text-muted);">(${Number(f.horasManoObra || 0).toFixed(1)}h)</small></td>
+                        <td>${formatearEuros(f.importeMargen)} <small style="color: var(--text-muted);">(${f.porcentajeMargen}%)</small></td>
+                        <td>${formatearEuros(f.baseImponible)}</td>
+                        <td>${formatearEuros(f.importeIva)}</td>
+                        <td><strong style="color: var(--info);">${formatearEuros(f.totalFactura)}</strong></td>
+                        <td><strong style="color: var(--success);">+${formatearEuros(benNeto)}</strong></td>
+                        <td>
+                            <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.8rem;" onclick="abrirFacturaAdminPorId(${f.id})">
+                                🔍 Ver Factura
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function abrirFacturaAdminPorId(id) {
+            const f = facturasAdminCache.find(item => item.id === id);
+            if (f) abrirModalFacturaObjeto(f);
         }
 
         // ================= USUARIOS =================
         document.getElementById('form-crear-usuario').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-usuario');
-            if (typeof toggleLoading === 'function') toggleLoading(btn, true);
-            
+            toggleLoading(btn, true);
+
             const pwd = document.getElementById('usu-password').value;
             const data = {
                 nombre: document.getElementById('usu-nombre').value,
@@ -760,21 +1092,17 @@
                 telefono: document.getElementById('usu-telefono').value,
                 rol: document.getElementById('usu-rol').value
             };
-            
+
             try {
                 await apiFetch('/usuarios', { method: 'POST', silent: true, body: JSON.stringify(data) });
-                if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta('Usuario creado exitosamente.', 'success', document.getElementById('alert-container'));
-                }
+                mostrarAlerta('Usuario creado exitosamente.', 'success', document.getElementById('alert-container'));
                 e.target.reset();
                 cargarUsuarios();
                 cargarStats();
             } catch (error) {
-                if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
-                }
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
             } finally {
-                if (typeof toggleLoading === 'function') toggleLoading(btn, false);
+                toggleLoading(btn, false);
             }
         });
 
@@ -794,7 +1122,7 @@
                     if (u.rol === 'ADMIN') rolBadgeClass = 'badge badge-entregada';
                     else if (u.rol === 'MECANICO') rolBadgeClass = 'badge badge-process';
                     else if (u.rol === 'RECEPCIONISTA') rolBadgeClass = 'badge badge-finished';
-                    
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${u.id}</td>
@@ -810,211 +1138,15 @@
             }
         }
 
-        // ================= REPARACIONES =================
-        let currentRepEstado = '';
-        async function cargarReparaciones(estado = currentRepEstado) {
-            currentRepEstado = estado;
-            try {
-                let todas = await apiFetch('/reparaciones');
-                let reparaciones = (todas || []).map(enriquecerReparacionFinanzas);
-                if (!estado) {
-                    reparaciones = reparaciones.filter(r => r.estado !== 'ENTREGADA');
-                } else {
-                    reparaciones = reparaciones.filter(r => r.estado === estado);
-                }
-                const tbody = document.getElementById('tabla-reparaciones');
-                tbody.innerHTML = '';
-                
-                if (reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No se encontraron reparaciones con este filtro</td></tr>';
-                    return;
-                }
-                
-                const mecanicos = await apiFetch('/usuarios/rol/MECANICO').catch(()=>[]);
-
-                reparaciones.forEach(r => {
-                    const mat = r.matriculaVehiculo || (r.vehiculo ? r.vehiculo.matricula : '-');
-                    const marcaMod = (r.marcaVehiculo || r.modeloVehiculo)
-                        ? ` <span style="color: var(--text-muted); font-size: 0.85rem;">(${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''})</span>`
-                        : '';
-                    const vehiculoHtml = `<strong>${mat}</strong>${marcaMod}`;
-
-                    const cliente = r.nombreCliente || (r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-');
-                    const nomMec = r.nombreMecanico || (r.mecanico ? r.mecanico.nombre : null);
-                    const tieneMecanico = nomMec && nomMec !== 'Sin asignar';
-                    const mecanico = tieneMecanico ? nomMec : '<span class="text-muted">Sin asignar</span>';
-                    
-                    const estadoHtml = typeof crearBadgeEstado === 'function' ? crearBadgeEstado(r.estado) : `<span class="badge">${r.estado}</span>`;
-                    const fEntrada = typeof formatearFecha === 'function' ? formatearFecha(r.fechaEntrada) : r.fechaEntrada;
-                    const fSalida = r.fechaSalida ? (typeof formatearFecha === 'function' ? formatearFecha(r.fechaSalida) : r.fechaSalida) : '-';
-
-                    const piezasHtml = (r.materialesDetalle && r.materialesDetalle.length > 0)
-                        ? `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--info);">🔩 ${r.materialesDetalle.join(' · ')}</div>`
-                        : `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">Sin gasto de piezas aún</div>`;
-
-                    const finanzasHtml = `
-                        <div style="font-size: 0.84rem; line-height: 1.45; min-width: 245px;">
-                            <div>Cobro cliente: <strong>${formatearEuros(r.presupuesto)}</strong> <span style="color: var(--text-muted); font-size: 0.78rem;">(Propuesto: ${formatearEuros(r.presupuestoEstimado)})</span></div>
-                            <div style="display: flex; align-items: center; gap: 0.35rem; margin: 0.25rem 0;">
-                                <span style="color: var(--info); font-weight: 600;">Límite Mecánico:</span>
-                                <input type="number" id="pres-${r.id}" value="${Number(r.presupuestoMecanico).toFixed(2)}" min="1" step="0.50" style="width: 80px; padding: 0.2rem 0.35rem; font-weight: bold;">
-                                <span>€</span>
-                                <button type="button" class="btn btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" onclick="actualizarPresupuestoReparacion(${r.id}, ${r.presupuesto}, ${r.costeMateriales})">Fijar</button>
-                            </div>
-                            <div style="color: var(--warning);">Gasto piezas: <strong>-${formatearEuros(r.costeMateriales)}</strong> <span style="color: var(--text-muted);">(Disp. mecánico: ${formatearEuros(r.presupuestoRestante)})</span></div>
-                            <div style="color: var(--success); font-weight: 700;">Ganancia taller: +${formatearEuros(r.beneficio)}</div>
-                        </div>
-                    `;
-
-                    let acciones = '';
-                    if (r.estado === 'PENDIENTE' || !tieneMecanico) {
-                        let opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
-                        acciones = `
-                            <div class="action-cell">
-                                <select id="mec-${r.id}" style="padding: 0.35rem; min-width: 145px;">
-                                    <option value="">Seleccione mecánico...</option>
-                                    ${opts}
-                                </select>
-                                <button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="asignarMecanico(${r.id}, ${r.presupuesto}, ${r.costeMateriales})">Asignar</button>
-                            </div>
-                        `;
-                    } else if (r.estado === 'EN_PROCESO') {
-                        acciones = `<span style="color: var(--info); font-size: 0.82rem; font-weight: 600;">🔧 En manos del mecánico</span>`;
-                    } else if (r.estado === 'FINALIZADA') {
-                        acciones = `<button class="btn btn-success" style="padding: 0.35rem 0.65rem;" onclick="confirmarReparacionAdmin(${r.id})">✅ Confirmar Reparación</button>`;
-                    } else if (r.estado === 'CONFIRMADA') {
-                        acciones = `<span style="color: #4ADE80; font-size: 0.82rem; font-weight: 600;">✓ Confirmada (Lista en Recepción)</span>`;
-                    } else {
-                        acciones = '<span class="text-muted">Cobrada y entregada</span>';
-                    }
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>#${r.id}</td>
-                            <td>${vehiculoHtml}</td>
-                            <td>${cliente}</td>
-                            <td>${mecanico}</td>
-                            <td>${estadoHtml}</td>
-                            <td style="font-size: 0.85rem;">Entrada: ${fEntrada}<br><span style="color: var(--text-muted);">Salida: ${fSalida}</span></td>
-                            <td>
-                                <div>${r.descripcionAveria || '-'}</div>
-                                ${piezasHtml}
-                            </td>
-                            <td>${finanzasHtml}</td>
-                            <td>${acciones}</td>
-                        </tr>
-                    `;
-                });
-            } catch (error) {
-                console.error(error);
-            }
-        }
-
-        async function actualizarPresupuestoReparacion(repId, precioCliente = 200, costeMateriales = 0) {
-            const input = document.getElementById(`pres-${repId}`);
-            const nuevoPresupuesto = parseFloat(input.value);
-            if (isNaN(nuevoPresupuesto) || nuevoPresupuesto <= 0) {
-                mostrarAlerta('Introduce un presupuesto válido mayor que 0 €.', 'error', document.getElementById('alert-container'));
-                return false;
-            }
-            if (nuevoPresupuesto >= precioCliente) {
-                mostrarAlerta(`El presupuesto para el mecánico (${formatearEuros(nuevoPresupuesto)}) debe ser menor que el precio cobrado al cliente (${formatearEuros(precioCliente)}) para que el taller tenga beneficio.`, 'error', document.getElementById('alert-container'));
-                return false;
-            }
-            if (nuevoPresupuesto + 0.001 < costeMateriales) {
-                mostrarAlerta(`El presupuesto del mecánico (${formatearEuros(nuevoPresupuesto)}) no puede ser menor a lo ya gastado en piezas (${formatearEuros(costeMateriales)}).`, 'error', document.getElementById('alert-container'));
-                return false;
-            }
-
-            guardarPresupuestoMecanicoLocal(repId, nuevoPresupuesto);
-            try {
-                await apiFetch(`/reparaciones/${repId}/presupuesto`, {
-                    method: 'PUT',
-                    silent: true,
-                    body: JSON.stringify({ presupuestoMecanico: nuevoPresupuesto, presupuesto: nuevoPresupuesto })
-                });
-            } catch (e) {
-                // Si el backend aún no se ha reiniciado, se mantiene sincronizado en localStorage
-            }
-            mostrarAlerta(`Presupuesto del mecánico para la reparación #${repId} fijado en ${formatearEuros(nuevoPresupuesto)} (Precio cliente: ${formatearEuros(precioCliente)}).`, 'success', document.getElementById('alert-container'));
-            cargarReparaciones();
-            cargarStats();
-            return true;
-        }
-
-        async function asignarMecanico(repId, precioCliente = 200, costeMateriales = 0) {
-            const mecanicoId = document.getElementById(`mec-${repId}`).value;
-            if (!mecanicoId) {
-                mostrarAlerta('Por favor, selecciona un mecánico antes de asignar.', 'error', document.getElementById('alert-container'));
-                return;
-            }
-
-            // Si el Admin ha ajustado el presupuesto del mecánico en la casilla, validarlo y guardarlo al mismo tiempo
-            const inputPres = document.getElementById(`pres-${repId}`);
-            if (inputPres) {
-                const valPres = parseFloat(inputPres.value);
-                if (isNaN(valPres) || valPres <= 0 || valPres >= precioCliente) {
-                    mostrarAlerta(`El presupuesto del mecánico (${formatearEuros(valPres || 0)}) debe ser mayor que 0 € y menor que el precio cobrado al cliente (${formatearEuros(precioCliente)}).`, 'error', document.getElementById('alert-container'));
-                    return;
-                }
-                guardarPresupuestoMecanicoLocal(repId, valPres);
-                try {
-                    await apiFetch(`/reparaciones/${repId}/presupuesto`, {
-                        method: 'PUT',
-                        silent: true,
-                        body: JSON.stringify({ presupuestoMecanico: valPres, presupuesto: valPres })
-                    });
-                } catch (e) {}
-            }
-
-            try {
-                await apiFetch(`/reparaciones/${repId}/asignar/${mecanicoId}`, { method: 'PUT', silent: true });
-                mostrarAlerta('Mecánico asignado y presupuesto de reparación establecido correctamente. La reparación pasa a EN PROCESO.', 'success', document.getElementById('alert-container'));
-                cargarReparaciones();
-                cargarVehiculosYClientes();
-                cargarStats();
-            } catch (error) {
-                mostrarAlerta('Error al asignar mecánico: ' + error.message, 'error', document.getElementById('alert-container'));
-            }
-        }
-
-        async function confirmarReparacionAdmin(repId) {
-            marcarConfirmadaPorAdminLocal(repId, true);
-            try {
-                await apiFetch(`/reparaciones/${repId}/estado`, {
-                    method: 'PUT',
-                    silent: true,
-                    body: JSON.stringify({ estado: 'CONFIRMADA' })
-                });
-            } catch (e) {
-                // Si el backend aún no se ha reiniciado con el estado CONFIRMADA, queda sincronizado en localStorage
-            }
-            mostrarAlerta(`Reparación #${repId} confirmada como correcta. La recepcionista ya tiene habilitada la opción de Entregar y Cobrar.`, 'success', document.getElementById('alert-container'));
-            cargarReparaciones();
-            cargarVehiculosYClientes();
-            cargarStats();
-        }
-
         // ================= INVENTARIO =================
-        let materialesAdminCache = [];
-
         document.getElementById('form-crear-material').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-material');
-            if (typeof toggleLoading === 'function') toggleLoading(btn, true);
-            
+            toggleLoading(btn, true);
+
             const stockVal = parseInt(document.getElementById('mat-stock').value, 10) || 0;
             const precioVal = parseFloat(document.getElementById('mat-precio').value) || 0;
             const costeCompra = stockVal * precioVal;
-
-            // Verificar que la cuenta del taller tenga saldo suficiente para comprar este stock inicial
-            const reparacionesActuales = await apiFetch('/reparaciones').catch(() => []);
-            const cuentaActual = calcularCuentaTallerDesdeReparaciones(reparacionesActuales);
-            if (costeCompra > cuentaActual.saldoActual + 0.001) {
-                if (typeof toggleLoading === 'function') toggleLoading(btn, false);
-                mostrarAlerta(`Saldo insuficiente en la Cuenta del Taller (${formatearEuros(cuentaActual.saldoActual)}) para comprar ${stockVal} unidades por ${formatearEuros(costeCompra)}.`, 'error', document.getElementById('alert-container'));
-                return;
-            }
 
             const data = {
                 nombre: document.getElementById('mat-nombre').value.trim(),
@@ -1023,24 +1155,18 @@
                 stock: stockVal,
                 precioUnitario: precioVal
             };
-            
+
             try {
                 await apiFetch('/materiales', { method: 'POST', silent: true, body: JSON.stringify(data) });
-                if (costeCompra > 0) {
-                    registrarCompraStockLocal(costeCompra);
-                }
-                if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta(`Material "${data.nombre}" añadido con ${stockVal} uds. Se han descontado ${formatearEuros(costeCompra)} de la Cuenta del Taller.`, 'success', document.getElementById('alert-container'));
-                }
+                if (costeCompra > 0) registrarCompraStockLocal(costeCompra);
+                mostrarAlerta(`Material "${data.nombre}" añadido con ${stockVal} uds (${formatearEuros(costeCompra)}).`, 'success', document.getElementById('alert-container'));
                 e.target.reset();
                 cargarMateriales();
                 cargarStats();
             } catch (error) {
-                if (typeof mostrarAlerta === 'function') {
-                    mostrarAlerta('Error: ' + error.message, 'error', document.getElementById('alert-container'));
-                }
+                mostrarAlerta('Error: ' + error.message, 'error', document.getElementById('alert-container'));
             } finally {
-                if (typeof toggleLoading === 'function') toggleLoading(btn, false);
+                toggleLoading(btn, false);
             }
         });
 
@@ -1050,27 +1176,26 @@
             if (query && query.trim() !== '') {
                 endpoint = `/materiales/buscar?nombre=${encodeURIComponent(query.trim())}`;
             }
-            
+
             try {
                 const materiales = await apiFetch(endpoint);
-                materialesAdminCache = materiales || [];
                 const tbody = document.getElementById('tabla-materiales');
                 tbody.innerHTML = '';
-                
+
                 if (!materiales || materiales.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron materiales</td></tr>';
                     return;
                 }
-                
+
                 materiales.forEach(m => {
                     const stockActual = m.stockDisponible ?? m.stock ?? 0;
                     const precioUnit = Number(m.precioUnitario || 0);
                     const isBajo = stockActual < 5;
                     const rowStyle = isBajo ? 'background: rgba(245, 158, 11, 0.1);' : '';
                     const stockBadge = isBajo
-                        ? `<span style="color: var(--warning, #F59E0B); font-weight: bold;">${stockActual} uds.</span> <span class="badge badge-pending" style="margin-left: 0.4rem;">Stock bajo</span>`
+                        ? `<span style="color: var(--warning); font-weight: bold;">${stockActual} uds.</span> <span class="badge badge-pending" style="margin-left: 0.4rem;">Stock bajo</span>`
                         : `<strong>${stockActual} uds.</strong>`;
-                    
+
                     tbody.innerHTML += `
                         <tr style="${rowStyle}">
                             <td>${m.id}</td>
@@ -1112,16 +1237,6 @@
             const diferencia = nuevoStock - stockAnterior;
             const costeCompra = diferencia > 0 ? (diferencia * precioUnitario) : 0;
 
-            if (costeCompra > 0) {
-                const reparacionesActuales = await apiFetch('/reparaciones').catch(() => []);
-                const cuentaActual = calcularCuentaTallerDesdeReparaciones(reparacionesActuales);
-                if (costeCompra > cuentaActual.saldoActual + 0.001) {
-                    mostrarAlerta(`Saldo insuficiente en la Cuenta del Taller (${formatearEuros(cuentaActual.saldoActual)}) para comprar +${diferencia} uds de "${nombreMat}" (${formatearEuros(costeCompra)}).`, 'error', document.getElementById('alert-container'));
-                    input.value = stockAnterior;
-                    return;
-                }
-            }
-
             try {
                 await apiFetch(`/materiales/${id}/stock`, {
                     method: 'PUT',
@@ -1131,7 +1246,7 @@
 
                 if (costeCompra > 0) {
                     registrarCompraStockLocal(costeCompra);
-                    mostrarAlerta(`Has añadido +${diferencia} uds de "${nombreMat}" (nuevo stock: ${nuevoStock}). Se han descontado -${formatearEuros(costeCompra)} de la Cuenta del Taller.`, 'success', document.getElementById('alert-container'));
+                    mostrarAlerta(`Has añadido +${diferencia} uds de "${nombreMat}" (nuevo stock: ${nuevoStock}). Se han descontado -${formatearEuros(costeCompra)} de la Tesorería.`, 'success', document.getElementById('alert-container'));
                 } else {
                     mostrarAlerta(`Stock de "${nombreMat}" actualizado a ${nuevoStock} unidades.`, 'success', document.getElementById('alert-container'));
                 }
@@ -1146,11 +1261,11 @@
         async function cargarVehiculosYClientes() {
             try {
                 const [vehiculos, clientes, reparaciones] = await Promise.all([
-                    apiFetch('/vehiculos').catch(()=>[]),
-                    apiFetch('/clientes').catch(()=>[]),
-                    apiFetch('/reparaciones').catch(()=>[])
+                    apiFetch('/vehiculos').catch(() => []),
+                    apiFetch('/clientes').catch(() => []),
+                    apiFetch('/reparaciones').catch(() => [])
                 ]);
-                
+
                 const repPorMatricula = {};
                 if (Array.isArray(reparaciones)) {
                     reparaciones.forEach(r => {
@@ -1159,7 +1274,6 @@
                     });
                 }
 
-                // Filtrar fuera del taller los vehículos cuya reparación ya ha sido ENTREGADA
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
                     return !rep || rep.estado !== 'ENTREGADA';
@@ -1178,7 +1292,7 @@
                         if (rep) {
                             const nomMec = rep.nombreMecanico || rep.mecanico?.nombre;
                             mecHtml = (nomMec && nomMec !== 'Sin asignar') ? nomMec : '<span class="text-muted">Sin asignar</span>';
-                            estHtml = typeof crearBadgeEstado === 'function' ? crearBadgeEstado(rep.estado) : rep.estado;
+                            estHtml = crearBadgeEstado(rep.estado);
                         }
                         return `
                             <tr>

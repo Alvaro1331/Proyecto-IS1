@@ -1,4 +1,5 @@
 const API_BASE = 'http://localhost:8080/api';
+const BACKEND_ORIGIN = 'http://localhost:8080';
 
 function getUsuarioActual() {
     const userStr = sessionStorage.getItem('usuario');
@@ -31,9 +32,8 @@ function requireAuth(rolesPermitidos = []) {
 async function apiFetch(endpoint, options = {}) {
     const { silent, ...fetchOptions } = options;
     try {
-        const defaultHeaders = {
-            'Content-Type': 'application/json'
-        };
+        const isFormData = fetchOptions.body instanceof FormData;
+        const defaultHeaders = isFormData ? {} : { 'Content-Type': 'application/json' };
         const res = await fetch(`${API_BASE}${endpoint}`, {
             ...fetchOptions,
             headers: {
@@ -41,7 +41,7 @@ async function apiFetch(endpoint, options = {}) {
                 ...fetchOptions.headers
             }
         });
-        
+
         let data = null;
         if (res.headers.get('content-type')?.includes('application/json')) {
             data = await res.json();
@@ -96,7 +96,26 @@ function cerrarAlerta(element) {
 function formatearFecha(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
     return date.toLocaleDateString('es-ES');
+}
+
+function formatearFechaHora(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleString('es-ES', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
+function resolverUrlFoto(rutaFoto) {
+    if (!rutaFoto) return null;
+    if (rutaFoto.startsWith('http://') || rutaFoto.startsWith('https://') || rutaFoto.startsWith('data:')) {
+        return rutaFoto;
+    }
+    return `${BACKEND_ORIGIN}${rutaFoto.startsWith('/') ? '' : '/'}${rutaFoto}`;
 }
 
 function crearBadgeEstado(estado) {
@@ -161,16 +180,16 @@ function mostrarModal(titulo, mensaje, onConfirm) {
         `;
         document.body.appendChild(overlay);
     }
-    
+
     document.getElementById('modal-title').innerText = titulo;
     document.getElementById('modal-message').innerText = mensaje;
-    
+
     modalCallback = onConfirm;
     document.getElementById('modal-confirm').onclick = () => {
         if (modalCallback) modalCallback();
         cerrarModal();
     };
-    
+
     overlay.style.display = 'flex';
 }
 
@@ -182,12 +201,8 @@ function cerrarModal() {
     }
 }
 
-
 // =====================================================
 // CABECERA COMÚN DE LOS PANELES
-// Rellena la barra superior (#user-info) y la tarjeta de bienvenida
-// (#bienvenida-avatar, #bienvenida-nombre, #bienvenida-rol, #bienvenida-fecha)
-// con los datos del usuario que ha iniciado sesión.
 // =====================================================
 const NOMBRES_ROL = {
     ADMIN: 'ADMINISTRADOR',
@@ -207,7 +222,6 @@ function obtenerIniciales(nombre) {
 
 function pintarCabeceraUsuario(user, rolForzado) {
     if (!user) return;
-    // Los clientes no tienen campo "rol" en la sesión
     const rol = rolForzado || user.rol || 'CLIENTE';
     const rolTexto = NOMBRES_ROL[rol] || rol;
 
@@ -236,17 +250,11 @@ function pintarCabeceraUsuario(user, rolForzado) {
     }
 }
 
-
 // =====================================================
-// GESTIÓN ECONÓMICA Y PRESUPUESTOS DEL TALLER
-// Sincroniza:
-//  - presupuesto (precio cobrado al cliente, ej. 200 €)
-//  - presupuestoEstimado (lo pensado por recepción para arreglarlo, ej. 100 €)
-//  - presupuestoMecanico (límite real decidido por el Admin para el mecánico, ej. 100 €, 150 € o 75 €)
-//  - confirmadasPorAdmin (paso intermedio FINALIZADA -> CONFIRMADA -> ENTREGADA)
+// GESTIÓN ECONÓMICA, LÍNEA TEMPORAL Y FACTURACIÓN
 // =====================================================
 const FONDO_INICIAL_TALLER = 2000.00;
-const FINANZAS_STORAGE_KEY = 'motorflow_finanzas_v2';
+const FINANZAS_STORAGE_KEY = 'motorflow_finanzas_v3';
 
 function obtenerEstadoFinanzasLocal() {
     try {
@@ -254,17 +262,9 @@ function obtenerEstadoFinanzasLocal() {
         if (raw) return JSON.parse(raw);
     } catch (e) {}
     const inicial = {
-        presupuestos: { 1: 250.00, 2: 180.00, 3: 150.00 },
-        presupuestosEstimados: { 1: 120.00, 2: 90.00, 3: 75.00 },
-        presupuestosMecanico: { 1: 120.00, 2: 80.00, 3: 60.00 },
+        presupuestos: {},
         confirmadasPorAdmin: {},
-        usosPorReparacion: {
-            2: [{ nombre: 'Pastillas de freno', cantidad: 1, precioUnitario: 35.00 }],
-            3: [
-                { nombre: 'Filtro de aceite', cantidad: 1, precioUnitario: 8.50 },
-                { nombre: 'Aceite motor 5W30', cantidad: 1, precioUnitario: 28.00 }
-            ]
-        },
+        usosPorReparacion: {},
         gastosComprasStock: 0
     };
     localStorage.setItem(FINANZAS_STORAGE_KEY, JSON.stringify(inicial));
@@ -277,27 +277,10 @@ function guardarEstadoFinanzasLocal(estado) {
     } catch (e) {}
 }
 
-function guardarPresupuestoCreacionLocal(reparacionId, precioCliente, presupuestoEstimado) {
+function guardarPresupuestoCreacionLocal(reparacionId, estimacionInicial) {
     const est = obtenerEstadoFinanzasLocal();
-    const pCli = Number(precioCliente) || 200.0;
-    const pEst = Number(presupuestoEstimado) || Math.round(pCli * 50) / 100;
-    est.presupuestos[reparacionId] = pCli;
-    if (!est.presupuestosEstimados) est.presupuestosEstimados = {};
-    if (!est.presupuestosMecanico) est.presupuestosMecanico = {};
-    est.presupuestosEstimados[reparacionId] = pEst;
-    est.presupuestosMecanico[reparacionId] = pEst;
+    est.presupuestos[reparacionId] = Number(estimacionInicial) || 150.0;
     guardarEstadoFinanzasLocal(est);
-}
-
-function guardarPresupuestoMecanicoLocal(reparacionId, presupuestoMecanico) {
-    const est = obtenerEstadoFinanzasLocal();
-    if (!est.presupuestosMecanico) est.presupuestosMecanico = {};
-    est.presupuestosMecanico[reparacionId] = Number(presupuestoMecanico);
-    guardarEstadoFinanzasLocal(est);
-}
-
-function guardarPresupuestoLocal(reparacionId, presupuestoMecanico) {
-    guardarPresupuestoMecanicoLocal(reparacionId, presupuestoMecanico);
 }
 
 function marcarConfirmadaPorAdminLocal(reparacionId, confirmada = true) {
@@ -324,91 +307,243 @@ function registrarUsoMaterialLocal(reparacionId, nombreMaterial, cantidad, preci
     guardarEstadoFinanzasLocal(est);
 }
 
-function enriquecerReparacionFinanzas(r) {
-    if (!r) return r;
-    const est = obtenerEstadoFinanzasLocal();
-    const tieneBackendNuevo = typeof r.presupuestoMecanico === 'number' && typeof r.costeMateriales === 'number';
-    const tieneBackendPrevio = typeof r.presupuesto === 'number' && typeof r.costeMateriales === 'number';
-
-    const presupuesto = (typeof r.presupuesto === 'number')
-        ? r.presupuesto
-        : (est.presupuestos?.[r.id] ?? 200.00);
-
-    const presupuestoEstimado = tieneBackendNuevo
-        ? r.presupuestoEstimado
-        : (est.presupuestosEstimados?.[r.id] ?? Math.round(presupuesto * 50) / 100);
-
-    const presupuestoMecanico = tieneBackendNuevo
-        ? r.presupuestoMecanico
-        : (est.presupuestosMecanico?.[r.id] ?? presupuestoEstimado);
-
-    let costeMateriales = 0;
-    let materialesDetalle = [];
-
-    if (tieneBackendNuevo || tieneBackendPrevio) {
-        costeMateriales = r.costeMateriales;
-        materialesDetalle = Array.isArray(r.materialesDetalle) ? r.materialesDetalle : [];
-    } else {
-        const usos = est.usosPorReparacion?.[r.id] || [];
-        costeMateriales = usos.reduce((acc, u) => acc + (u.cantidad * u.precioUnitario), 0);
-        materialesDetalle = usos.map(u => `${u.cantidad}x ${u.nombre} (${(u.cantidad * u.precioUnitario).toFixed(2)} €)`);
-    }
-
-    let estadoEfectivo = r.estado;
-    if (estadoEfectivo === 'FINALIZADA' && est.confirmadasPorAdmin?.[r.id]) {
-        estadoEfectivo = 'CONFIRMADA';
-    }
-
-    const presupuestoRestante = Math.max(0, presupuestoMecanico - costeMateriales);
-    const beneficio = presupuesto - costeMateriales;
-
-    return {
-        ...r,
-        estado: estadoEfectivo,
-        presupuesto,
-        presupuestoEstimado,
-        presupuestoMecanico,
-        costeMateriales,
-        presupuestoRestante,
-        beneficio,
-        materialesDetalle
-    };
-}
-
 function registrarCompraStockLocal(importeCompra) {
     const est = obtenerEstadoFinanzasLocal();
     est.gastosComprasStock = Number(est.gastosComprasStock || 0) + Number(importeCompra || 0);
     guardarEstadoFinanzasLocal(est);
 }
 
-function calcularCuentaTallerDesdeReparaciones(todasReparaciones = []) {
-    const est = obtenerEstadoFinanzasLocal();
-    const enriquecidas = (todasReparaciones || []).map(enriquecerReparacionFinanzas);
-    const gastosPiezasUsadas = enriquecidas.reduce((acc, r) => acc + (r.costeMateriales || 0), 0);
-    const gastosComprasStock = Number(est.gastosComprasStock || 0);
-    const gastosMateriales = gastosPiezasUsadas + gastosComprasStock;
-    const ingresosCobrados = enriquecidas
-        .filter(r => r.estado === 'ENTREGADA')
-        .reduce((acc, r) => acc + (r.presupuesto || 0), 0);
-    const ingresosEnCurso = enriquecidas
-        .filter(r => r.estado !== 'ENTREGADA')
-        .reduce((acc, r) => acc + (r.presupuesto || 0), 0);
-    const beneficioTotal = enriquecidas.reduce((acc, r) => acc + (r.beneficio || 0), 0);
-    const saldoActual = FONDO_INICIAL_TALLER - gastosMateriales + ingresosCobrados;
+function enriquecerReparacionFinanzas(r) {
+    if (!r) return r;
+    const estimacionInicial = Number(r.estimacionInicial ?? r.presupuesto ?? 150.0);
+    const costeMateriales = Number(r.costeMateriales ?? 0.0);
+    const horasTrabajoMecanico = Number(r.horasTrabajoMecanico ?? 0.0);
+    const precioHoraManoObra = Number(r.precioHoraManoObra ?? 35.0);
+    const subtotalManoObra = Number(r.subtotalManoObra ?? (horasTrabajoMecanico * precioHoraManoObra));
+    const porcentajeMargen = Number(r.porcentajeMargen ?? 15.0);
+    const diasEstimados = Number(r.diasEstimados ?? 3);
+    const diasRestantes = Number(r.diasRestantes ?? diasEstimados);
+    const materialesDetalle = Array.isArray(r.materialesDetalle) ? r.materialesDetalle : [];
+    const incidencias = Array.isArray(r.incidencias) ? r.incidencias : [];
+    const impactoIncidencias = Number(r.impactoIncidencias ?? 0.0);
+    const totalCalculadoPrevisto = Number(r.totalCalculadoPrevisto ?? (estimacionInicial + impactoIncidencias));
+    const beneficio = Number(r.beneficio ?? (estimacionInicial - costeMateriales));
 
     return {
-        fondoInicial: FONDO_INICIAL_TALLER,
-        gastosPiezasUsadas,
-        gastosComprasStock,
-        gastosMateriales,
-        ingresosCobrados,
-        ingresosEnCurso,
-        beneficioTotal,
-        saldoActual
+        ...r,
+        presupuesto: estimacionInicial,
+        estimacionInicial,
+        costeMateriales,
+        horasTrabajoMecanico,
+        precioHoraManoObra,
+        subtotalManoObra,
+        porcentajeMargen,
+        diasEstimados,
+        diasRestantes,
+        materialesDetalle,
+        incidencias,
+        impactoIncidencias,
+        totalCalculadoPrevisto,
+        beneficio
     };
 }
 
 function formatearEuros(valor) {
     const num = Number(valor) || 0;
     return num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+// =====================================================
+// COMPONENTES VISUALES: LÍNEA TEMPORAL, INCIDENCIAS Y MODAL DE FACTURA
+// =====================================================
+const PASOS_REPARACION = [
+    { codigo: 'PENDIENTE',   icono: '📋', titulo: 'Recibido en Recepción' },
+    { codigo: 'EN_PROCESO',  icono: '🔧', titulo: 'En Reparación (Taller)' },
+    { codigo: 'FINALIZADA',  icono: '🏁', titulo: 'Trabajo Terminado' },
+    { codigo: 'CONFIRMADA',  icono: '✅', titulo: 'Verificado por Taller' },
+    { codigo: 'ENTREGADA',   icono: '🚗', titulo: 'Vehículo Entregado' }
+];
+
+function renderizarLineaTemporalHTML(rep) {
+    const estadoActual = rep.estado || 'PENDIENTE';
+    const idxActual = PASOS_REPARACION.findIndex(p => p.codigo === estadoActual);
+    const diasEstimados = rep.diasEstimados ?? 3;
+    const diasRestantes = rep.diasRestantes ?? diasEstimados;
+    const fechaEstimada = rep.fechaEstimadaFin ? formatearFecha(rep.fechaEstimadaFin) : 'Por determinar';
+
+    let badgePlazo = '';
+    if (estadoActual === 'ENTREGADA') {
+        badgePlazo = `<span class="badge badge-confirmed">🎉 Vehículo ya entregado al cliente</span>`;
+    } else if (estadoActual === 'CONFIRMADA' || estadoActual === 'FINALIZADA') {
+        badgePlazo = `<span class="badge badge-confirmed">✨ Reparación finalizada · Listo para entrega</span>`;
+    } else if (diasRestantes === 0) {
+        badgePlazo = `<span class="badge badge-pending">⏰ Entrega prevista para hoy (${fechaEstimada})</span>`;
+    } else {
+        badgePlazo = `<span class="badge badge-process">⏳ Tiempo estimado: ${diasEstimados} día(s) · Faltan ~${diasRestantes} día(s) (Previsto: ${fechaEstimada})</span>`;
+    }
+
+    const pasosHtml = PASOS_REPARACION.map((paso, index) => {
+        let estadoClase = '';
+        if (index < idxActual || estadoActual === 'ENTREGADA') {
+            estadoClase = 'completed';
+        } else if (index === idxActual) {
+            estadoClase = 'active';
+        }
+        const iconoMostrar = (index < idxActual || estadoActual === 'ENTREGADA') ? '✓' : paso.icono;
+        return `
+            <div class="timeline-step ${estadoClase}">
+                <div class="timeline-step-circle">${iconoMostrar}</div>
+                <div class="timeline-step-label">${paso.titulo}</div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="timeline-wrapper">
+            <div class="timeline-header-meta">
+                <div style="font-weight: 600; font-size: 0.92rem; color: var(--text-light);">
+                    📍 Seguimiento en Tiempo Real
+                </div>
+                <div>${badgePlazo}</div>
+            </div>
+            <div class="timeline-stepper">
+                ${pasosHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderizarIncidenciasHTML(incidencias = []) {
+    if (!incidencias || incidencias.length === 0) {
+        return `
+            <div class="incidencias-section">
+                <div style="font-size: 0.88rem; color: var(--text-muted);">
+                    📝 <em>El mecánico no ha registrado incidencias ni variaciones adicionales por el momento.</em>
+                </div>
+            </div>
+        `;
+    }
+
+    const itemsHtml = incidencias.map(inc => {
+        const urlFoto = resolverUrlFoto(inc.rutaFoto);
+        const impacto = Number(inc.impactoPrecio || 0);
+        const badgeImpacto = impacto > 0
+            ? `<span class="badge badge-pending" style="margin-left: 0.5rem;">Impacto orientativo: +${formatearEuros(impacto)}</span>`
+            : `<span class="badge" style="background: rgba(255,255,255,0.08); color: var(--text-muted); margin-left: 0.5rem;">Nota informativa (0,00 €)</span>`;
+
+        const fotoHtml = urlFoto
+            ? `<a href="${urlFoto}" target="_blank" title="Pulsa para ampliar imagen">
+                   <img src="${urlFoto}" alt="Foto de la incidencia" class="incidencia-foto-thumb">
+               </a>`
+            : '';
+
+        return `
+            <div class="incidencia-item">
+                ${fotoHtml}
+                <div style="flex: 1; min-width: 200px;">
+                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.35rem;">
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">🕒 ${formatearFechaHora(inc.fecha)}</span>
+                        ${badgeImpacto}
+                    </div>
+                    <div style="font-size: 0.92rem; color: var(--text-light);">${inc.descripcion || ''}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="incidencias-section">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--primary-light);">
+                📸 Historial de Incidencias y Fotos del Mecánico (${incidencias.length})
+            </h4>
+            ${itemsHtml}
+        </div>
+    `;
+}
+
+function renderizarFacturaDesglosadaHTML(f) {
+    if (!f) return '';
+    const piezas = (f.materialesDetalle && f.materialesDetalle.length > 0)
+        ? f.materialesDetalle.map(p => `<li style="margin-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">${p}</li>`).join('')
+        : '<li style="margin-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">Sin recambios adicionales</li>';
+
+    return `
+        <div class="factura-card-view">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Factura Oficial Taller MotorFlow</div>
+                    <h3 style="margin: 0.2rem 0; color: var(--primary); font-family: monospace; font-size: 1.4rem;">${f.numeroFactura}</h3>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">Fecha de emisión: <strong>${formatearFecha(f.fechaEmision)}</strong> · Localizador: <strong>${f.localizador || '-'}</strong></div>
+                </div>
+                <div style="text-align: right; font-size: 0.86rem;">
+                    <div><strong>Cliente:</strong> ${f.nombreCliente || '-'} (${f.telefonoCliente || '-'})</div>
+                    <div><strong>Vehículo:</strong> ${f.marcaVehiculo || ''} ${f.modeloVehiculo || ''} (${f.matriculaVehiculo || '-'})</div>
+                    <div><strong>Mecánico:</strong> ${f.nombreMecanico || '-'}</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 0.85rem; font-size: 0.88rem;">
+                <strong>Trabajo realizado:</strong> <span style="color: var(--text-muted);">${f.descripcionAveria || '-'}</span>
+            </div>
+
+            <div class="factura-row">
+                <div>
+                    <strong>1. Coste de Materiales y Piezas Usadas</strong>
+                    <ul style="margin-top: 0.25rem;">${piezas}</ul>
+                </div>
+                <strong>${formatearEuros(f.costeMateriales)}</strong>
+            </div>
+
+            <div class="factura-row">
+                <span><strong>2. Mano de Obra</strong> (${Number(f.horasManoObra || 0).toFixed(2)} h × ${formatearEuros(f.precioHora)}/h)</span>
+                <strong>${formatearEuros(f.subtotalManoObra)}</strong>
+            </div>
+
+            <div class="factura-row" style="color: var(--text-muted);">
+                <span>Subtotal Base (Materiales + Mano de Obra)</span>
+                <span>${formatearEuros(f.subtotalBase)}</span>
+            </div>
+
+            <div class="factura-row">
+                <span><strong>3. Margen Operativo del Taller</strong> (${Number(f.porcentajeMargen || 0).toFixed(1)}%)</span>
+                <strong>${formatearEuros(f.importeMargen)}</strong>
+            </div>
+
+            <div class="factura-row" style="background: rgba(255,255,255,0.03); padding: 0.5rem 0.4rem; font-weight: 600;">
+                <span>Base Imponible</span>
+                <span>${formatearEuros(f.baseImponible)}</span>
+            </div>
+
+            <div class="factura-row">
+                <span><strong>4. IVA Aplicado</strong> (${Number(f.porcentajeIva || 21).toFixed(0)}%)</span>
+                <strong>${formatearEuros(f.importeIva)}</strong>
+            </div>
+
+            <div class="factura-row-total">
+                <span>TOTAL FACTURA A PAGAR</span>
+                <span>${formatearEuros(f.totalFactura)}</span>
+            </div>
+        </div>
+    `;
+}
+
+function abrirModalFacturaObjeto(factura) {
+    let overlay = document.getElementById('modal-factura-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modal-factura-overlay';
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+            <div class="modal card" style="max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto;">
+                <div id="modal-factura-body"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('modal-factura-overlay').style.display='none'">Cerrar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    document.getElementById('modal-factura-body').innerHTML = renderizarFacturaDesglosadaHTML(factura);
+    overlay.style.display = 'flex';
 }

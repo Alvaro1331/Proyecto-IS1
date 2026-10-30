@@ -4,15 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * DTO para crear una nueva reparación.
+ * DTO para crear una nueva reparación desde Recepción.
  *
  * Ejemplo de JSON:
  * {
  *   "vehiculoId": 1,
  *   "recepcionistaId": 2,
  *   "descripcionAveria": "El motor hace un ruido extraño al acelerar",
- *   "presupuesto": 200.00,
- *   "presupuestoEstimado": 100.00
+ *   "estimacionInicial": 180.00,
+ *   "diasEstimados": 3
  * }
  */
 public class ReparacionRequestDTO {
@@ -26,13 +26,17 @@ public class ReparacionRequestDTO {
     @NotBlank(message = "La descripción de la avería no puede estar vacía")
     private String descripcionAveria;
 
-    // Precio acordado con el cliente (ej. 200 €)
+    // Estimación inicial orientativa dada al cliente (ej. 180 €)
+    private Double estimacionInicial;
+
+    // Alias compatible con formularios anteriores
     private Double presupuesto;
 
-    // Presupuesto estimado por la recepcionista para arreglarlo (ej. 100 €)
-    private Double presupuestoEstimado;
+    // Días estimados para completar la reparación (ej. 3 días)
+    private Integer diasEstimados;
 
-    // Presupuesto máximo aprobado por el administrador para el mecánico
+    // Campos mantenidos por compatibilidad
+    private Double presupuestoEstimado;
     private Double presupuestoMecanico;
 
     // --- Getters y Setters ---
@@ -45,8 +49,18 @@ public class ReparacionRequestDTO {
     public String getDescripcionAveria() { return descripcionAveria; }
     public void setDescripcionAveria(String descripcionAveria) { this.descripcionAveria = descripcionAveria; }
 
-    public Double getPresupuesto() { return presupuesto; }
+    public Double getEstimacionInicial() {
+        return estimacionInicial != null ? estimacionInicial : presupuesto;
+    }
+    public void setEstimacionInicial(Double estimacionInicial) { this.estimacionInicial = estimacionInicial; }
+
+    public Double getPresupuesto() {
+        return presupuesto != null ? presupuesto : estimacionInicial;
+    }
     public void setPresupuesto(Double presupuesto) { this.presupuesto = presupuesto; }
+
+    public Integer getDiasEstimados() { return diasEstimados; }
+    public void setDiasEstimados(Integer diasEstimados) { this.diasEstimados = diasEstimados; }
 
     public Double getPresupuestoEstimado() { return presupuestoEstimado; }
     public void setPresupuestoEstimado(Double presupuestoEstimado) { this.presupuestoEstimado = presupuestoEstimado; }

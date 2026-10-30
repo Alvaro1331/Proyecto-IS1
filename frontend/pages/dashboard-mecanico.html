@@ -17,9 +17,9 @@
             grid-template-columns: 1fr;
             gap: 2rem;
         }
-        @media (min-width: 992px) {
+        @media (min-width: 1024px) {
             .dashboard-grid {
-                grid-template-columns: 2.1fr 1fr;
+                grid-template-columns: 2.15fr 1fr;
             }
         }
         .stock-low {
@@ -50,6 +50,18 @@
             border-top: 1px dashed var(--border);
             font-weight: 700;
         }
+        .inline-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.25rem;
+        }
+        .inline-control input {
+            width: 72px;
+            padding: 0.28rem 0.4rem;
+            font-weight: 700;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -69,11 +81,11 @@
 
     <main class="container">
         <div id="alertas-container" class="mb-4"></div>
-        
+
         <section class="bienvenida-banner">
             <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
             <div>
-                <p class="bienvenida-saludo">Panel de Mecánico · Bienvenido de nuevo</p>
+                <p class="bienvenida-saludo">Panel de Mecánico · Seguimiento de reparaciones, horas e incidencias</p>
                 <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
                 <div class="bienvenida-meta">
                     <span class="bienvenida-rol" id="bienvenida-rol">-</span>
@@ -81,22 +93,22 @@
                 </div>
             </div>
         </section>
-        
+
         <div class="stats-grid">
             <div class="stat-card card">
                 <h3>Mis Reparaciones (En Proceso)</h3>
                 <div class="stat-value" id="stat-en-proceso" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
             </div>
             <div class="stat-card card">
-                <h3>Mis Reparaciones (Pendientes)</h3>
-                <div class="stat-value" id="stat-pendientes" style="font-size: 2rem; font-weight: bold; color: var(--warning);">0</div>
+                <h3>Horas Registradas (Activas)</h3>
+                <div class="stat-value" id="stat-horas-totales" style="font-size: 2rem; font-weight: bold; color: var(--info);">0,0 h</div>
             </div>
             <div class="stat-card card">
-                <h3>Presupuesto Disponible (En Curso)</h3>
-                <div class="stat-value" id="stat-presupuesto-disp" style="font-size: 2rem; font-weight: bold; color: var(--info);">0,00 €</div>
+                <h3>Coste Piezas Usadas (Activas)</h3>
+                <div class="stat-value" id="stat-coste-piezas" style="font-size: 2rem; font-weight: bold; color: var(--warning);">0,00 €</div>
             </div>
             <div class="stat-card card">
-                <h3>Materiales Disponibles (Tipos)</h3>
+                <h3>Materiales en Almacén (Tipos)</h3>
                 <div class="stat-value" id="stat-materiales" style="font-size: 2rem; font-weight: bold; color: var(--success);">0</div>
             </div>
         </div>
@@ -105,26 +117,29 @@
             <div class="main-column">
                 <section class="card" style="margin-bottom: 2rem;">
                     <div class="card-header flex-between" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <h3 style="margin: 0;">Mis Reparaciones y Presupuesto Asignado</h3>
-                        <button class="btn btn-primary btn-sm" onclick="cargarMisReparaciones()">Actualizar</button>
+                        <div>
+                            <h3 style="margin: 0;">🔧 Mis Reparaciones Asignadas</h3>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
+                                Trabaja sin límite presupuestario artificial. Registra las horas reales trabajadas, ajusta los días estimados si hay imprevistos y sube fotos/incidencias.
+                            </p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="cargarMisReparaciones()">↻ Actualizar</button>
                     </div>
                     <div class="card-body" style="padding: 1rem;">
                         <div class="table-responsive">
                             <table class="table" id="tabla-reparaciones" style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="text-align: left; border-bottom: 2px solid var(--border);">
-                                        <th style="padding: 0.75rem;">ID</th>
-                                        <th style="padding: 0.75rem;">Vehículo</th>
-                                        <th style="padding: 0.75rem;">Cliente</th>
+                                        <th style="padding: 0.75rem;">ID / Loc.</th>
+                                        <th style="padding: 0.75rem;">Vehículo / Cliente</th>
                                         <th style="padding: 0.75rem;">Estado</th>
-                                        <th style="padding: 0.75rem;">Avería y Piezas Usadas</th>
-                                        <th style="padding: 0.75rem;">Presupuesto / Disponible</th>
+                                        <th style="padding: 0.75rem;">Avería, Piezas e Incidencias</th>
+                                        <th style="padding: 0.75rem;">Horas y Días Estimados</th>
+                                        <th style="padding: 0.75rem;">Costes Acumulados</th>
                                         <th style="padding: 0.75rem;">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <!-- Dynamic rows -->
-                                </tbody>
+                                <tbody></tbody>
                             </table>
                         </div>
                     </div>
@@ -132,7 +147,7 @@
 
                 <section class="card">
                     <div class="card-header flex-between" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <h3 style="margin: 0;">Inventario de Materiales</h3>
+                        <h3 style="margin: 0;">📦 Inventario de Materiales del Almacén</h3>
                         <input type="text" id="buscar-material" class="form-control" style="max-width: 250px; padding: 0.5rem;" placeholder="Buscar material por nombre..." onkeyup="filtrarMateriales()">
                     </div>
                     <div class="card-body" style="padding: 1rem;">
@@ -142,13 +157,11 @@
                                     <tr style="text-align: left; border-bottom: 2px solid var(--border);">
                                         <th style="padding: 0.75rem;">Nombre</th>
                                         <th style="padding: 0.75rem;">Descripción</th>
-                                        <th style="padding: 0.75rem;">Stock</th>
+                                        <th style="padding: 0.75rem;">Stock Disponible</th>
                                         <th style="padding: 0.75rem;">Precio Unit.</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <!-- Dynamic rows -->
-                                </tbody>
+                                <tbody></tbody>
                             </table>
                         </div>
                     </div>
@@ -156,53 +169,92 @@
             </div>
 
             <div class="side-column">
-                <section class="card" style="border-top: 4px solid var(--primary);">
+                <!-- Tarjeta 1: Usar Material del Almacén (sin tope bloqueante) -->
+                <section class="card" style="border-top: 4px solid var(--primary); margin-bottom: 1.5rem;">
                     <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <h3 style="margin: 0;">🔧 Registrar Material Usado</h3>
-                        <p style="margin: 0.35rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
-                            El coste de las piezas se descontará del presupuesto de la reparación y se notificará al Administrador.
+                        <h3 style="margin: 0;">🔩 Registrar Material Usado</h3>
+                        <p style="margin: 0.35rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
+                            Usa libremente las piezas necesarias del almacén. Se sumarán automáticamente a la factura final de la reparación.
                         </p>
                     </div>
                     <div class="card-body" style="padding: 1rem;">
                         <form id="form-usar-material">
                             <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="select-reparacion" style="display: block; margin-bottom: 0.5rem;">Reparación (En Proceso)</label>
-                                <select id="select-reparacion" class="form-control" style="width: 100%; padding: 0.5rem;" required onchange="actualizarPrevisualizacionCoste()">
+                                <label for="select-reparacion">Reparación (En Proceso)</label>
+                                <select id="select-reparacion" required onchange="actualizarPrevisualizacionCoste()">
                                     <option value="">Seleccione una reparación</option>
                                 </select>
                             </div>
-                            
+
                             <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="select-material" style="display: block; margin-bottom: 0.5rem;">Material</label>
-                                <select id="select-material" class="form-control" style="width: 100%; padding: 0.5rem;" required onchange="actualizarPrevisualizacionCoste()">
+                                <label for="select-material">Material del Almacén</label>
+                                <select id="select-material" required onchange="actualizarPrevisualizacionCoste()">
                                     <option value="">Seleccione un material</option>
                                 </select>
                             </div>
-                            
+
                             <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="cantidad-material" style="display: block; margin-bottom: 0.5rem;">Cantidad (Unidades)</label>
-                                <input type="number" id="cantidad-material" class="form-control" style="width: 100%; padding: 0.5rem;" min="1" value="1" required oninput="actualizarPrevisualizacionCoste()">
+                                <label for="cantidad-material">Cantidad (Unidades)</label>
+                                <input type="number" id="cantidad-material" min="1" value="1" required oninput="actualizarPrevisualizacionCoste()">
                             </div>
 
                             <div id="cost-preview-box" class="cost-preview-box">
                                 <div class="cost-preview-row">
-                                    <span style="color: var(--text-muted);">Presupuesto disponible:</span>
-                                    <strong id="prev-disponible">-</strong>
+                                    <span style="color: var(--text-muted);">Piezas acumuladas en reparación:</span>
+                                    <strong id="prev-acumulado">-</strong>
                                 </div>
                                 <div class="cost-preview-row">
-                                    <span style="color: var(--text-muted);">Coste material a usar:</span>
+                                    <span style="color: var(--text-muted);">Coste material a añadir:</span>
                                     <strong id="prev-coste" style="color: var(--warning);">0,00 €</strong>
                                 </div>
                                 <div class="cost-preview-row">
-                                    <span>Saldo restante tras uso:</span>
-                                    <span id="prev-restante">-</span>
+                                    <span>Nuevo total en materiales:</span>
+                                    <span id="prev-nuevo-total" style="color: var(--info);">-</span>
                                 </div>
-                                <div id="prev-aviso" style="display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: rgba(220, 38, 38, 0.15); border: 1px solid #ef4444; border-radius: 6px; color: #fca5a5; font-weight: 600; font-size: 0.84rem; line-height: 1.4;"></div>
+                                <div id="prev-aviso" style="display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: rgba(220, 38, 38, 0.15); border: 1px solid #ef4444; border-radius: 6px; color: #fca5a5; font-weight: 600; font-size: 0.84rem;"></div>
                             </div>
 
                             <div id="alerta-uso-material" style="margin-bottom: 0.75rem;"></div>
-                            
-                            <button type="submit" class="btn btn-primary" id="btn-registrar-material" style="width: 100%; padding: 0.75rem;">Registrar Uso y Transmitir Coste</button>
+
+                            <button type="submit" class="btn btn-primary" id="btn-registrar-material" style="width: 100%; padding: 0.75rem;">
+                                + Añadir Pieza a la Reparación
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Tarjeta 2: Subir Incidencia y Foto para la Línea Temporal del Cliente -->
+                <section class="card" style="border-top: 4px solid var(--info);">
+                    <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--border);">
+                        <h3 style="margin: 0;">📸 Registrar Incidencia / Subir Foto</h3>
+                        <p style="margin: 0.35rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
+                            Documenta imprevistos, piezas dañadas o avances con fotos reales. El cliente lo verá al instante en su línea temporal.
+                        </p>
+                    </div>
+                    <div class="card-body" style="padding: 1rem;">
+                        <form id="form-incidencia" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="inc-reparacion">Reparación</label>
+                                <select id="inc-reparacion" required>
+                                    <option value="">Seleccione una reparación</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inc-descripcion">Explicación / Nota técnica para el cliente</label>
+                                <textarea id="inc-descripcion" rows="3" placeholder="Ej. Al desmontar el cárter se detectó junta deteriorada. Se adjunta fotografía..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="inc-impacto">Impacto orientativo en el coste (€) <small style="color: var(--text-muted);">(Opcional)</small></label>
+                                <input type="number" id="inc-impacto" min="0" step="0.50" value="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="inc-foto">Fotografía de la pieza / avería <small style="color: var(--text-muted);">(JPG, PNG, WEBP)</small></label>
+                                <input type="file" id="inc-foto" accept="image/*" style="padding: 0.5rem;">
+                            </div>
+                            <div id="alerta-incidencia" style="margin-bottom: 0.75rem;"></div>
+                            <button type="submit" class="btn btn-primary" id="btn-subir-incidencia" style="width: 100%; background: var(--info); padding: 0.75rem;">
+                                📤 Publicar Incidencia en Línea Temporal
+                            </button>
                         </form>
                     </div>
                 </section>
@@ -214,76 +266,85 @@
     <script>
         let materialesCache = [];
         let misReparacionesCache = [];
-        
+
         document.addEventListener('DOMContentLoaded', async () => {
             requireAuth(['MECANICO', 'ADMIN']);
             const user = getUsuarioActual();
             if (!user) return;
-            
+
             pintarCabeceraUsuario(user);
 
             await Promise.all([
                 cargarMisReparaciones(),
                 cargarMateriales()
             ]);
-            
+
             document.getElementById('form-usar-material').addEventListener('submit', handleUsarMaterial);
+            document.getElementById('form-incidencia').addEventListener('submit', handleSubirIncidencia);
         });
-        
+
         async function cargarMisReparaciones() {
             const user = getUsuarioActual();
             const tbody = document.querySelector('#tabla-reparaciones tbody');
             const selectReparacion = document.getElementById('select-reparacion');
-            
+            const selectIncReparacion = document.getElementById('inc-reparacion');
+
             tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 1rem;"><div class="spinner"></div> Cargando...</td></tr>';
-            
+
             try {
                 const todasReparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
                 const reparaciones = (todasReparaciones || [])
                     .filter(r => r.estado !== 'ENTREGADA')
                     .map(enriquecerReparacionFinanzas);
                 misReparacionesCache = reparaciones;
-                
+
                 let enProcesoCount = 0;
-                let pendientesCount = 0;
-                let presupuestoDisponibleTotal = 0;
-                
+                let horasTotales = 0;
+                let costePiezasTotal = 0;
+
                 if (reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center empty-state" style="padding: 2rem;">No hay reparaciones activas asignadas en el taller.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center empty-state" style="padding: 2rem;">No tienes reparaciones activas asignadas en este momento.</td></tr>';
                     selectReparacion.innerHTML = '<option value="">No hay reparaciones en proceso</option>';
+                    selectIncReparacion.innerHTML = '<option value="">No hay reparaciones activas</option>';
                     document.getElementById('stat-en-proceso').textContent = '0';
-                    document.getElementById('stat-pendientes').textContent = '0';
-                    document.getElementById('stat-presupuesto-disp').textContent = '0,00 €';
+                    document.getElementById('stat-horas-totales').textContent = '0,0 h';
+                    document.getElementById('stat-coste-piezas').textContent = '0,00 €';
                     actualizarPrevisualizacionCoste();
                     return;
                 }
-                
+
                 tbody.innerHTML = '';
                 selectReparacion.innerHTML = '<option value="">Seleccione una reparación</option>';
-                
+                selectIncReparacion.innerHTML = '<option value="">Seleccione una reparación</option>';
+
                 reparaciones.forEach(rep => {
                     const matricula = rep.matriculaVehiculo || rep.vehiculo?.matricula || '-';
                     const marca = rep.marcaVehiculo || rep.vehiculo?.marca || '';
                     const modelo = rep.modeloVehiculo || rep.vehiculo?.modelo || '';
-                    const clienteNombre = rep.nombreCliente || rep.vehiculo?.cliente?.nombre || rep.cliente?.nombre || 'N/A';
+                    const clienteNombre = rep.nombreCliente || rep.vehiculo?.cliente?.nombre || 'N/A';
+
+                    horasTotales += Number(rep.horasTrabajoMecanico || 0);
+                    costePiezasTotal += Number(rep.costeMateriales || 0);
 
                     if (rep.estado === 'EN_PROCESO') {
                         enProcesoCount++;
-                        presupuestoDisponibleTotal += (rep.presupuestoRestante || 0);
                         const opt = document.createElement('option');
                         opt.value = rep.id;
-                        opt.textContent = `[#${rep.id}] ${matricula} (${marca} ${modelo}) — Disp: ${formatearEuros(rep.presupuestoRestante)}`;
+                        opt.textContent = `[#${rep.id}] ${matricula} (${marca} ${modelo}) — Piezas: ${formatearEuros(rep.costeMateriales)}`;
                         selectReparacion.appendChild(opt);
-                    } else if (rep.estado === 'PENDIENTE') {
-                        pendientesCount++;
                     }
-                    
+
+                    const optInc = document.createElement('option');
+                    optInc.value = rep.id;
+                    optInc.textContent = `[#${rep.id}] ${matricula} (${marca} ${modelo})`;
+                    selectIncReparacion.appendChild(optInc);
+
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid var(--border)';
-                    
+
                     let btnFinalizar = '<span class="text-muted">-</span>';
                     if (rep.estado === 'EN_PROCESO') {
-                        btnFinalizar = `<button class="btn btn-success btn-sm" onclick="confirmarFinalizar(${rep.id})" style="padding: 0.35rem 0.65rem; font-size: 0.85rem;">Terminar Reparación</button>`;
+                        btnFinalizar = `<button class="btn btn-success btn-sm" onclick="confirmarFinalizar(${rep.id})" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;">🏁 Terminar Reparación</button>`;
                     } else if (rep.estado === 'FINALIZADA') {
                         btnFinalizar = `<span style="color: #C084FC; font-size: 0.82rem; font-weight: 600;">⏳ Pendiente confirmación Admin</span>`;
                     } else if (rep.estado === 'CONFIRMADA') {
@@ -294,56 +355,162 @@
                         ? `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--info);">🔩 ${rep.materialesDetalle.join(' · ')}</div>`
                         : `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">Sin materiales usados aún</div>`;
 
-                    const dispColor = rep.presupuestoRestante <= 20 ? '#ef4444' : 'var(--success)';
-                    const presupuestoHtml = `
-                        <div style="font-size: 0.85rem; line-height: 1.4;">
-                            <div>Límite Admin: <strong>${formatearEuros(rep.presupuestoMecanico)}</strong></div>
-                            <div style="color: var(--warning);">Gastado piezas: <strong>${formatearEuros(rep.costeMateriales)}</strong></div>
-                            <div style="color: ${dispColor};">Disponible: <strong>${formatearEuros(rep.presupuestoRestante)}</strong></div>
+                    const numInc = Array.isArray(rep.incidencias) ? rep.incidencias.length : 0;
+                    const incHtml = numInc > 0
+                        ? `<div style="margin-top: 0.3rem; font-size: 0.78rem; color: var(--primary-light);">📸 ${numInc} incidencia(s) registrada(s) ${rep.incidencias.map(i => i.rutaFoto ? `<a href="${resolverUrlFoto(i.rutaFoto)}" target="_blank" style="margin-left:0.35rem; text-decoration:underline;">[Ver foto]</a>` : '').join('')}</div>`
+                        : `<div style="margin-top: 0.3rem; font-size: 0.78rem; color: var(--text-muted);">Sin incidencias anotadas</div>`;
+
+                    const seguimientoHtml = `
+                        <div style="font-size: 0.83rem; line-height: 1.5; min-width: 210px;">
+                            <div>
+                                <span>⏱️ Horas M.O.:</span>
+                                <div class="inline-control">
+                                    <input type="number" id="horas-rep-${rep.id}" value="${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}" min="0" step="0.5">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.76rem;" onclick="guardarHorasTrabajo(${rep.id})">Guardar h</button>
+                                </div>
+                            </div>
+                            <div style="margin-top: 0.4rem;">
+                                <span>📅 Días estimados:</span>
+                                <div class="inline-control">
+                                    <input type="number" id="dias-rep-${rep.id}" value="${rep.diasEstimados || 3}" min="1" step="1">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.76rem;" onclick="guardarDiasEstimados(${rep.id})">Guardar días</button>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                Fin previsto: <strong>${formatearFecha(rep.fechaEstimadaFin)}</strong>
+                            </div>
                         </div>
                     `;
-                    
+
+                    const costesHtml = `
+                        <div style="font-size: 0.84rem; line-height: 1.45; min-width: 175px;">
+                            <div style="color: var(--text-muted);">Estimación inicial: <strong>${formatearEuros(rep.estimacionInicial)}</strong></div>
+                            <div style="color: var(--warning);">Piezas usadas: <strong>${formatearEuros(rep.costeMateriales)}</strong></div>
+                            <div style="color: var(--info);">Mano de obra (${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}h): <strong>${formatearEuros(rep.subtotalManoObra)}</strong></div>
+                            <div style="color: var(--success); font-weight: 700; margin-top: 0.2rem;">Total previsto (c/IVA): ${formatearEuros(rep.totalCalculadoPrevisto)}</div>
+                        </div>
+                    `;
+
                     tr.innerHTML = `
-                        <td style="padding: 0.75rem;">#${rep.id}</td>
+                        <td style="padding: 0.75rem;">
+                            <strong>#${rep.id}</strong>
+                            <div style="font-family: monospace; font-size: 0.82rem; color: var(--primary);">${rep.localizador || ''}</div>
+                        </td>
                         <td style="padding: 0.75rem;">
                             <strong>${matricula}</strong>
                             <div style="font-size: 0.82rem; color: var(--text-muted);">${marca} ${modelo}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-light);">👤 ${clienteNombre}</div>
                         </td>
-                        <td style="padding: 0.75rem;">${clienteNombre}</td>
-                        <td style="padding: 0.75rem;">${typeof crearBadgeEstado === 'function' ? crearBadgeEstado(rep.estado) : rep.estado}</td>
+                        <td style="padding: 0.75rem;">${crearBadgeEstado(rep.estado)}</td>
                         <td style="padding: 0.75rem;">
                             <div>${rep.descripcionAveria || ''}</div>
                             ${piezasHtml}
+                            ${incHtml}
                         </td>
-                        <td style="padding: 0.75rem;">${presupuestoHtml}</td>
+                        <td style="padding: 0.75rem;">${seguimientoHtml}</td>
+                        <td style="padding: 0.75rem;">${costesHtml}</td>
                         <td style="padding: 0.75rem;">${btnFinalizar}</td>
                     `;
                     tbody.appendChild(tr);
                 });
-                
+
                 document.getElementById('stat-en-proceso').textContent = enProcesoCount;
-                document.getElementById('stat-pendientes').textContent = pendientesCount;
-                document.getElementById('stat-presupuesto-disp').textContent = formatearEuros(presupuestoDisponibleTotal);
+                document.getElementById('stat-horas-totales').textContent = `${horasTotales.toFixed(1)} h`;
+                document.getElementById('stat-coste-piezas').textContent = formatearEuros(costePiezasTotal);
                 actualizarPrevisualizacionCoste();
-                
+
             } catch (error) {
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar reparaciones: ${error.message}</td></tr>`;
-                if(typeof mostrarAlerta === 'function') mostrarAlerta('Error al cargar mis reparaciones', 'error', document.getElementById('alertas-container'));
+                mostrarAlerta('Error al cargar mis reparaciones', 'error', document.getElementById('alertas-container'));
             }
         }
-        
+
+        async function guardarHorasTrabajo(repId) {
+            const input = document.getElementById(`horas-rep-${repId}`);
+            const horas = parseFloat(input?.value);
+            if (isNaN(horas) || horas < 0) {
+                mostrarAlerta('Introduce un número de horas válido (0 o superior).', 'error', document.getElementById('alertas-container'));
+                return;
+            }
+            try {
+                await apiFetch(`/reparaciones/${repId}/horas-trabajo`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ horas })
+                });
+                mostrarAlerta(`Horas de mano de obra de la reparación #${repId} actualizadas a ${horas.toFixed(1)} h.`, 'success', document.getElementById('alertas-container'));
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+            }
+        }
+
+        async function guardarDiasEstimados(repId) {
+            const input = document.getElementById(`dias-rep-${repId}`);
+            const dias = parseInt(input?.value, 10);
+            if (isNaN(dias) || dias < 1) {
+                mostrarAlerta('Los días estimados deben ser al menos 1 día.', 'error', document.getElementById('alertas-container'));
+                return;
+            }
+            try {
+                await apiFetch(`/reparaciones/${repId}/dias-estimados`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ dias })
+                });
+                mostrarAlerta(`Plazo estimado de la reparación #${repId} actualizado a ${dias} día(s).`, 'success', document.getElementById('alertas-container'));
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+            }
+        }
+
+        async function handleSubirIncidencia(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-subir-incidencia');
+            const repId = document.getElementById('inc-reparacion').value;
+            const descripcion = document.getElementById('inc-descripcion').value.trim();
+            const impacto = document.getElementById('inc-impacto').value || '0';
+            const fotoFile = document.getElementById('inc-foto').files[0];
+
+            if (!repId || !descripcion) {
+                mostrarAlerta('Selecciona una reparación y escribe la descripción de la incidencia.', 'error', document.getElementById('alerta-incidencia'));
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('descripcion', descripcion);
+            formData.append('impactoPrecio', impacto);
+            if (fotoFile) {
+                formData.append('foto', fotoFile);
+            }
+
+            toggleLoading(btn, true);
+            try {
+                await apiFetch(`/reparaciones/${repId}/incidencias`, {
+                    method: 'POST',
+                    body: formData
+                });
+                mostrarAlerta('Incidencia y foto publicadas correctamente en la línea temporal del cliente.', 'success', document.getElementById('alerta-incidencia'));
+                document.getElementById('form-incidencia').reset();
+                document.getElementById('inc-impacto').value = '0.00';
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alerta-incidencia'));
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
         async function cargarMateriales() {
             const tbody = document.querySelector('#tabla-materiales tbody');
             const selectMaterial = document.getElementById('select-material');
-            
+
             try {
                 const materiales = await apiFetch('/materiales');
                 materialesCache = materiales;
-                
                 document.getElementById('stat-materiales').textContent = materiales.length;
-                
+
                 renderMaterialesTable(materiales);
-                
+
                 selectMaterial.innerHTML = '<option value="">Seleccione un material</option>';
                 materiales.forEach(mat => {
                     const stockVal = mat.stockDisponible ?? mat.stock ?? 0;
@@ -354,7 +521,7 @@
                     selectMaterial.appendChild(opt);
                 });
                 actualizarPrevisualizacionCoste();
-                
+
             } catch (error) {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar materiales: ${error.message}</td></tr>`;
             }
@@ -368,61 +535,43 @@
             const rep = misReparacionesCache.find(r => r.id === repId);
             const mat = materialesCache.find(m => m.id === matId);
 
-            const elDisp = document.getElementById('prev-disponible');
+            const elAcum = document.getElementById('prev-acumulado');
             const elCoste = document.getElementById('prev-coste');
-            const elRest = document.getElementById('prev-restante');
+            const elNuevoTotal = document.getElementById('prev-nuevo-total');
             const elAviso = document.getElementById('prev-aviso');
 
-            const disp = rep ? rep.presupuestoRestante : null;
+            const costeActual = rep ? Number(rep.costeMateriales || 0) : null;
             const stockDisp = mat ? (mat.stockDisponible ?? mat.stock ?? 0) : null;
             const coste = (mat && cantidad > 0) ? (cantidad * Number(mat.precioUnitario || 0)) : 0;
 
-            elDisp.textContent = disp !== null ? formatearEuros(disp) : 'Selecciona reparación';
+            elAcum.textContent = costeActual !== null ? formatearEuros(costeActual) : 'Selecciona reparación';
             elCoste.textContent = formatearEuros(coste);
+            elNuevoTotal.textContent = costeActual !== null ? formatearEuros(costeActual + coste) : '-';
 
-            const avisos = [];
             if (mat && cantidad > stockDisp) {
-                avisos.push(`⚠️ Stock insuficiente de "${mat.nombre}": solicitas ${cantidad} uds pero solo hay ${stockDisp} disponibles en el inventario.`);
-            }
-
-            if (disp !== null) {
-                const restante = disp - coste;
-                elRest.textContent = formatearEuros(restante);
-                if (restante < -0.001) {
-                    elRest.style.color = '#ef4444';
-                    avisos.push(`⚠️ Presupuesto insuficiente en esta reparación (faltan ${formatearEuros(Math.abs(restante))}). Pide al Administrador ampliar el presupuesto.`);
-                } else {
-                    elRest.style.color = 'var(--success)';
-                }
-            } else {
-                elRest.textContent = '-';
-                elRest.style.color = 'var(--text-muted)';
-            }
-
-            if (avisos.length > 0) {
                 elAviso.style.display = 'block';
-                elAviso.innerHTML = avisos.join('<br>');
+                elAviso.innerHTML = `⚠️ Stock insuficiente de "${mat.nombre}": solicitas ${cantidad} uds pero solo hay ${stockDisp} disponibles en almacén.`;
             } else {
                 elAviso.style.display = 'none';
                 elAviso.innerHTML = '';
             }
         }
-        
+
         function renderMaterialesTable(materiales) {
             const tbody = document.querySelector('#tabla-materiales tbody');
             tbody.innerHTML = '';
-            
+
             if (materiales.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center empty-state" style="padding: 2rem;">No hay materiales encontrados.</td></tr>';
                 return;
             }
-            
+
             materiales.forEach(mat => {
                 const stockVal = mat.stockDisponible ?? mat.stock ?? 0;
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border)';
                 if (stockVal < 5) tr.classList.add('stock-low');
-                
+
                 tr.innerHTML = `
                     <td style="padding: 0.75rem;">${mat.nombre}</td>
                     <td style="padding: 0.75rem;">${mat.descripcion || '-'}</td>
@@ -432,33 +581,45 @@
                 tbody.appendChild(tr);
             });
         }
-        
+
         function filtrarMateriales() {
             const query = document.getElementById('buscar-material').value.toLowerCase();
             const filtrados = materialesCache.filter(m => m.nombre.toLowerCase().includes(query));
             renderMaterialesTable(filtrados);
         }
-        
+
         function confirmarFinalizar(id) {
-            if(typeof mostrarModal === 'function') {
-                mostrarModal('Terminar Reparación', '¿Confirmas que has acabado la reparación? Pasará al Administrador para que verifique y confirme que es correcta antes de que Recepción pueda entregar el vehículo y cobrar.', async () => {
+            const inputHoras = document.getElementById(`horas-rep-${id}`);
+            const horasVal = inputHoras ? parseFloat(inputHoras.value) : null;
+
+            mostrarModal(
+                'Terminar Reparación',
+                '¿Confirmas que has terminado el trabajo mecánico? Se guardarán tus horas de mano de obra y pasará a Recepción y Administración para formalizar la Factura y entregar el vehículo.',
+                async () => {
                     try {
+                        if (horasVal !== null && !isNaN(horasVal) && horasVal >= 0) {
+                            await apiFetch(`/reparaciones/${id}/horas-trabajo`, {
+                                method: 'PUT',
+                                silent: true,
+                                body: JSON.stringify({ horas: horasVal })
+                            });
+                        }
                         await apiFetch(`/reparaciones/${id}/estado`, {
                             method: 'PUT',
                             body: JSON.stringify({ estado: 'FINALIZADA' })
                         });
                         marcarConfirmadaPorAdminLocal(id, false);
-                        mostrarAlerta('Reparación marcada como terminada. Pendiente de confirmación por el Administrador.', 'success', document.getElementById('alertas-container'));
+                        mostrarAlerta('Reparación marcada como FINALIZADA. Lista para revisión y facturación.', 'success', document.getElementById('alertas-container'));
                         cerrarModal();
                         await cargarMisReparaciones();
                     } catch (error) {
                         mostrarAlerta(`Error: ${error.message}`, 'error', document.getElementById('alertas-container'));
                         cerrarModal();
                     }
-                });
-            }
+                }
+            );
         }
-        
+
         function mostrarAlertaMaterial(mensaje, tipo = 'error') {
             mostrarAlerta(mensaje, tipo, document.getElementById('alerta-uso-material'));
             mostrarAlerta(mensaje, tipo, document.getElementById('alertas-container'));
@@ -470,28 +631,22 @@
             const reparacionId = parseInt(document.getElementById('select-reparacion').value, 10);
             const materialId = parseInt(document.getElementById('select-material').value, 10);
             const cantidad = parseInt(document.getElementById('cantidad-material').value, 10);
-            
+
             if (!reparacionId || !materialId || !cantidad || cantidad < 1) {
                 mostrarAlertaMaterial('Por favor selecciona una reparación, un material y una cantidad válida (1 o más).', 'error');
                 return;
             }
 
-            const rep = misReparacionesCache.find(r => r.id === reparacionId);
             const mat = materialesCache.find(m => m.id === materialId);
             const stockDisp = mat ? (mat.stockDisponible ?? mat.stock ?? 0) : 0;
             const coste = mat ? (cantidad * Number(mat.precioUnitario || 0)) : 0;
 
             if (mat && cantidad > stockDisp) {
-                mostrarAlertaMaterial(`Stock insuficiente de "${mat.nombre}": has intentado usar ${cantidad} unidades, pero solo hay ${stockDisp} disponibles en el inventario.`, 'error');
+                mostrarAlertaMaterial(`Stock insuficiente de "${mat.nombre}": solicitas ${cantidad} unidades, pero solo hay ${stockDisp} disponibles.`, 'error');
                 return;
             }
 
-            if (rep && coste > rep.presupuestoRestante + 0.001) {
-                mostrarAlertaMaterial(`Presupuesto insuficiente en la reparación #${reparacionId}: las piezas cuestan ${formatearEuros(coste)} y solo dispones de ${formatearEuros(rep.presupuestoRestante)}. Solicita al Administrador ampliar el presupuesto.`, 'error');
-                return;
-            }
-            
-            if(typeof toggleLoading === 'function') toggleLoading(btn, true);
+            toggleLoading(btn, true);
             try {
                 await apiFetch(`/materiales/${materialId}/usar/${reparacionId}`, {
                     method: 'POST',
@@ -502,11 +657,11 @@
                 if (mat) {
                     registrarUsoMaterialLocal(reparacionId, mat.nombre, cantidad, mat.precioUnitario);
                 }
-                
-                mostrarAlertaMaterial(`Uso registrado: ${cantidad}x ${mat ? mat.nombre : 'material'} (${formatearEuros(coste)}) cargado a la reparación #${reparacionId} y transmitido al Administrador.`, 'success');
+
+                mostrarAlertaMaterial(`Pieza registrada: ${cantidad}x ${mat ? mat.nombre : 'material'} (${formatearEuros(coste)}) añadida a la reparación #${reparacionId}.`, 'success');
                 document.getElementById('form-usar-material').reset();
                 document.getElementById('cantidad-material').value = 1;
-                
+
                 await Promise.all([
                     cargarMisReparaciones(),
                     cargarMateriales()
@@ -514,7 +669,7 @@
             } catch (error) {
                 mostrarAlertaMaterial(`Error al registrar material: ${error.message}`, 'error');
             } finally {
-                if(typeof toggleLoading === 'function') toggleLoading(btn, false);
+                toggleLoading(btn, false);
             }
         }
     </script>

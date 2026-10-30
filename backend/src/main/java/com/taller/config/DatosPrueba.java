@@ -2,16 +2,18 @@ package com.taller.config;
 
 import com.taller.models.*;
 import com.taller.repositories.*;
+import com.taller.services.ConfiguracionTallerService;
+import com.taller.services.ReparacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * Carga datos de prueba en la base de datos al arrancar el servidor.
- *
- * Con MySQL los datos se guardan de forma permanente, así que este
- * archivo solo inserta los datos la primera vez (cuando la base de datos
- * está vacía). Si ya hay datos, se salta la carga para no duplicar nada.
+ * Garantiza también que exista la Configuración del Taller por defecto (Margen: 15%, Mano de obra: 35.00 €/h)
+ * y que las reparaciones existentes en MySQL tengan días estimados y horas inicializadas.
  */
 @Component
 public class DatosPrueba implements CommandLineRunner {
@@ -22,16 +24,50 @@ public class DatosPrueba implements CommandLineRunner {
     @Autowired private MaterialRepository materialRepository;
     @Autowired private ReparacionRepository reparacionRepository;
     @Autowired private ReparacionMaterialRepository reparacionMaterialRepository;
+    @Autowired private IncidenciaReparacionRepository incidenciaRepository;
+    @Autowired private FacturaRepository facturaRepository;
+    @Autowired private ConfiguracionTallerService configuracionService;
+    @Autowired private ReparacionService reparacionService;
 
     @Override
     public void run(String... args) {
+        // 1. Asegurar que exista siempre la Configuración del Taller por defecto (15% margen, 35 €/h, 2000 € fondo)
+        ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
 
-        // En MySQL los datos persisten entre reinicios. Si ya hay datos en la base de datos,
-        // no volvemos a insertarlos para no duplicar ni provocar errores de clave duplicada.
+        // 2. Si la base de datos MySQL ya tiene usuarios, normalizar reparaciones existentes que no tengan los nuevos campos
         if (usuarioRepository.count() > 0) {
+            List<Reparacion> existentes = reparacionRepository.findAll();
+            for (Reparacion r : existentes) {
+                boolean modificado = false;
+                if (r.getDiasEstimados() == null || r.getDiasEstimados() <= 0) {
+                    r.setDiasEstimados(3);
+                    modificado = true;
+                }
+                if (r.getFechaEstimadaFin() == null && r.getFechaEntrada() != null) {
+                    r.setFechaEstimadaFin(r.getFechaEntrada().plusDays(r.getDiasEstimados()));
+                    modificado = true;
+                }
+                if (r.getHorasTrabajoMecanico() == null || (r.getHorasTrabajoMecanico() == 0.0 && r.getEstado() != EstadoReparacion.PENDIENTE)) {
+                    r.setHorasTrabajoMecanico(r.getEstado() == EstadoReparacion.FINALIZADA
+                            || r.getEstado() == EstadoReparacion.CONFIRMADA
+                            || r.getEstado() == EstadoReparacion.ENTREGADA ? 2.0 : 1.5);
+                    modificado = true;
+                }
+                if (modificado) {
+                    reparacionRepository.save(r);
+                }
+                // Si hay una reparación finalizada/confirmada/entregada de prueba y no hay ninguna factura aún, generamos una de muestra
+                if ((r.getEstado() == EstadoReparacion.FINALIZADA
+                        || r.getEstado() == EstadoReparacion.CONFIRMADA
+                        || r.getEstado() == EstadoReparacion.ENTREGADA)
+                        && facturaRepository.count() == 0) {
+                    reparacionService.generarFactura(r.getId(), r.getHorasTrabajoMecanico());
+                }
+            }
             System.out.println("=========================================");
             System.out.println("  BASE DE DATOS MYSQL CONECTADA");
-            System.out.println("  Los datos ya existen, se mantiene la información.");
+            System.out.println("  Configuración Taller: Margen " + config.getMargenBeneficioPorcentaje()
+                    + "% | Mano de obra " + config.getPrecioHoraManoObra() + " €/h");
             System.out.println("=========================================");
             return;
         }
@@ -77,27 +113,41 @@ public class DatosPrueba implements CommandLineRunner {
         materialRepository.save(new Material("Bujías", "Set de 4 unidades, iridio", 25, 22.00));
 
         // ======== REPARACIONES ========
-        // Reparación 1: Pendiente (sin mecánico asignado)
-        // Precio acordado cliente: 250 € | Pensado por Laura (Recepción): 120 € | Presupuesto mecánico (a decidir por Admin): 120 €
-        Reparacion rep1 = new Reparacion(v1, recep1, "El motor hace un ruido extraño al acelerar.", 250.00, 120.00, 120.00);
+        // Reparación 1: Pendiente (sin mecánico asignado) - Estimación inicial: 220 €, 4 días estimados
+        Reparacion rep1 = new Reparacion(v1, recep1, "El motor hace un ruido extraño al acelerar.", 220.00, 4);
         reparacionRepository.save(rep1);
 
-        // Reparación 2: En proceso (Pedro Ruiz)
-        // Precio acordado cliente: 180 € | Pensado por Laura: 90 € | Presupuesto fijado por Admin para mecánico: 80 € (1x Pastillas = 35 € usadas -> quedan 45 €)
-        Reparacion rep2 = new Reparacion(v3, recep1, "Las pastillas de freno están desgastadas, frena mal.", 180.00, 90.00, 80.00);
+        // Reparación 2: En proceso (Pedro Ruiz) - Estimación inicial: 140 €, 2 días estimados, 1.5h trabajadas
+        Reparacion rep2 = new Reparacion(v3, recep1, "Las pastillas de freno están desgastadas, frena mal.", 140.00, 2);
         rep2.setMecanico(mec1);
         rep2.setEstado(EstadoReparacion.EN_PROCESO);
+        rep2.setHorasTrabajoMecanico(1.5);
         reparacionRepository.save(rep2);
         reparacionMaterialRepository.save(new ReparacionMaterial(rep2, mPastillas, 1));
+        incidenciaRepository.save(new IncidenciaReparacion(
+                rep2,
+                "Se desmontaron las pinzas delanteras y se verificó desgaste severo en pastillas. Discos en buen estado.",
+                0.0,
+                null
+        ));
 
-        // Reparación 3: Finalizada por el mecánico Ana López (pendiente de confirmación por el Admin antes de que Laura pueda entregar y cobrar)
-        // Precio acordado cliente: 150 € | Pensado por Laura: 75 € | Presupuesto fijado por Admin para mecánico: 60 € (Filtro 8.50 € + Aceite 28.00 € = 36.50 € usados)
-        Reparacion rep3 = new Reparacion(v4, recep1, "Cambio de aceite y filtro programado (revisión de los 30.000 km).", 150.00, 75.00, 60.00);
+        // Reparación 3: Finalizada por Ana López - Estimación inicial: 120 €, 1 día estimado, 1.5h trabajadas
+        Reparacion rep3 = new Reparacion(v4, recep1, "Cambio de aceite y filtro programado (revisión de los 30.000 km).", 120.00, 1);
         rep3.setMecanico(mec2);
         rep3.setEstado(EstadoReparacion.FINALIZADA);
+        rep3.setHorasTrabajoMecanico(1.5);
         reparacionRepository.save(rep3);
         reparacionMaterialRepository.save(new ReparacionMaterial(rep3, mFiltro, 1));
         reparacionMaterialRepository.save(new ReparacionMaterial(rep3, mAceite, 1));
+        incidenciaRepository.save(new IncidenciaReparacion(
+                rep3,
+                "Revisión de 30.000 km completada: sustitución de aceite sintético 5W30 y filtro de aceite. Niveles verificados.",
+                0.0,
+                null
+        ));
+
+        // Generar factura inicial de muestra para la reparación 3
+        reparacionService.generarFactura(rep3.getId(), 1.5);
 
         // Vincular reparaciones a las cuentas de los clientes que tienen cuenta
         cliente1.getReparacionesVinculadas().add(rep1);
@@ -108,8 +158,8 @@ public class DatosPrueba implements CommandLineRunner {
 
         System.out.println("=========================================");
         System.out.println("  DATOS DE PRUEBA CARGADOS CORRECTAMENTE");
-        System.out.println("  Usuarios: 4 | Clientes: 3 | Vehículos: 4");
-        System.out.println("  Materiales: 7 | Reparaciones: 3");
+        System.out.println("  Configuración: Margen " + config.getMargenBeneficioPorcentaje()
+                + "% | Hora M.O. " + config.getPrecioHoraManoObra() + " €/h");
         System.out.println("  Localizador Rep 1 (Toyota):  " + rep1.getLocalizador());
         System.out.println("  Localizador Rep 2 (Seat):    " + rep2.getLocalizador());
         System.out.println("  Localizador Rep 3 (VW Golf): " + rep3.getLocalizador());
