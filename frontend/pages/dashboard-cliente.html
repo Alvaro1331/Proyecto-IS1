@@ -6,24 +6,13 @@
     <title>Mi Cuenta - MotorFlow</title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
-        .profile-card {
-            background-color: var(--color-bg-card);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            border: 1px solid var(--color-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
         .vincular-card {
             background-color: var(--color-bg-card);
             border-radius: 8px;
             padding: 1.5rem;
             margin-bottom: 2rem;
             border: 1px solid var(--color-border);
+            border-left: 4px solid var(--primary);
         }
         .vincular-form {
             display: flex;
@@ -44,53 +33,47 @@
             letter-spacing: 1.5px;
         }
         .repairs-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
         }
         .repair-card {
             background-color: var(--color-bg-card);
             border-radius: 8px;
             padding: 1.5rem;
             border: 1px solid var(--color-border);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            border-top: 4px solid var(--border);
         }
+        .repair-card.estado-PENDIENTE { border-top-color: var(--warning); }
+        .repair-card.estado-EN_PROCESO { border-top-color: var(--info); }
+        .repair-card.estado-FINALIZADA { border-top-color: #A855F7; }
+        .repair-card.estado-CONFIRMADA { border-top-color: var(--success); }
+        .repair-card.estado-ENTREGADA { border-top-color: var(--text-muted); }
         .repair-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             margin-bottom: 1rem;
             padding-bottom: 0.75rem;
             border-bottom: 1px solid var(--color-border);
         }
         .repair-title {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: bold;
             color: var(--color-primary);
         }
-        .repair-body {
+        .repair-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 0.75rem;
+            font-size: 0.88rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.9rem 1rem;
+            border-radius: 6px;
             margin-bottom: 1rem;
-            line-height: 1.5;
         }
-        .repair-meta {
-            font-size: 0.85rem;
-            color: var(--color-text-muted);
-            border-top: 1px solid var(--color-border);
-            padding-top: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-        }
-        .repair-card { border-top: 4px solid var(--border); transition: transform 0.15s, box-shadow 0.15s; }
-        .repair-card:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); }
-        .repair-card.estado-PENDIENTE { border-top-color: var(--warning); }
-        .repair-card.estado-EN_PROCESO { border-top-color: var(--info); }
-        .repair-card.estado-FINALIZADA { border-top-color: #A855F7; }
-        .repair-card.estado-CONFIRMADA { border-top-color: var(--success); }
-        .repair-card.estado-ENTREGADA { border-top-color: var(--text-muted); opacity: 0.8; }
-        .vincular-card { border-left: 4px solid var(--primary); }
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
@@ -121,7 +104,7 @@
         <section class="bienvenida-banner">
             <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
             <div>
-                <p class="bienvenida-saludo">Mi Cuenta · Hola de nuevo</p>
+                <p class="bienvenida-saludo">Mi Cuenta · Seguimiento e historial de tus vehículos</p>
                 <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
                 <div class="bienvenida-meta">
                     <span class="bienvenida-rol" id="bienvenida-rol">CLIENTE</span>
@@ -139,7 +122,7 @@
         <div class="vincular-card">
             <h3 style="margin: 0;">➕ Vincular Nueva Reparación a tu Cuenta</h3>
             <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0.5rem 0 0 0;">
-                Introduce el código localizador que te dio el recepcionista para guardarlo en tu cuenta y ver siempre su estado.
+                Introduce el código localizador que te dio el recepcionista para guardarlo en tu cuenta y consultar su línea temporal, fotos del mecánico y factura.
             </p>
             <form id="form-vincular" class="vincular-form" onsubmit="vincularLocalizador(event)">
                 <input type="text" id="input-localizador" placeholder="Ej. A3F7K9X2" maxlength="12" required>
@@ -149,7 +132,7 @@
 
         <!-- Mis Reparaciones Guardadas -->
         <div>
-            <h3 style="margin-bottom: 1rem;">🚗 Mis Vehículos y Reparaciones Guardadas</h3>
+            <h3 style="margin-bottom: 1rem;">🚗 Mis Vehículos, Línea Temporal y Facturas</h3>
             <div id="repairs-container" class="repairs-grid">
                 <div class="empty-state">Cargando tus reparaciones...</div>
             </div>
@@ -158,6 +141,8 @@
 
     <script src="../js/app.js"></script>
     <script>
+        let reparacionesClienteCache = [];
+
         document.addEventListener('DOMContentLoaded', () => {
             const user = getUsuarioActual();
             if (!user) {
@@ -179,13 +164,14 @@
 
             try {
                 const reparaciones = await apiFetch(`/clientes/${user.id}/mis-reparaciones`);
-                const activas = (reparaciones || []).filter(r => r.estado !== 'ENTREGADA').length;
+                reparacionesClienteCache = reparaciones || [];
+                const activas = reparacionesClienteCache.filter(r => r.estado !== 'ENTREGADA').length;
                 const resumen = document.getElementById('resumen-activas');
                 if (resumen) resumen.textContent = activas;
-                
-                if (!reparaciones || reparaciones.length === 0) {
+
+                if (reparacionesClienteCache.length === 0) {
                     container.innerHTML = `
-                        <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-state">
                             <p style="margin: 0; font-size: 1.1rem; color: var(--color-text);">No tienes ninguna reparación vinculada todavía.</p>
                             <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Pide tu código localizador en el taller e introdúcelo arriba para guardarla aquí.</p>
                         </div>
@@ -194,30 +180,77 @@
                 }
 
                 container.innerHTML = '';
-                reparaciones.forEach(r => {
+                reparacionesClienteCache.forEach((r, idx) => {
                     const card = document.createElement('div');
                     card.className = `repair-card estado-${r.estado}`;
+
+                    const timelineHtml = renderizarLineaTemporalHTML(r);
+                    const incidenciasHtml = renderizarIncidenciasHTML(r.incidencias || []);
+
+                    let bloqueFacturaHtml = '';
+                    if (r.factura) {
+                        bloqueFacturaHtml = `
+                            <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1.25rem;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem;">
+                                    <h4 style="margin:0; color: var(--success);">🧾 Factura Oficial Emitida (${r.factura.numeroFactura})</h4>
+                                    <button type="button" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.85rem;" onclick="verFacturaCliente(${idx})">
+                                        🖨️ Ver / Imprimir Factura Completa
+                                    </button>
+                                </div>
+                                ${renderizarFacturaDesglosadaHTML(r.factura)}
+                            </div>
+                        `;
+                    } else {
+                        bloqueFacturaHtml = `
+                            <div style="margin-top: 1rem; padding: 0.85rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.9rem;">
+                                <div>
+                                    <span style="color: var(--text-muted);">Estimación inicial orientativa en Recepción:</span>
+                                    <strong style="margin-left: 0.35rem;">${formatearEuros(r.estimacionInicial)}</strong>
+                                </div>
+                                <div>
+                                    <span style="color: var(--text-muted);">Importe acumulado previsto (con IVA):</span>
+                                    <strong style="color: var(--primary-light); margin-left: 0.35rem;">${formatearEuros(r.totalCalculadoPrevisto)}</strong>
+                                </div>
+                            </div>
+                        `;
+                    }
+
                     card.innerHTML = `
-                        <div>
-                            <div class="repair-header">
-                                <span class="repair-title">${r.marca} ${r.modelo} (${r.matricula})</span>
-                                ${crearBadgeEstado(r.estado)}
+                        <div class="repair-header">
+                            <div>
+                                <span class="repair-title">🚗 ${r.marca} ${r.modelo} (${r.matricula})</span>
+                                <span style="margin-left: 0.75rem; font-family: monospace; color: var(--text-muted); font-size: 0.95rem;">Loc: <strong style="color: var(--primary);">${r.localizador}</strong></span>
                             </div>
-                            <div class="repair-body">
-                                <strong>Avería:</strong>
-                                <p style="margin: 0.25rem 0 0 0; color: var(--color-text-muted);">${r.descripcionAveria || 'Sin avería especificada'}</p>
-                            </div>
+                            ${crearBadgeEstado(r.estado)}
                         </div>
-                        <div class="repair-meta">
-                            <div><strong>Localizador:</strong> <span style="font-family: monospace; color: var(--color-primary); font-size: 1rem;">${r.localizador}</span></div>
+
+                        <div class="repair-meta-grid">
                             <div><strong>Fecha Entrada:</strong> ${r.fechaEntrada ? formatearFecha(r.fechaEntrada) : 'N/A'}</div>
+                            <div><strong>Entrega Estimada:</strong> ${r.fechaEstimadaFin ? formatearFecha(r.fechaEstimadaFin) : 'En evaluación'} (${r.diasEstimados || 3} días)</div>
                             <div><strong>Mecánico:</strong> ${r.mecanico ? `<span style="color: var(--text-light); font-weight: 600;">🔧 ${r.mecanico}</span>` : '<span style="color: var(--warning);">Pendiente de asignar</span>'}</div>
+                            <div><strong>Estimación Orientativa:</strong> ${formatearEuros(r.estimacionInicial)}</div>
                         </div>
+
+                        <div style="margin-bottom: 0.75rem;">
+                            <strong>Descripción de la avería:</strong>
+                            <p style="margin: 0.25rem 0 0 0; color: var(--color-text-muted);">${r.descripcionAveria || 'Sin avería especificada'}</p>
+                        </div>
+
+                        ${timelineHtml}
+                        ${incidenciasHtml}
+                        ${bloqueFacturaHtml}
                     `;
                     container.appendChild(card);
                 });
             } catch (error) {
                 mostrarAlerta(error.message || 'Error al cargar tus reparaciones.', 'error', alerts);
+            }
+        }
+
+        function verFacturaCliente(idx) {
+            const r = reparacionesClienteCache[idx];
+            if (r && r.factura) {
+                abrirModalFacturaObjeto(r.factura);
             }
         }
 
@@ -236,7 +269,6 @@
             try {
                 const res = await apiFetch(`/clientes/${user.id}/vincular`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ localizador: codigo })
                 });
 

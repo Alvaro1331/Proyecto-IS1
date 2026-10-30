@@ -3,6 +3,7 @@ package com.taller.models;
 import jakarta.persistence.*;
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -10,14 +11,14 @@ import java.util.List;
  * Es la entidad central del negocio: conecta un vehículo (y su cliente)
  * con el mecánico que lo repara y el recepcionista que lo registró.
  *
- * Flujo de vida de una reparación:
- * 1. El recepcionista registra una reparación en estado PENDIENTE con:
- *    - precio acordado con el cliente (presupuesto)
- *    - presupuesto estimado pensado para el arreglo (presupuestoEstimado)
- * 2. El administrador decide el presupuesto real para el mecánico (presupuestoMecanico) y asigna mecánico → EN_PROCESO.
- * 3. El mecánico usa materiales sin superar su presupuestoMecanico y termina → FINALIZADA.
- * 4. El administrador verifica y confirma que la reparación es correcta → CONFIRMADA.
- * 5. La recepcionista entrega el coche al cliente y cobra → ENTREGADA.
+ * Nuevo flujo de negocio:
+ * 1. Recepción crea la reparación en estado PENDIENTE con una estimación inicial orientativa (presupuesto / estimacionInicial)
+ *    y los días estimados de trabajo (diasEstimados -> fechaEstimadaFin).
+ * 2. El mecánico trabaja sin límite presupuestario artificial, registra las piezas usadas, anota sus horas reales
+ *    de trabajo (horasTrabajoMecanico), puede ajustar los días estimados y subir incidencias con fotos.
+ * 3. El cliente visualiza una línea temporal interactiva con las incidencias, fotos y días estimados.
+ * 4. Al finalizar la reparación, Recepción formaliza la Factura real (materiales + mano de obra + margen % + IVA 21%),
+ *    que queda registrada en el Archivo de Facturas y alimenta la tesorería real del taller.
  */
 @Entity
 @Table(name = "reparaciones")
@@ -53,7 +54,7 @@ public class Reparacion {
     @Column(nullable = false)
     private LocalDate fechaEntrada;
 
-    // Puede ser nula hasta que se estime o se complete
+    // Puede ser nula hasta que se complete
     private LocalDate fechaSalida;
 
     @Enumerated(EnumType.STRING)
@@ -63,49 +64,73 @@ public class Reparacion {
     @Column(nullable = false)
     private String descripcionAveria;
 
-    // Precio total acordado a cobrar al cliente (ej. 200 €)
+    // Estimación inicial orientativa dada al cliente en Recepción (en euros, no vinculante)
     @Column(nullable = false)
-    private Double presupuesto = 200.0;
+    private Double presupuesto = 150.0;
 
-    // Presupuesto estimado por la recepcionista para arreglar el vehículo (ej. 100 €)
+    // Mantenidos por compatibilidad con esquema MySQL existente (sin efecto bloqueante)
     @Column(nullable = false)
-    private Double presupuestoEstimado = 100.0;
+    private Double presupuestoEstimado = 0.0;
 
-    // Presupuesto máximo real aprobado por el Administrador que el mecánico puede gastar en piezas (ej. 100 €, 150 € o 75 €)
     @Column(nullable = false)
-    private Double presupuestoMecanico = 100.0;
+    private Double presupuestoMecanico = 0.0;
+
+    // Días estimados de duración de la reparación
+    @Column
+    private Integer diasEstimados = 3;
+
+    // Fecha estimada de finalización (fechaEntrada + diasEstimados)
+    @Column
+    private LocalDate fechaEstimadaFin;
+
+    // Horas reales de mano de obra trabajadas por el mecánico
+    @Column
+    private Double horasTrabajoMecanico = 0.0;
 
     // Materiales usados en esta reparación
     @OneToMany(mappedBy = "reparacion", cascade = CascadeType.ALL)
-    private List<ReparacionMaterial> materialesUsados;
+    private List<ReparacionMaterial> materialesUsados = new ArrayList<>();
+
+    // Incidencias y fotos subidas por el mecánico durante la reparación
+    @OneToMany(mappedBy = "reparacion", cascade = CascadeType.ALL)
+    private List<IncidenciaReparacion> incidencias = new ArrayList<>();
+
+    // Factura formal emitida para esta reparación
+    @OneToOne(mappedBy = "reparacion", cascade = CascadeType.ALL)
+    private Factura factura;
 
     // --- Constructores ---
     public Reparacion() {}
 
     public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria) {
-        this(vehiculo, recepcionista, descripcionAveria, 200.0, 100.0, 100.0);
+        this(vehiculo, recepcionista, descripcionAveria, 150.0, 3);
     }
 
-    public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria, Double presupuesto) {
-        this(vehiculo, recepcionista, descripcionAveria, presupuesto,
-                presupuesto != null ? Math.round(presupuesto * 50.0) / 100.0 : 100.0,
-                presupuesto != null ? Math.round(presupuesto * 50.0) / 100.0 : 100.0);
+    public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria, Double estimacionInicial) {
+        this(vehiculo, recepcionista, descripcionAveria, estimacionInicial, 3);
     }
 
     public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria,
-                      Double presupuesto, Double presupuestoEstimado, Double presupuestoMecanico) {
+                      Double estimacionInicial, Integer diasEstimados) {
         this.localizador = generarLocalizador();
         this.vehiculo = vehiculo;
         this.recepcionista = recepcionista;
         this.descripcionAveria = descripcionAveria;
         this.fechaEntrada = LocalDate.now();
         this.estado = EstadoReparacion.PENDIENTE;
-        double precioCli = (presupuesto != null && presupuesto > 0) ? presupuesto : 200.0;
-        double estRecep = (presupuestoEstimado != null && presupuestoEstimado > 0) ? presupuestoEstimado : Math.round(precioCli * 50.0) / 100.0;
-        double presMec = (presupuestoMecanico != null && presupuestoMecanico > 0) ? presupuestoMecanico : estRecep;
-        this.presupuesto = precioCli;
-        this.presupuestoEstimado = estRecep;
-        this.presupuestoMecanico = presMec;
+        double est = (estimacionInicial != null && estimacionInicial > 0) ? estimacionInicial : 150.0;
+        int dias = (diasEstimados != null && diasEstimados > 0) ? diasEstimados : 3;
+        this.presupuesto = est;
+        this.presupuestoEstimado = est;
+        this.presupuestoMecanico = 0.0;
+        this.diasEstimados = dias;
+        this.fechaEstimadaFin = this.fechaEntrada.plusDays(dias);
+        this.horasTrabajoMecanico = 0.0;
+    }
+
+    public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria,
+                      Double presupuesto, Double presupuestoEstimado, Double presupuestoMecanico) {
+        this(vehiculo, recepcionista, descripcionAveria, presupuesto, 3);
     }
 
     /**
@@ -152,12 +177,43 @@ public class Reparacion {
     public Double getPresupuesto() { return presupuesto; }
     public void setPresupuesto(Double presupuesto) { this.presupuesto = presupuesto; }
 
+    public Double getEstimacionInicial() { return presupuesto; }
+    public void setEstimacionInicial(Double estimacionInicial) { this.presupuesto = estimacionInicial; }
+
     public Double getPresupuestoEstimado() { return presupuestoEstimado; }
     public void setPresupuestoEstimado(Double presupuestoEstimado) { this.presupuestoEstimado = presupuestoEstimado; }
 
     public Double getPresupuestoMecanico() { return presupuestoMecanico; }
     public void setPresupuestoMecanico(Double presupuestoMecanico) { this.presupuestoMecanico = presupuestoMecanico; }
 
+    public Integer getDiasEstimados() { return diasEstimados != null ? diasEstimados : 3; }
+    public void setDiasEstimados(Integer diasEstimados) {
+        this.diasEstimados = diasEstimados;
+        if (this.fechaEntrada != null && diasEstimados != null && diasEstimados >= 0) {
+            this.fechaEstimadaFin = this.fechaEntrada.plusDays(diasEstimados);
+        }
+    }
+
+    public LocalDate getFechaEstimadaFin() {
+        if (fechaEstimadaFin != null) {
+            return fechaEstimadaFin;
+        }
+        if (fechaEntrada != null) {
+            return fechaEntrada.plusDays(getDiasEstimados());
+        }
+        return LocalDate.now().plusDays(getDiasEstimados());
+    }
+    public void setFechaEstimadaFin(LocalDate fechaEstimadaFin) { this.fechaEstimadaFin = fechaEstimadaFin; }
+
+    public Double getHorasTrabajoMecanico() { return horasTrabajoMecanico != null ? horasTrabajoMecanico : 0.0; }
+    public void setHorasTrabajoMecanico(Double horasTrabajoMecanico) { this.horasTrabajoMecanico = horasTrabajoMecanico; }
+
     public List<ReparacionMaterial> getMaterialesUsados() { return materialesUsados; }
     public void setMaterialesUsados(List<ReparacionMaterial> materialesUsados) { this.materialesUsados = materialesUsados; }
+
+    public List<IncidenciaReparacion> getIncidencias() { return incidencias; }
+    public void setIncidencias(List<IncidenciaReparacion> incidencias) { this.incidencias = incidencias; }
+
+    public Factura getFactura() { return factura; }
+    public void setFactura(Factura factura) { this.factura = factura; }
 }
