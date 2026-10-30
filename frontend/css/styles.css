@@ -634,3 +634,204 @@ input:focus, select:focus, textarea:focus {
     margin-top: 0.5rem;
 }
 
+/* =====================================================
+   AJUSTE GLOBAL ANTI-SCROLL HORIZONTAL Y RESPONSIVE DE TABLAS
+   ===================================================== */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.container, main.container {
+    max-width: 1380px !important;
+    width: 100%;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    box-sizing: border-box;
+}
+
+.card {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap !important;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+
+.table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.table {
+    width: 100%;
+    table-layout: auto;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+
+.table th,
+.table td {
+    padding: 0.55rem 0.5rem;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: middle;
+}
+
+.table th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+}
+
+.modal-overlay {
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.modal {
+    max-height: 92vh;
+    overflow-y: auto;
+    max-width: 96vw;
+}
+
+/* =====================================================
+   CALENDARIO INTERACTIVO DEL TALLER Y CITAS PREVIAS (Historias 4 y 5)
+   ===================================================== */
+.calendar-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.calendar-grid-month {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.calendar-grid-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.calendar-weekday-header {
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.4rem 0.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+}
+
+.calendar-day-cell {
+    background: rgba(0, 0, 0, 0.26);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.55rem;
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-day-cell:hover {
+    border-color: var(--primary-light);
+    background: rgba(232, 93, 4, 0.08);
+}
+
+.calendar-day-cell.selected {
+    border: 2px solid var(--primary);
+    background: rgba(232, 93, 4, 0.14);
+}
+
+.calendar-day-cell.disabled-day {
+    opacity: 0.45;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: not-allowed;
+}
+
+.cap-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    width: 100%;
+    text-align: center;
+    margin-top: 0.25rem;
+}
+
+.cap-verde {
+    background: rgba(22, 163, 74, 0.2);
+    color: #4ADE80;
+    border: 1px solid var(--success);
+}
+
+.cap-amarillo {
+    background: rgba(245, 158, 11, 0.2);
+    color: #FCD34D;
+    border: 1px solid var(--warning);
+}
+
+.cap-rojo {
+    background: rgba(220, 38, 38, 0.22);
+    color: #FCA5A5;
+    border: 1px solid var(--accent);
+}
+
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+}
+
+.slot-card {
+    padding: 0.65rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.3);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.slot-card:hover:not(.slot-disabled) {
+    border-color: var(--primary);
+    background: rgba(232, 93, 4, 0.12);
+}
+
+.slot-card.slot-selected {
+    border: 2px solid var(--primary);
+    background: rgba(232, 93, 4, 0.22);
+    color: #fff;
+}
+
+.slot-card.slot-disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+

@@ -144,7 +144,7 @@
         </div>
 
         <!-- TESORERÍA GENERAL DEL TALLER BASADA EN FACTURAS REALES -->
-        <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--success); background: linear-gradient(90deg, rgba(22, 163, 74, 0.12), var(--card-bg) 55%);">
+        <div class="card" id="card-tesoreria-general" style="margin-bottom: 2rem; border-left: 5px solid var(--success); background: linear-gradient(90deg, rgba(22, 163, 74, 0.12), var(--card-bg) 55%);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
                 <div>
                     <h2 style="margin: 0; font-size: 1.35rem;">💰 Tesorería General y Beneficio Real del Taller</h2>
@@ -152,10 +152,43 @@
                         Calculada a partir de las <strong>Facturas Reales</strong> emitidas (Materiales + Mano de Obra + Margen <span id="lbl-config-margen">15%</span> + IVA 21%) y el gasto real de almacén.
                     </p>
                 </div>
-                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem;" onclick="irATab('tab-configuracion', 'tab-btn-config')">
-                    ⚙️ Configurar Tarifas (<span id="lbl-config-hora">35,00 €</span>/h)
-                </button>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;" onclick="actualizarTodoPanelAdmin(this)">
+                        ↻ Actualizar
+                    </button>
+                    <button type="button" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;" onclick="toggleEditorTarifasRapido()">
+                        ⚙️ Configurar Tarifas (<span id="lbl-config-hora">35,00 €</span>/h)
+                    </button>
+                </div>
             </div>
+
+            <!-- Editor rápido de tarifas integrado en la tarjeta de Tesorería -->
+            <div id="panel-tarifas-rapido" style="display: none; margin-bottom: 1.25rem; padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <strong style="color: var(--primary-light); font-size: 0.95rem;">⚙️ Actualizar Tarifas y Fondo de Tesorería</strong>
+                    <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;" onclick="toggleEditorTarifasRapido()">✕ Cerrar</button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.82rem;">Precio Mano de Obra (€/h)</label>
+                        <input type="number" id="rapido-precio-hora" min="1" step="0.50" value="35.00">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.82rem;">Margen de Beneficio (%)</label>
+                        <input type="number" id="rapido-margen-porcentaje" min="0" max="500" step="0.5" value="15.0">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.82rem;">Fondo Inicial en Caja (€)</label>
+                        <input type="number" id="rapido-fondo-inicial" min="0" step="50" value="2000.00">
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-success" id="btn-guardar-config-rapido" style="width: 100%;" onclick="guardarConfiguracionRapida(this)">
+                            💾 Aplicar y Recalcular
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem;">
                 <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 6px; border: 1px solid var(--border);">
                     <div style="font-size: 0.82rem; color: var(--text-muted);">Saldo Actual en Caja</div>
@@ -192,7 +225,7 @@
                         Asigna mecánico a las nuevas reparaciones y confirma las reparaciones terminadas para autorizar su facturación y entrega en Recepción.
                     </p>
                 </div>
-                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;" onclick="cargarStats(); cargarReparaciones(); cargarFacturasAdmin();">↻ Actualizar</button>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;" onclick="actualizarTodoPanelAdmin(this)">↻ Actualizar</button>
             </div>
             <div id="admin-tareas-container" class="control-grid">
                 <div class="text-muted">Cargando notificaciones pendientes...</div>
@@ -527,6 +560,41 @@
         function irATab(tabId, btnId) {
             const btn = document.getElementById(btnId);
             if (btn) showTab(tabId, btn);
+            const tabEl = document.getElementById(tabId);
+            if (tabEl) {
+                tabEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function toggleEditorTarifasRapido() {
+            const panel = document.getElementById('panel-tarifas-rapido');
+            if (!panel) return;
+            const visible = panel.style.display !== 'none';
+            panel.style.display = visible ? 'none' : 'block';
+            if (!visible) {
+                const inputHora = document.getElementById('rapido-precio-hora');
+                if (inputHora) inputHora.focus();
+            }
+        }
+
+        async function actualizarTodoPanelAdmin(btn) {
+            if (btn) toggleLoading(btn, true);
+            try {
+                await Promise.all([
+                    cargarConfiguracionTaller(),
+                    cargarStats(),
+                    cargarReparaciones(),
+                    cargarFacturasAdmin(),
+                    cargarUsuarios(),
+                    cargarMateriales(),
+                    cargarVehiculosYClientes()
+                ]);
+                mostrarAlerta('Datos de tesorería, reparaciones y notificaciones actualizados correctamente.', 'success', document.getElementById('alert-container'));
+            } catch (error) {
+                mostrarAlerta('Error al actualizar los datos: ' + error.message, 'error', document.getElementById('alert-container'));
+            } finally {
+                if (btn) toggleLoading(btn, false);
+            }
         }
 
         async function cargarConfiguracionTaller() {
@@ -537,6 +605,14 @@
                     document.getElementById('cfg-precio-hora').value = Number(cfg.precioHoraManoObra || 35).toFixed(2);
                     document.getElementById('cfg-margen-porcentaje').value = Number(cfg.margenBeneficioPorcentaje || 15).toFixed(1);
                     document.getElementById('cfg-fondo-inicial').value = Number(cfg.fondoInicial || 2000).toFixed(2);
+
+                    const rapHora = document.getElementById('rapido-precio-hora');
+                    const rapMargen = document.getElementById('rapido-margen-porcentaje');
+                    const rapFondo = document.getElementById('rapido-fondo-inicial');
+                    if (rapHora) rapHora.value = Number(cfg.precioHoraManoObra || 35).toFixed(2);
+                    if (rapMargen) rapMargen.value = Number(cfg.margenBeneficioPorcentaje || 15).toFixed(1);
+                    if (rapFondo) rapFondo.value = Number(cfg.fondoInicial || 2000).toFixed(2);
+
                     document.getElementById('lbl-config-margen').textContent = `${cfg.margenBeneficioPorcentaje}%`;
                     document.getElementById('lbl-config-hora').textContent = formatearEuros(cfg.precioHoraManoObra);
                     actualizarEjemploFacturaConfig();
@@ -572,6 +648,30 @@
             `;
         }
 
+        async function guardarConfiguracionRapida(btn) {
+            const precioHoraManoObra = parseFloat(document.getElementById('rapido-precio-hora').value);
+            const margenBeneficioPorcentaje = parseFloat(document.getElementById('rapido-margen-porcentaje').value);
+            const fondoInicial = parseFloat(document.getElementById('rapido-fondo-inicial').value);
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch('/configuracion', {
+                    method: 'PUT',
+                    body: JSON.stringify({ precioHoraManoObra, margenBeneficioPorcentaje, fondoInicial })
+                });
+                mostrarAlerta(res.mensaje || 'Tarifas y tesorería recalculadas correctamente.', 'success', document.getElementById('alert-container'));
+                await cargarConfiguracionTaller();
+                await cargarStats();
+                await cargarReparaciones();
+                await cargarFacturasAdmin();
+                document.getElementById('panel-tarifas-rapido').style.display = 'none';
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
         async function guardarConfiguracionTaller(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-guardar-config');
@@ -589,6 +689,9 @@
                 await cargarConfiguracionTaller();
                 await cargarStats();
                 await cargarReparaciones();
+                await cargarFacturasAdmin();
+                const cardTesoreria = document.getElementById('card-tesoreria-general');
+                if (cardTesoreria) cardTesoreria.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } catch (error) {
                 mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
             } finally {
@@ -813,11 +916,13 @@
 
         // ================= REPARACIONES =================
         let currentRepEstado = '';
+        let reparacionesAdminCache = [];
         async function cargarReparaciones(estado = currentRepEstado) {
             currentRepEstado = estado;
             try {
                 let todas = await apiFetch('/reparaciones');
                 let reparaciones = (todas || []).map(enriquecerReparacionFinanzas);
+                reparacionesAdminCache = reparaciones;
                 if (!estado) {
                     reparaciones = reparaciones.filter(r => r.estado !== 'ENTREGADA');
                 } else {
@@ -855,13 +960,28 @@
 
                     const numInc = Array.isArray(r.incidencias) ? r.incidencias.length : 0;
                     const incHtml = numInc > 0
-                        ? `<div style="margin-top: 0.25rem; font-size: 0.78rem; color: var(--primary-light);">📸 ${numInc} incidencia(s) ${r.incidencias.map(i => i.rutaFoto ? `<a href="${resolverUrlFoto(i.rutaFoto)}" target="_blank" style="text-decoration:underline; margin-left:0.3rem;">[Foto]</a>` : '').join('')}</div>`
+                        ? `<div style="margin-top: 0.35rem; font-size: 0.78rem; color: var(--primary-light);">
+                               📸 <strong>${numInc} incidencia(s):</strong>
+                               <div style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.2rem;">
+                                   ${r.incidencias.map(i => `
+                                       <div style="display:flex; align-items:center; justify-content:space-between; gap:0.4rem; background:rgba(255,255,255,0.03); padding:0.2rem 0.45rem; border-radius:4px; border:1px solid var(--border);">
+                                           <span style="color:var(--text-light);">${i.descripcion || ''} ${i.rutaFoto ? `<a href="${resolverUrlFoto(i.rutaFoto)}" target="_blank" style="text-decoration:underline; color:var(--info); margin-left:0.25rem;">[Ver foto]</a>` : ''}</span>
+                                           <span style="display:inline-flex; gap:0.25rem; flex-shrink:0;">
+                                               ${i.rutaFoto ? `<button type="button" class="btn btn-danger" style="padding:0.12rem 0.4rem; font-size:0.68rem;" onclick="eliminarFotoAdmin(${r.id}, ${i.id})">🗑️ Foto</button>` : ''}
+                                               <button type="button" class="btn btn-secondary" style="padding:0.12rem 0.4rem; font-size:0.68rem;" onclick="eliminarIncidenciaAdmin(${r.id}, ${i.id})">✕</button>
+                                           </span>
+                                       </div>
+                                   `).join('')}
+                               </div>
+                           </div>`
                         : '';
 
                     const tieneFactura = !!r.factura;
+                    const tienePresupuesto = !!r.presupuestoFormal;
                     const finanzasHtml = `
-                        <div style="font-size: 0.83rem; line-height: 1.45; min-width: 220px;">
-                            <div style="color: var(--text-muted);">Estimación inicial: <strong>${formatearEuros(r.estimacionInicial)}</strong></div>
+                        <div style="font-size: 0.82rem; line-height: 1.45;">
+                            <div style="margin-bottom: 0.25rem;">${renderizarBadgePresupuesto(r.estadoPresupuesto)}</div>
+                            <div style="color: var(--text-muted);">Presupuesto ref.: <strong>${formatearEuros(r.estimacionInicial)}</strong></div>
                             <div>Piezas: <strong style="color: var(--warning);">${formatearEuros(r.costeMateriales)}</strong> · M.O. (${Number(r.horasTrabajoMecanico || 0).toFixed(1)}h): <strong>${formatearEuros(r.subtotalManoObra)}</strong></div>
                             ${tieneFactura
                                 ? `<div style="color: var(--info); font-weight: 700;">🧾 ${r.factura.numeroFactura}: ${formatearEuros(r.factura.totalFactura)}</div>`
@@ -871,42 +991,66 @@
                         </div>
                     `;
 
+                    const btnPresupuestoHtml = (r.estado !== 'ENTREGADA') ? `
+                        <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.76rem;" onclick="abrirPresupuestoDesdeAdmin(${r.id})">
+                            📋 ${tienePresupuesto ? 'Editar Presupuesto' : 'Crear Presupuesto'}
+                        </button>
+                    ` : '';
+                    const btnVerPresupuestoHtml = tienePresupuesto ? `
+                        <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.55rem; font-size: 0.75rem;" onclick="verPresupuestoDesdeAdmin(${r.id})">
+                            🖨️ Ver Presupuesto
+                        </button>
+                    ` : '';
+
                     let acciones = '';
                     if (r.estado === 'PENDIENTE' || !tieneMecanico) {
                         let opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
                         acciones = `
-                            <div class="action-cell">
-                                <select id="mec-${r.id}" style="padding: 0.35rem; min-width: 145px;">
-                                    <option value="">Seleccione mecánico...</option>
-                                    ${opts}
-                                </select>
-                                <button class="btn btn-primary" style="padding: 0.35rem 0.65rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
+                            <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                                <div class="action-cell">
+                                    <select id="mec-${r.id}" style="padding: 0.35rem; min-width: 120px;">
+                                        <option value="">Mecánico...</option>
+                                        ${opts}
+                                    </select>
+                                    <button class="btn btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.78rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
+                                </div>
+                                ${btnPresupuestoHtml}
+                                ${btnVerPresupuestoHtml}
                             </div>
                         `;
                     } else if (r.estado === 'EN_PROCESO') {
-                        acciones = `<span style="color: var(--info); font-size: 0.82rem; font-weight: 600;">🔧 En manos del mecánico</span>`;
+                        acciones = `
+                            <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                                <span style="color: var(--info); font-size: 0.8rem; font-weight: 600;">🔧 En reparación</span>
+                                ${btnPresupuestoHtml}
+                                ${btnVerPresupuestoHtml}
+                            </div>
+                        `;
                     } else if (r.estado === 'FINALIZADA') {
                         acciones = `
                             <div style="display:flex; flex-direction:column; gap:0.35rem;">
-                                <button class="btn btn-success" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;" onclick="confirmarReparacionAdmin(${r.id})">✅ Confirmar Reparación</button>
-                                ${tieneFactura ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>` : ''}
+                                <button class="btn btn-success" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onclick="confirmarReparacionAdmin(${r.id})">✅ Confirmar Reparación</button>
+                                ${tieneFactura ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.76rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>` : ''}
+                                ${btnVerPresupuestoHtml}
                             </div>
                         `;
                     } else if (r.estado === 'CONFIRMADA') {
                         acciones = `
                             <div style="display:flex; flex-direction:column; gap:0.35rem;">
-                                <span style="color: #4ADE80; font-size: 0.82rem; font-weight: 600;">✓ Confirmada (Lista en Recepción)</span>
+                                <span style="color: #4ADE80; font-size: 0.8rem; font-weight: 600;">✓ Confirmada</span>
                                 ${tieneFactura
-                                    ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>`
-                                    : `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="emitirFacturaDesdeAdmin(${r.id})">🧾 Emitir Factura</button>`
+                                    ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.76rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>`
+                                    : `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.76rem;" onclick="emitirFacturaDesdeAdmin(${r.id})">🧾 Emitir Factura</button>`
                                 }
+                                ${btnVerPresupuestoHtml}
                             </div>
                         `;
                     } else {
                         acciones = `
                             <div style="display:flex; flex-direction:column; gap:0.35rem;">
-                                <span class="text-muted" style="font-size:0.8rem;">Cobrada y entregada</span>
-                                ${tieneFactura ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>` : ''}
+                                <span class="text-muted" style="font-size:0.78rem;">Cobrada y entregada</span>
+                                ${tieneFactura ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.76rem;" onclick="verFacturaReparacionAdmin(${r.id})">🧾 Ver Factura</button>` : ''}
+                                ${btnVerPresupuestoHtml}
                             </div>
                         `;
                     }
@@ -1000,6 +1144,54 @@
             } catch (error) {
                 mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
             }
+        }
+
+        function abrirPresupuestoDesdeAdmin(repId) {
+            const rep = reparacionesAdminCache.find(r => r.id === repId);
+            if (!rep) return;
+            abrirModalGenerarPresupuesto(rep, async () => {
+                await cargarReparaciones();
+                await cargarStats();
+            });
+        }
+
+        function verPresupuestoDesdeAdmin(repId) {
+            const rep = reparacionesAdminCache.find(r => r.id === repId);
+            if (rep && rep.presupuestoFormal) {
+                abrirModalPresupuestoObjeto(rep.presupuestoFormal);
+            }
+        }
+
+        async function eliminarFotoAdmin(reparacionId, incidenciaId) {
+            mostrarModal(
+                'Eliminar Fotografía',
+                '¿Confirmas que deseas eliminar la foto subida de esta incidencia? La nota de texto se conservará.',
+                async () => {
+                    try {
+                        await apiFetch(`/reparaciones/${reparacionId}/incidencias/${incidenciaId}/foto`, { method: 'DELETE' });
+                        mostrarAlerta('Fotografía eliminada correctamente.', 'success', document.getElementById('alert-container'));
+                        cargarReparaciones();
+                    } catch (error) {
+                        mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+                    }
+                }
+            );
+        }
+
+        async function eliminarIncidenciaAdmin(reparacionId, incidenciaId) {
+            mostrarModal(
+                'Eliminar Incidencia',
+                '¿Confirmas que deseas eliminar por completo esta incidencia y su fotografía?',
+                async () => {
+                    try {
+                        await apiFetch(`/reparaciones/${reparacionId}/incidencias/${incidenciaId}`, { method: 'DELETE' });
+                        mostrarAlerta('Incidencia eliminada correctamente.', 'success', document.getElementById('alert-container'));
+                        cargarReparaciones();
+                    } catch (error) {
+                        mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+                    }
+                }
+            );
         }
 
         // ================= ARCHIVO DE FACTURAS (ADMIN) =================

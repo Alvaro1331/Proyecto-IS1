@@ -217,6 +217,32 @@ public class ReparacionController {
     }
 
     /**
+     * Elimina únicamente la foto subida de una incidencia (manteniendo el texto de la incidencia).
+     * DELETE /api/reparaciones/{id}/incidencias/{incidenciaId}/foto
+     */
+    @DeleteMapping("/{id}/incidencias/{incidenciaId}/foto")
+    public ResponseEntity<?> eliminarFotoIncidencia(@PathVariable Long id, @PathVariable Long incidenciaId) {
+        try {
+            return ResponseEntity.ok(reparacionService.eliminarFotoIncidencia(id, incidenciaId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Elimina por completo una incidencia (y su foto asociada si la tiene).
+     * DELETE /api/reparaciones/{id}/incidencias/{incidenciaId}
+     */
+    @DeleteMapping("/{id}/incidencias/{incidenciaId}")
+    public ResponseEntity<?> eliminarIncidencia(@PathVariable Long id, @PathVariable Long incidenciaId) {
+        try {
+            return ResponseEntity.ok(reparacionService.eliminarIncidencia(id, incidenciaId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Recepción formaliza (o actualiza) la Factura oficial de una reparación.
      * POST /api/reparaciones/{id}/factura
      */
@@ -226,10 +252,24 @@ public class ReparacionController {
             @RequestBody(required = false) Map<String, Object> body) {
         try {
             Double horasOpcionales = null;
-            if (body != null && body.get("horasManoObra") != null && !body.get("horasManoObra").toString().isBlank()) {
-                horasOpcionales = Double.valueOf(body.get("horasManoObra").toString());
+            String dniCif = null;
+            String direccionFiscal = null;
+            boolean validarDatosFiscales = false;
+            if (body != null) {
+                if (body.get("horasManoObra") != null && !body.get("horasManoObra").toString().isBlank()) {
+                    horasOpcionales = Double.valueOf(body.get("horasManoObra").toString());
+                }
+                if (body.get("dniCif") != null) {
+                    dniCif = body.get("dniCif").toString();
+                }
+                if (body.get("direccionFiscal") != null) {
+                    direccionFiscal = body.get("direccionFiscal").toString();
+                }
+                if (body.get("validarDatosFiscales") != null) {
+                    validarDatosFiscales = Boolean.parseBoolean(body.get("validarDatosFiscales").toString());
+                }
             }
-            Map<String, Object> factura = reparacionService.generarFactura(id, horasOpcionales);
+            Map<String, Object> factura = reparacionService.generarFactura(id, horasOpcionales, dniCif, direccionFiscal, validarDatosFiscales);
             return ResponseEntity.status(HttpStatus.CREATED).body(factura);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -246,6 +286,67 @@ public class ReparacionController {
             return ResponseEntity.ok(reparacionService.obtenerFacturaPorReparacion(id));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Historia de Usuario 1: Crea o actualiza el Presupuesto Desglosado (Piezas + Mano de obra)
+     * tras realizar el diagnóstico técnico, dejándolo en estado PENDIENTE_ACEPTACION.
+     * POST /api/reparaciones/{id}/presupuesto-formal
+     */
+    @PostMapping("/{id}/presupuesto-formal")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<?> guardarPresupuestoFormal(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            String diagnostico = body.get("diagnosticoPrevio") != null ? body.get("diagnosticoPrevio").toString() : null;
+            Integer diasValidez = body.get("diasValidez") != null && !body.get("diasValidez").toString().isBlank()
+                    ? Integer.valueOf(body.get("diasValidez").toString()) : 15;
+            List<Map<String, Object>> lineas = (List<Map<String, Object>>) body.get("lineas");
+            Map<String, Object> resultado = reparacionService.guardarPresupuestoDesglosado(id, diagnostico, diasValidez, lineas);
+            return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al procesar el presupuesto: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Obtiene el Presupuesto Desglosado de una reparación.
+     * GET /api/reparaciones/{id}/presupuesto-formal
+     */
+    @GetMapping("/{id}/presupuesto-formal")
+    public ResponseEntity<?> obtenerPresupuestoFormal(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(reparacionService.obtenerPresupuestoPorReparacion(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Historia de Usuario 3: Permite al cliente ACEPTAR o RECHAZAR el presupuesto
+     * introduciendo obligatoriamente su contraseña de cuenta.
+     * POST /api/reparaciones/{id}/presupuesto-formal/responder
+     */
+    @PostMapping("/{id}/presupuesto-formal/responder")
+    public ResponseEntity<?> responderPresupuestoFormal(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        try {
+            String accion = body.get("accion");
+            String password = body.get("password");
+            String motivoRechazo = body.get("motivoRechazo");
+            Map<String, Object> respuesta = reparacionService.responderPresupuestoCliente(id, accion, password, motivoRechazo);
+            return ResponseEntity.ok(respuesta);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 

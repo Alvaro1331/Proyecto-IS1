@@ -149,6 +149,10 @@ public class ClienteService {
                     map.put("totalCalculadoPrevisto", dto.getTotalCalculadoPrevisto());
                     map.put("incidencias", dto.getIncidencias());
                     map.put("factura", dto.getFactura());
+                    map.put("presupuestoFormal", dto.getPresupuestoFormal());
+                    map.put("estadoPresupuesto", dto.getEstadoPresupuesto());
+                    map.put("dniCifCliente", dto.getDniCifCliente());
+                    map.put("direccionFiscalCliente", dto.getDireccionFiscalCliente());
                     return map;
                 })
                 .collect(Collectors.toList());

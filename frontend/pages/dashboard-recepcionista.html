@@ -113,7 +113,8 @@
         <!-- Tabs Navigation -->
         <div class="tabs">
             <button class="tab-btn active" onclick="openTab('tab-registrar', event)">Registrar Vehículo</button>
-            <button class="tab-btn" id="btn-tab-reparaciones" onclick="openTab('tab-crear-reparacion', event)">Reparaciones y Estimación</button>
+            <button class="tab-btn" id="btn-tab-reparaciones" onclick="openTab('tab-crear-reparacion', event)">Reparaciones y Facturación</button>
+            <button class="tab-btn" id="btn-tab-calendario" onclick="openTab('tab-calendario-taller', event)">📅 Calendario de Taller</button>
             <button class="tab-btn" id="btn-tab-facturas" onclick="openTab('tab-archivo-facturas', event)">📁 Archivo de Facturas</button>
             <button class="tab-btn" onclick="openTab('tab-clientes-vehiculos', event)">Clientes y Vehículos</button>
         </div>
@@ -327,6 +328,101 @@
                 </div>
             </div>
         </section>
+
+        <!-- Tab 5: Calendario de Taller y Citas Programadas (Historia de Usuario 5) -->
+        <section id="tab-calendario-taller" class="tab-content">
+            <div class="card" style="border-left: 5px solid var(--info);">
+                <div class="calendar-toolbar">
+                    <div>
+                        <h2 style="margin: 0;">📅 Calendario de Taller y Capacidad Diaria</h2>
+                        <p style="margin: 0.2rem 0 0 0; font-size: 0.86rem; color: var(--text-muted);">
+                            Planifica las entradas de vehículos controlando el aforo máximo diario (8 vehículos/día · 2 por franja horaria).
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <select id="cal-filtro-estado" style="width: auto; padding: 0.45rem 0.75rem; font-size: 0.85rem;" onchange="cargarCalendarioRecepcion()">
+                            <option value="TODOS">Estado: Todas las citas</option>
+                            <option value="CONFIRMADA">Estado: CONFIRMADA</option>
+                            <option value="PENDIENTE">Estado: PENDIENTE</option>
+                            <option value="RECEPCIONADA">Estado: RECEPCIONADA</option>
+                            <option value="CANCELADA">Estado: CANCELADA</option>
+                        </select>
+                        <div style="display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+                            <button type="button" class="btn btn-secondary" id="btn-vista-mensual" style="border-radius: 0; font-size: 0.82rem; padding: 0.42rem 0.75rem;" onclick="cambiarVistaCalendario('MENSUAL')">Mensual</button>
+                            <button type="button" class="btn btn-secondary" id="btn-vista-semanal" style="border-radius: 0; font-size: 0.82rem; padding: 0.42rem 0.75rem;" onclick="cambiarVistaCalendario('SEMANAL')">Semanal</button>
+                            <button type="button" class="btn btn-secondary" id="btn-vista-diaria" style="border-radius: 0; font-size: 0.82rem; padding: 0.42rem 0.75rem;" onclick="cambiarVistaCalendario('DIARIA')">Diaria</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de navegación temporal y leyenda de semáforo -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;" onclick="navegarCalendario(-1)">◀ Anterior</button>
+                        <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;" onclick="navegarCalendario(0)">Hoy</button>
+                        <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;" onclick="navegarCalendario(1)">Siguiente ▶</button>
+                        <h3 id="cal-titulo-periodo" style="margin: 0 0 0 0.5rem; font-size: 1.15rem; color: var(--primary-light);"></h3>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.78rem;">
+                        <span class="cap-indicator cap-verde" style="width: auto; padding: 0.2rem 0.6rem;">🟢 Disponible (&lt;60%)</span>
+                        <span class="cap-indicator cap-amarillo" style="width: auto; padding: 0.2rem 0.6rem;">🟡 Ocupación Alta (60-99%)</span>
+                        <span class="cap-indicator cap-rojo" style="width: auto; padding: 0.2rem 0.6rem;">🔴 Aforo Completo (8/8)</span>
+                    </div>
+                </div>
+
+                <!-- Cuadrícula interactiva del calendario -->
+                <div id="calendario-grid-container" style="margin-bottom: 1.5rem;"></div>
+
+                <!-- Desglose detallado del día seleccionado y formulario de cita manual -->
+                <div id="calendario-detalle-dia" style="border-top: 1px solid var(--border); padding-top: 1.25rem;"></div>
+            </div>
+        </section>
+
+        <!-- Modal de Emisión de Factura Fiscal Automática (Historia de Usuario 2) -->
+        <div id="modal-emitir-factura-fiscal" class="modal-overlay">
+            <div class="modal card" style="max-width: 720px; width: 96%; border-top: 4px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+                    <div>
+                        <h3 style="margin: 0; color: var(--primary);">🧾 Generar Factura Fiscal Automática</h3>
+                        <p id="fact-fiscal-subtitulo" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);"></p>
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalFacturaFiscal()">✕</button>
+                </div>
+
+                <div id="fact-fiscal-alert"></div>
+
+                <!-- Datos fiscales obligatorios del cliente -->
+                <div style="background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem;">
+                    <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 0.65rem; color: var(--text-light);">
+                        1. Datos Fiscales del Cliente (Obligatorios para emitir factura)
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.78rem;">Cliente / Razón Social</label>
+                            <input type="text" id="fact-fiscal-nombre" readonly style="opacity: 0.8;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.78rem;">DNI / CIF Fiscal *</label>
+                            <input type="text" id="fact-fiscal-dni" placeholder="Ej. 12345678Z o B12345678" style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                            <label style="font-size: 0.78rem;">Dirección Fiscal Completa *</label>
+                            <input type="text" id="fact-fiscal-direccion" placeholder="Ej. Calle Alcalá 45, 28014 Madrid">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desglose precargado automáticamente -->
+                <div id="fact-fiscal-resumen-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem; font-size: 0.88rem;"></div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalFacturaFiscal()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirmar-emision-factura" onclick="confirmarEmisionFacturaFiscal(this)">
+                        ✅ Confirmar Emisión y Generar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script src="../js/app.js"></script>
@@ -334,7 +430,9 @@
         requireAuth(['RECEPCIONISTA', 'ADMIN']);
 
         let facturasRecepcionCache = [];
+        let reparacionesRecepCache = [];
         let historialCache = [];
+        let reparacionFacturaActiva = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             const user = getUsuarioActual();
@@ -349,6 +447,7 @@
             loadFacturasArchivo();
             loadClientes();
             loadVehiculos();
+            cargarCalendarioRecepcion();
         });
 
         function openTab(tabId, event) {
@@ -360,6 +459,8 @@
             }
             if (tabId === 'tab-archivo-facturas') {
                 loadFacturasArchivo();
+            } else if (tabId === 'tab-calendario-taller') {
+                cargarCalendarioRecepcion();
             }
         }
 
@@ -560,20 +661,109 @@
             }
         });
 
-        async function formalizarFacturaRecepcion(repId) {
-            const alertsContainer = document.getElementById('alerts-container');
+        function abrirModalFacturaFiscalRecepcion(repId) {
+            const rep = reparacionesRecepCache.find(r => r.id === repId);
+            if (!rep) return;
+
+            if (rep.estado !== 'FINALIZADA' && rep.estado !== 'CONFIRMADA') {
+                mostrarAlerta('No se puede generar la factura: la reparación debe estar en estado FINALIZADA o CONFIRMADA.', 'error', document.getElementById('alerts-container'));
+                return;
+            }
+
+            reparacionFacturaActiva = rep;
+            document.getElementById('fact-fiscal-alert').innerHTML = '';
+            document.getElementById('fact-fiscal-subtitulo').textContent =
+                `Reparación #${rep.id} (${rep.localizador || ''}) · Vehículo: ${rep.marcaVehiculo || ''} ${rep.modeloVehiculo || ''} (${rep.matriculaVehiculo || ''})`;
+
+            document.getElementById('fact-fiscal-nombre').value = `${rep.nombreCliente || '-'} (${rep.telefonoCliente || '-'})`;
+            document.getElementById('fact-fiscal-dni').value = rep.dniCifCliente || (rep.factura && rep.factura.dniCifCliente) || '';
+            document.getElementById('fact-fiscal-direccion').value = rep.direccionFiscalCliente || (rep.factura && rep.factura.direccionFiscalCliente) || '';
+
+            const costeMat = Number(rep.costeMateriales || 0);
+            const horas = Number(rep.horasTrabajoMecanico || 1.5);
+            const precioHora = Number(rep.precioHoraManoObra || 35);
+            const subMo = Math.round(horas * precioHora * 100) / 100;
+            const subBase = costeMat + subMo;
+            const pctMargen = Number(rep.porcentajeMargen || 15);
+            const impMargen = Math.round(subBase * (pctMargen / 100) * 100) / 100;
+            const baseImp = subBase + impMargen;
+            const impIva = Math.round(baseImp * 0.21 * 100) / 100;
+            const total = Math.round((baseImp + impIva) * 100) / 100;
+
+            const piezasLista = (rep.materialesDetalle && rep.materialesDetalle.length > 0)
+                ? rep.materialesDetalle.join(' · ')
+                : 'Sin repuestos adicionales registrados';
+
+            document.getElementById('fact-fiscal-resumen-box').innerHTML = `
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary-light);">
+                    2. Desglose Automático de Costes Consolidados
+                </div>
+                <div class="factura-row">
+                    <span><strong>Piezas / Repuestos empleados:</strong> <small style="color: var(--text-muted);">(${piezasLista})</small></span>
+                    <strong>${formatearEuros(costeMat)}</strong>
+                </div>
+                <div class="factura-row">
+                    <span><strong>Mano de Obra registrada:</strong> (${horas.toFixed(2)} h × ${formatearEuros(precioHora)}/h)</span>
+                    <strong>${formatearEuros(subMo)}</strong>
+                </div>
+                <div class="factura-row">
+                    <span><strong>Margen Operativo Taller:</strong> (${pctMargen.toFixed(1)}%)</span>
+                    <strong>${formatearEuros(impMargen)}</strong>
+                </div>
+                <div class="factura-row" style="font-weight: 700; background: rgba(255,255,255,0.03); padding: 0.45rem 0.35rem;">
+                    <span>Base Imponible</span>
+                    <span>${formatearEuros(baseImp)}</span>
+                </div>
+                <div class="factura-row">
+                    <span><strong>Cuota de IVA (21%):</strong></span>
+                    <strong>${formatearEuros(impIva)}</strong>
+                </div>
+                <div class="factura-row-total">
+                    <span>IMPORTE TOTAL A ABONAR</span>
+                    <span>${formatearEuros(total)}</span>
+                </div>
+            `;
+
+            document.getElementById('modal-emitir-factura-fiscal').style.display = 'flex';
+        }
+
+        function cerrarModalFacturaFiscal() {
+            document.getElementById('modal-emitir-factura-fiscal').style.display = 'none';
+        }
+
+        async function confirmarEmisionFacturaFiscal(btn) {
+            if (!reparacionFacturaActiva) return;
+            const alertBox = document.getElementById('fact-fiscal-alert');
+            alertBox.innerHTML = '';
+
+            const dniCif = document.getElementById('fact-fiscal-dni').value.trim().toUpperCase();
+            const direccionFiscal = document.getElementById('fact-fiscal-direccion').value.trim();
+
+            if (!dniCif || !direccionFiscal) {
+                mostrarAlerta('El sistema bloquea la generación de la factura: es obligatorio completar el DNI/CIF y la Dirección Fiscal del cliente.', 'error', alertBox);
+                return;
+            }
+
+            toggleLoading(btn, true);
             try {
-                const factura = await apiFetch(`/reparaciones/${repId}/factura`, {
+                const factura = await apiFetch(`/reparaciones/${reparacionFacturaActiva.id}/factura`, {
                     method: 'POST',
-                    body: JSON.stringify({})
+                    body: JSON.stringify({
+                        dniCif,
+                        direccionFiscal,
+                        validarDatosFiscales: true
+                    })
                 });
-                mostrarAlerta(`Factura oficial ${factura.numeroFactura} generada y archivada correctamente (${formatearEuros(factura.totalFactura)}).`, 'success', alertsContainer);
+                cerrarModalFacturaFiscal();
+                mostrarAlerta(`Factura oficial ${factura.numeroFactura} generada y registrada correctamente (${formatearEuros(factura.totalFactura)}).`, 'success', document.getElementById('alerts-container'));
                 abrirModalFacturaObjeto(factura);
                 loadStats();
                 loadReparaciones();
                 loadFacturasArchivo();
             } catch (error) {
-                mostrarAlerta('Error al formalizar factura: ' + error.message, 'error', alertsContainer);
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
             }
         }
 
@@ -583,6 +773,13 @@
                 abrirModalFacturaObjeto(factura);
             } catch (error) {
                 mostrarAlerta(error.message, 'error', document.getElementById('alerts-container'));
+            }
+        }
+
+        function verPresupuestoRecepcion(repId) {
+            const rep = reparacionesRecepCache.find(r => r.id === repId);
+            if (rep && rep.presupuestoFormal) {
+                abrirModalPresupuestoObjeto(rep.presupuestoFormal);
             }
         }
 
@@ -612,6 +809,7 @@
                 const activas = (reparaciones || [])
                     .filter(r => r.estado !== 'ENTREGADA')
                     .map(enriquecerReparacionFinanzas);
+                reparacionesRecepCache = activas;
                 const tbody = document.querySelector('#tabla-reparaciones tbody');
                 tbody.innerHTML = '';
                 if (activas.length === 0) {
@@ -634,9 +832,11 @@
                         : '';
 
                     const tieneFactura = !!r.factura;
+                    const tienePresupuesto = !!r.presupuestoFormal;
                     const finanzasHtml = `
-                        <div style="font-size: 0.83rem; line-height: 1.45;">
-                            <div style="color: var(--text-muted);">Estimación inicial: <strong>${formatearEuros(r.estimacionInicial)}</strong></div>
+                        <div style="font-size: 0.82rem; line-height: 1.45;">
+                            <div style="margin-bottom: 0.25rem;">${renderizarBadgePresupuesto(r.estadoPresupuesto)}</div>
+                            <div style="color: var(--text-muted);">Presupuesto ref.: <strong>${formatearEuros(r.estimacionInicial)}</strong></div>
                             <div>Piezas: <strong style="color: var(--warning);">${formatearEuros(r.costeMateriales)}</strong> · M.O. (${Number(r.horasTrabajoMecanico || 0).toFixed(1)}h): <strong>${formatearEuros(r.subtotalManoObra)}</strong></div>
                             ${tieneFactura
                                 ? `<div style="color: var(--success); font-weight: 700; margin-top: 0.2rem;">🧾 Factura ${r.factura.numeroFactura}: ${formatearEuros(r.factura.totalFactura)} (IVA incl.)</div>`
@@ -646,30 +846,42 @@
                     `;
 
                     const botones = [];
-                    if (r.estado === 'FINALIZADA' || r.estado === 'CONFIRMADA') {
+                    if (tienePresupuesto) {
                         botones.push(`
-                            <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;" onclick="formalizarFacturaRecepcion(${r.id})">
-                                🧾 ${tieneFactura ? 'Actualizar / Ver Factura' : 'Formalizar Factura'}
+                            <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.76rem;" onclick="verPresupuestoRecepcion(${r.id})">
+                                📋 Ver Presupuesto
                             </button>
                         `);
-                    } else if (tieneFactura) {
+                    }
+                    if (r.estado === 'FINALIZADA' || r.estado === 'CONFIRMADA') {
                         botones.push(`
-                            <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;" onclick="verFacturaReparacion(${r.id})">
-                                🧾 Ver Factura
+                            <button type="button" class="btn btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onclick="abrirModalFacturaFiscalRecepcion(${r.id})">
+                                🧾 ${tieneFactura ? 'Actualizar / Ver Factura' : 'Generar Factura'}
+                            </button>
+                        `);
+                        if (tieneFactura) {
+                            botones.push(`
+                                <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.76rem;" onclick="verFacturaReparacion(${r.id})">
+                                    🖨️ Descargar PDF
+                                </button>
+                            `);
+                        }
+                    } else {
+                        botones.push(`
+                            <button type="button" class="btn btn-secondary" disabled title="La reparación debe estar FINALIZADA para poder generar la factura" style="padding: 0.32rem 0.55rem; font-size: 0.75rem;">
+                                🔒 Generar Factura (Req. FINALIZADA)
                             </button>
                         `);
                     }
 
                     if (r.estado === 'CONFIRMADA') {
                         botones.push(`
-                            <button type="button" class="btn btn-primary" style="padding: 0.35rem 0.65rem; font-size: 0.82rem;" onclick="entregarVehiculo(${r.id})">
+                            <button type="button" class="btn btn-success" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onclick="entregarVehiculo(${r.id})">
                                 🚗 Entregar y Cobrar
                             </button>
                         `);
                     } else if (r.estado === 'FINALIZADA') {
-                        botones.push(`<div style="color: #C084FC; font-size: 0.78rem; font-weight: 600;">⏳ Pendiente confirmación Admin para entregar</div>`);
-                    } else {
-                        botones.push(`<span class="text-muted" style="font-size: 0.82rem;">En taller</span>`);
+                        botones.push(`<div style="color: #C084FC; font-size: 0.76rem; font-weight: 600;">⏳ Pendiente confirmación Admin para entrega</div>`);
                     }
 
                     tr.innerHTML = `
@@ -857,6 +1069,491 @@
                     row.style.display = matCell.textContent.toUpperCase().includes(search) ? '' : 'none';
                 }
             });
+        }
+
+        // =====================================================
+        // CALENDARIO INTERACTIVO DEL TALLER (HISTORIA DE USUARIO 5)
+        // =====================================================
+        let estadoCalendarioRecep = {
+            vista: 'MENSUAL', // 'MENSUAL' | 'SEMANAL' | 'DIARIA'
+            fechaCursor: new Date(),
+            diaSeleccionado: new Date().toISOString().split('T')[0],
+            datos: null,
+            inicializado: false
+        };
+
+        function formatoFechaISO(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function irADiaCalendarioRecepcion(fechaIso) {
+            const partes = fechaIso.split('-').map(Number);
+            estadoCalendarioRecep.fechaCursor = new Date(partes[0], partes[1] - 1, partes[2]);
+            estadoCalendarioRecep.diaSeleccionado = fechaIso;
+            cargarCalendarioRecepcion();
+        }
+
+        function cambiarVistaCalendario(nuevaVista) {
+            estadoCalendarioRecep.vista = nuevaVista;
+            ['MENSUAL', 'SEMANAL', 'DIARIA'].forEach(v => {
+                const btn = document.getElementById(`btn-vista-${v.toLowerCase()}`);
+                if (btn) {
+                    btn.className = (v === nuevaVista) ? 'btn btn-primary' : 'btn btn-secondary';
+                }
+            });
+            cargarCalendarioRecepcion();
+        }
+
+        function navegarCalendario(direccion) {
+            const cur = new Date(estadoCalendarioRecep.fechaCursor);
+            if (direccion === 0) {
+                const hoy = new Date();
+                estadoCalendarioRecep.fechaCursor = hoy;
+                estadoCalendarioRecep.diaSeleccionado = formatoFechaISO(hoy);
+            } else if (estadoCalendarioRecep.vista === 'MENSUAL') {
+                cur.setMonth(cur.getMonth() + direccion);
+                estadoCalendarioRecep.fechaCursor = cur;
+            } else if (estadoCalendarioRecep.vista === 'SEMANAL') {
+                cur.setDate(cur.getDate() + (direccion * 7));
+                estadoCalendarioRecep.fechaCursor = cur;
+            } else {
+                cur.setDate(cur.getDate() + direccion);
+                estadoCalendarioRecep.fechaCursor = cur;
+                estadoCalendarioRecep.diaSeleccionado = formatoFechaISO(cur);
+            }
+            cargarCalendarioRecepcion();
+        }
+
+        async function cargarCalendarioRecepcion() {
+            const cur = new Date(estadoCalendarioRecep.fechaCursor);
+            const filtro = document.getElementById('cal-filtro-estado')?.value || 'TODOS';
+
+            let desdeDate, hastaDate;
+            if (estadoCalendarioRecep.vista === 'MENSUAL') {
+                desdeDate = new Date(cur.getFullYear(), cur.getMonth(), 1);
+                hastaDate = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+            } else if (estadoCalendarioRecep.vista === 'SEMANAL') {
+                const dow = (cur.getDay() + 6) % 7; // Lunes = 0
+                desdeDate = new Date(cur);
+                desdeDate.setDate(cur.getDate() - dow);
+                hastaDate = new Date(desdeDate);
+                hastaDate.setDate(desdeDate.getDate() + 6);
+            } else {
+                desdeDate = new Date(cur);
+                hastaDate = new Date(cur);
+                estadoCalendarioRecep.diaSeleccionado = formatoFechaISO(cur);
+            }
+
+            const desdeStr = formatoFechaISO(desdeDate);
+            const hastaStr = formatoFechaISO(hastaDate);
+
+            ['MENSUAL', 'SEMANAL', 'DIARIA'].forEach(v => {
+                const btn = document.getElementById(`btn-vista-${v.toLowerCase()}`);
+                if (btn) btn.className = (v === estadoCalendarioRecep.vista) ? 'btn btn-primary' : 'btn btn-secondary';
+            });
+
+            try {
+                const data = await apiFetch(`/citas/calendario?desde=${desdeStr}&hasta=${hastaStr}&estado=${encodeURIComponent(filtro)}`);
+                estadoCalendarioRecep.datos = data;
+
+                // En la primera carga, si el mes actual no tiene citas pero hay citas programadas en otro mes (ej. primeros días del mes siguiente),
+                // posicionar automáticamente el calendario en el primer día con citas para que Recepción las vea de inmediato.
+                if (!estadoCalendarioRecep.inicializado) {
+                    estadoCalendarioRecep.inicializado = true;
+                    const todas = data.todasLasCitas || [];
+                    if ((data.citas || []).length === 0 && todas.length > 0) {
+                        irADiaCalendarioRecepcion(todas[0].fecha);
+                        return;
+                    }
+                    if ((data.citas || []).length > 0) {
+                        const tieneEnHoy = data.citas.some(c => c.fecha === estadoCalendarioRecep.diaSeleccionado);
+                        if (!tieneEnHoy) {
+                            estadoCalendarioRecep.diaSeleccionado = data.citas[0].fecha;
+                        }
+                    }
+                }
+
+                if (!data.resumenDias[estadoCalendarioRecep.diaSeleccionado]) {
+                    estadoCalendarioRecep.diaSeleccionado = (data.citas && data.citas.length > 0) ? data.citas[0].fecha : desdeStr;
+                }
+                renderizarGridCalendarioRecep(desdeDate, hastaDate, data);
+                await renderizarDetalleDiaRecepcion(estadoCalendarioRecep.diaSeleccionado);
+            } catch (e) {
+                console.error('Error cargando calendario:', e);
+            }
+        }
+
+        function claseSemaforoCapacidad(nivel) {
+            if (nivel === 'ROJO') return 'cap-rojo';
+            if (nivel === 'AMARILLO') return 'cap-amarillo';
+            return 'cap-verde';
+        }
+
+        function renderizarGridCalendarioRecep(desdeDate, hastaDate, data) {
+            const container = document.getElementById('calendario-grid-container');
+            const tituloEl = document.getElementById('cal-titulo-periodo');
+            if (!container || !data) return;
+
+            const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const diasSemana = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            const citasPorDia = {};
+            (data.citas || []).forEach(c => {
+                if (!citasPorDia[c.fecha]) citasPorDia[c.fecha] = [];
+                citasPorDia[c.fecha].push(c);
+            });
+
+            if (estadoCalendarioRecep.vista === 'DIARIA') {
+                const fechaIso = formatoFechaISO(desdeDate);
+                const infoDia = data.resumenDias[fechaIso] || { ocupadas: 0, capacidadMaxima: 8, nivelColor: 'VERDE', esLaborable: true };
+                tituloEl.textContent = `Vista Diaria · ${formatearFecha(fechaIso)} (${infoDia.ocupadas}/${infoDia.capacidadMaxima} vehículos aceptados)`;
+
+                const franjas = data.franjasHorarias || ['09:00', '10:00', '11:00', '12:00', '13:00', '16:00', '17:00', '18:00'];
+                const citasDia = citasPorDia[fechaIso] || [];
+
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.75rem;">
+                        ${franjas.map(hora => {
+                            const ocupFranja = (infoDia.ocupacionPorFranja && infoDia.ocupacionPorFranja[hora]) || 0;
+                            const capFranja = data.capacidadMaximaFranja || 2;
+                            const nivelF = ocupFranja >= capFranja ? 'ROJO' : (ocupFranja >= 1 ? 'AMARILLO' : 'VERDE');
+                            const citasEnHora = citasDia.filter(c => c.franjaHoraria === hora);
+                            return `
+                                <div class="calendar-day-cell" onclick="seleccionarDiaYFranjaRecepcion('${fechaIso}', '${hora}')">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                                        <strong style="font-size: 1rem; color: var(--primary-light);">🕒 ${hora}</strong>
+                                        <span class="cap-indicator ${claseSemaforoCapacidad(nivelF)}" style="width: auto; margin: 0;">
+                                            ${ocupFranja}/${capFranja} plazas
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                                        ${citasEnHora.length > 0
+                                            ? citasEnHora.map(c => `<div style="margin-top:0.25rem; color:var(--text-light);">• <strong>${c.matriculaVehiculo}</strong> (${c.nombreCliente}) - <span style="color:var(--info);">${c.estado}</span></div>`).join('')
+                                            : '<em>Sin citas en este tramo</em>'
+                                        }
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                return;
+            }
+
+            if (estadoCalendarioRecep.vista === 'MENSUAL') {
+                tituloEl.textContent = `${mesesNombres[desdeDate.getMonth()]} ${desdeDate.getFullYear()}`;
+            } else {
+                tituloEl.textContent = `Semana del ${formatearFecha(formatoFechaISO(desdeDate))} al ${formatearFecha(formatoFechaISO(hastaDate))}`;
+            }
+
+            let html = `<div class="calendar-grid-month">`;
+            diasSemana.forEach(d => {
+                html += `<div class="calendar-weekday-header">${d}</div>`;
+            });
+
+            if (estadoCalendarioRecep.vista === 'MENSUAL') {
+                const primerDow = (desdeDate.getDay() + 6) % 7;
+                for (let i = 0; i < primerDow; i++) {
+                    html += `<div style="min-height: 96px; opacity: 0.15;"></div>`;
+                }
+            }
+
+            const cursor = new Date(desdeDate);
+            while (cursor <= hastaDate) {
+                const key = formatoFechaISO(cursor);
+                const info = data.resumenDias[key] || { ocupadas: 0, capacidadMaxima: 8, nivelColor: 'VERDE', esLaborable: true };
+                const selClass = (key === estadoCalendarioRecep.diaSeleccionado) ? 'selected' : '';
+                const disClass = !info.esLaborable ? 'disabled-day' : '';
+                const citasDia = citasPorDia[key] || [];
+
+                const badgeCap = info.esLaborable
+                    ? `<div class="cap-indicator ${claseSemaforoCapacidad(info.nivelColor)}">${info.ocupadas}/${info.capacidadMaxima} vehículos</div>`
+                    : `<div class="cap-indicator" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">Cerrado</div>`;
+
+                const previewCitas = citasDia.slice(0, 2).map(c =>
+                    `<div style="font-size: 0.72rem; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">• ${c.franjaHoraria} ${c.matriculaVehiculo}</div>`
+                ).join('');
+
+                html += `
+                    <div class="calendar-day-cell ${selClass} ${disClass}" onclick="seleccionarDiaCalendarioRecepcion('${key}')">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="font-size: 0.92rem;">${cursor.getDate()}</strong>
+                            ${citasDia.length > 0 ? `<span style="font-size: 0.7rem; color: var(--primary-light); font-weight: 700;">${citasDia.length} cita(s)</span>` : ''}
+                        </div>
+                        <div style="margin: 0.25rem 0;">${previewCitas}</div>
+                        ${badgeCap}
+                    </div>
+                `;
+                cursor.setDate(cursor.getDate() + 1);
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        async function seleccionarDiaCalendarioRecepcion(fechaIso) {
+            estadoCalendarioRecep.diaSeleccionado = fechaIso;
+            if (estadoCalendarioRecep.datos) {
+                const cur = new Date(estadoCalendarioRecep.fechaCursor);
+                let desdeDate, hastaDate;
+                if (estadoCalendarioRecep.vista === 'MENSUAL') {
+                    desdeDate = new Date(cur.getFullYear(), cur.getMonth(), 1);
+                    hastaDate = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+                } else if (estadoCalendarioRecep.vista === 'SEMANAL') {
+                    const dow = (cur.getDay() + 6) % 7;
+                    desdeDate = new Date(cur);
+                    desdeDate.setDate(cur.getDate() - dow);
+                    hastaDate = new Date(desdeDate);
+                    hastaDate.setDate(desdeDate.getDate() + 6);
+                } else {
+                    desdeDate = new Date(fechaIso);
+                    hastaDate = new Date(fechaIso);
+                }
+                renderizarGridCalendarioRecep(desdeDate, hastaDate, estadoCalendarioRecep.datos);
+            }
+            await renderizarDetalleDiaRecepcion(fechaIso);
+        }
+
+        async function seleccionarDiaYFranjaRecepcion(fechaIso, hora) {
+            await seleccionarDiaCalendarioRecepcion(fechaIso);
+            const selHora = document.getElementById('manual-cita-hora');
+            if (selHora && !selHora.disabled) {
+                selHora.value = hora;
+            }
+        }
+
+        async function renderizarDetalleDiaRecepcion(fechaIso) {
+            const box = document.getElementById('calendario-detalle-dia');
+            if (!box) return;
+
+            try {
+                const disp = await apiFetch(`/citas/disponibilidad?fecha=${fechaIso}`);
+                const citasDia = ((estadoCalendarioRecep.datos && estadoCalendarioRecep.datos.citas) || [])
+                    .filter(c => c.fecha === fechaIso);
+
+                const ocupadas = disp.ocupadasDia || 0;
+                const capMax = disp.capacidadMaximaDiaria || 8;
+                const completo = ocupadas >= capMax;
+                const habilitado = disp.habilitado;
+
+                const filasCitas = citasDia.length === 0
+                    ? `<tr><td colspan="6" class="empty-state" style="padding: 1.2rem;">No hay citas registradas para el día ${formatearFecha(fechaIso)} con el filtro seleccionado.</td></tr>`
+                    : citasDia.map(c => `
+                        <tr>
+                            <td><strong style="color: var(--primary-light); font-size: 0.95rem;">🕒 ${c.franjaHoraria}</strong><div style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">${c.codigoCita}</div></td>
+                            <td><strong>${c.nombreCliente}</strong><div style="font-size:0.78rem; color:var(--text-muted);">📞 ${c.telefonoCliente}</div></td>
+                            <td><strong>${c.matriculaVehiculo}</strong><div style="font-size:0.78rem; color:var(--text-muted);">${c.marcaVehiculo} ${c.modeloVehiculo}</div></td>
+                            <td><strong>${c.motivo}</strong>${c.observaciones ? `<div style="font-size:0.78rem; color:var(--text-muted);">${c.observaciones}</div>` : ''}</td>
+                            <td>
+                                <span class="badge ${c.estado === 'CONFIRMADA' || c.estado === 'RECEPCIONADA' ? 'badge-confirmed' : (c.estado === 'CANCELADA' ? 'badge-delivered' : 'badge-pending')}">
+                                    ${c.estado}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                    <select id="est-cita-${c.id}" style="width: auto; padding: 0.28rem 0.45rem; font-size: 0.78rem;">
+                                        <option value="PENDIENTE" ${c.estado === 'PENDIENTE' ? 'selected' : ''}>PENDIENTE</option>
+                                        <option value="CONFIRMADA" ${c.estado === 'CONFIRMADA' ? 'selected' : ''}>CONFIRMADA</option>
+                                        <option value="RECEPCIONADA" ${c.estado === 'RECEPCIONADA' ? 'selected' : ''}>RECEPCIONADA</option>
+                                        <option value="CANCELADA" ${c.estado === 'CANCELADA' ? 'selected' : ''}>CANCELADA</option>
+                                    </select>
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.55rem; font-size: 0.76rem;" onclick="cambiarEstadoCitaRecepcion(${c.id})">Guardar</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                const opcionesFranja = (disp.franjas || []).map(f =>
+                    `<option value="${f.franja}" ${!f.disponible ? 'disabled' : ''}>${f.franja} (${f.ocupadas}/${f.capacidad} ocupadas ${!f.disponible ? '- COMPLETO/NO DISP.' : ''})</option>`
+                ).join('');
+
+                const alertaCapacidad = completo
+                    ? `<div class="alert alert-error" style="margin-bottom: 0.85rem;">
+                           <span>⚠️ <strong>Capacidad máxima superada (${ocupadas}/${capMax} vehículos aceptados):</strong> el sistema bloquea la creación de nuevas citas manuales en este horario/día.</span>
+                       </div>`
+                    : (!habilitado && disp.motivoBloqueo
+                        ? `<div class="alert alert-warning" style="margin-bottom: 0.85rem;"><span>⚠️ ${disp.motivoBloqueo}</span></div>`
+                        : '');
+
+                const todasGlobales = (estadoCalendarioRecep.datos && estadoCalendarioRecep.datos.todasLasCitas) || [];
+                const filasGlobales = todasGlobales.length === 0
+                    ? `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1rem;">No hay citas registradas en el taller con el filtro actual.</td></tr>`
+                    : todasGlobales.map(c => `
+                        <tr style="${c.fechaCita === fechaIso ? 'background: rgba(59,130,246,0.1);' : ''}">
+                            <td>
+                                <strong>${formatearFecha(c.fechaCita)}</strong> a las <span style="color: var(--primary-light); font-weight: 700;">${c.franjaHoraria}</span>
+                                <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${c.codigoCita || ('#' + c.id)}</div>
+                            </td>
+                            <td>
+                                <strong>${c.nombreCliente || '—'}</strong>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">📞 ${c.telefonoCliente || 'Sin tlf.'}</div>
+                            </td>
+                            <td>
+                                <span style="font-family: monospace; font-weight: 700;">${c.matriculaVehiculo || '—'}</span>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">${c.marcaModeloVehiculo || ''}</div>
+                            </td>
+                            <td>
+                                <strong>${c.motivoServicio || '—'}</strong>
+                                ${c.observaciones ? `<div style="font-size: 0.76rem; color: var(--text-muted);">${c.observaciones}</div>` : ''}
+                            </td>
+                            <td>
+                                <span class="badge ${c.estado === 'CONFIRMADA' || c.estado === 'RECEPCIONADA' ? 'badge-confirmed' : (c.estado === 'CANCELADA' ? 'badge-delivered' : 'badge-pending')}">
+                                    ${c.estado}
+                                </span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.76rem;" onclick="irADiaCalendarioRecepcion('${c.fechaCita}')">
+                                    📅 Ver Día (${formatearFecha(c.fechaCita)})
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                box.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.15rem;">📋 Desglose de Citas del Día: <span style="color: var(--primary-light);">${formatearFecha(fechaIso)}</span></h3>
+                            <p style="margin: 0.2rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
+                                Ocupación actual del día: <strong>${ocupadas}/${capMax} vehículos aceptados</strong> (${disp.plazasLibresDia} plaza(s) disponible(s)).
+                            </p>
+                        </div>
+                        <span class="cap-indicator ${claseSemaforoCapacidad(disp.nivelOcupacion)}" style="width: auto; padding: 0.35rem 0.85rem; font-size: 0.82rem;">
+                            ${ocupadas}/${capMax} vehículos aceptados
+                        </span>
+                    </div>
+
+                    <div class="table-responsive" style="margin-bottom: 1.5rem;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Hora / Código</th>
+                                    <th>Cliente</th>
+                                    <th>Vehículo</th>
+                                    <th>Motivo del Servicio</th>
+                                    <th>Estado</th>
+                                    <th>Cambiar Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasCitas}</tbody>
+                        </table>
+                    </div>
+
+                    <!-- Creación de Cita Manual desde Recepción con bloqueo al 100% -->
+                    <div style="background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <h4 style="margin: 0 0 0.65rem 0; color: var(--primary-light);">➕ Registrar Nueva Cita Manual en Recepción (${formatearFecha(fechaIso)})</h4>
+                        <div id="alerta-cita-manual-recep">${alertaCapacidad}</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 0.75rem; align-items: end;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.78rem;">Tramo Horario</label>
+                                <select id="manual-cita-hora" ${!habilitado ? 'disabled' : ''}>${opcionesFranja}</select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.78rem;">Matrícula Vehículo *</label>
+                                <input type="text" id="manual-cita-matricula" placeholder="Ej. 1234ABC" style="text-transform: uppercase;" ${!habilitado ? 'disabled' : ''}>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.78rem;">Nombre Cliente *</label>
+                                <input type="text" id="manual-cita-cliente" placeholder="Nombre y apellidos" ${!habilitado ? 'disabled' : ''}>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.78rem;">Teléfono Cliente *</label>
+                                <input type="text" id="manual-cita-telefono" placeholder="Ej. 611223344" ${!habilitado ? 'disabled' : ''}>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.78rem;">Motivo del Servicio *</label>
+                                <select id="manual-cita-motivo" ${!habilitado ? 'disabled' : ''}>
+                                    <option value="Revisión periódica">Revisión periódica</option>
+                                    <option value="Cambio de neumáticos">Cambio de neumáticos</option>
+                                    <option value="Avería mecánica">Avería mecánica</option>
+                                    <option value="Frenos y suspensión">Frenos y suspensión</option>
+                                    <option value="Diagnóstico electrónico">Diagnóstico electrónico</option>
+                                    <option value="Pre-ITV">Revisión Pre-ITV</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-primary" style="width: 100%;" ${!habilitado ? 'disabled' : ''} onclick="crearCitaManualRecepcion('${fechaIso}', this)">
+                                    📅 Agendar Cita
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Listado General de Todas las Citas Programadas en el Taller -->
+                    <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 1rem;">
+                        <h4 style="margin: 0 0 0.65rem 0; color: var(--primary-light);">📌 Listado General de Todas las Citas Programadas en el Taller (${todasGlobales.length})</h4>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Cliente</th>
+                                        <th>Vehículo</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th>Ir al Calendario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${filasGlobales}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                box.innerHTML = `<div class="alert alert-error"><span>Error al cargar detalle del día: ${e.message}</span></div>`;
+            }
+        }
+
+        async function cambiarEstadoCitaRecepcion(citaId) {
+            const nuevoEstado = document.getElementById(`est-cita-${citaId}`)?.value;
+            if (!nuevoEstado) return;
+            try {
+                const res = await apiFetch(`/citas/${citaId}/estado`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ estado: nuevoEstado })
+                });
+                mostrarAlerta(res.mensaje || 'Estado de la cita actualizado.', 'success', document.getElementById('alerts-container'));
+                await cargarCalendarioRecepcion();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alerts-container'));
+            }
+        }
+
+        async function crearCitaManualRecepcion(fechaIso, btn) {
+            const alertBox = document.getElementById('alerta-cita-manual-recep');
+            const franjaHoraria = document.getElementById('manual-cita-hora')?.value;
+            const matricula = document.getElementById('manual-cita-matricula')?.value.trim().toUpperCase();
+            const nombreCliente = document.getElementById('manual-cita-cliente')?.value.trim();
+            const telefonoCliente = document.getElementById('manual-cita-telefono')?.value.trim();
+            const motivo = document.getElementById('manual-cita-motivo')?.value;
+
+            if (!matricula || !telefonoCliente || !franjaHoraria || !motivo) {
+                mostrarAlerta('Debes completar matrícula, teléfono del cliente, tramo horario y motivo.', 'error', alertBox);
+                return;
+            }
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch('/citas', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        fecha: fechaIso,
+                        franjaHoraria,
+                        matricula,
+                        nombreCliente: nombreCliente || ('Cliente ' + matricula),
+                        telefonoCliente,
+                        motivo,
+                        estado: 'CONFIRMADA'
+                    })
+                });
+                mostrarAlerta(res.mensaje || 'Cita manual agendada correctamente.', 'success', document.getElementById('alerts-container'));
+                await cargarCalendarioRecepcion();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
+            }
         }
     </script>
 </body>

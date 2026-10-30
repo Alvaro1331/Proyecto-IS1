@@ -143,6 +143,21 @@
                 ? `<div style="margin-top: 0.75rem; font-size: 0.88rem; color: var(--info);">🔩 <strong>Piezas sustituidas / empleadas:</strong> ${rep.materialesDetalle.join(' · ')}</div>`
                 : '';
 
+            let presupuestoHtml = '';
+            if (rep.presupuestoFormal) {
+                presupuestoHtml = `
+                    <div style="margin-top: 1.25rem; border-top: 1px solid var(--color-border); padding-top: 1.25rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem;">
+                            <h3 style="margin:0; color: var(--info);">📋 Presupuesto Desglosado (${rep.presupuestoFormal.numeroPresupuesto})</h3>
+                            <button type="button" class="btn btn-secondary" onclick="abrirModalPresupuestoObjeto(ultimaReparacionConsultada.presupuestoFormal)">
+                                🖨️ Ver / Imprimir Presupuesto PDF
+                            </button>
+                        </div>
+                        ${renderizarPresupuestoDesglosadoHTML(rep.presupuestoFormal)}
+                    </div>
+                `;
+            }
+
             let facturaHtml = '';
             if (rep.factura) {
                 facturaHtml = `
@@ -193,6 +208,7 @@
                     </div>
 
                     ${timelineHtml}
+                    ${presupuestoHtml}
                     ${incidenciasHtml}
                     ${facturaHtml}
                 </div>

@@ -1,7 +1,11 @@
 package com.taller.services;
 
 import com.taller.models.ConfiguracionTaller;
+import com.taller.models.Factura;
+import com.taller.models.Reparacion;
 import com.taller.repositories.ConfiguracionTallerRepository;
+import com.taller.repositories.FacturaRepository;
+import com.taller.repositories.ReparacionMaterialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +23,12 @@ public class ConfiguracionTallerService {
     @Autowired
     private ConfiguracionTallerRepository configuracionRepository;
 
+    @Autowired
+    private FacturaRepository facturaRepository;
+
+    @Autowired
+    private ReparacionMaterialRepository reparacionMaterialRepository;
+
     /**
      * Devuelve siempre la configuración activa del taller.
      * Si no existe todavía en la base de datos, crea el registro por defecto (15%, 35 €/h, 2000 €).
@@ -33,7 +43,8 @@ public class ConfiguracionTallerService {
     }
 
     /**
-     * Actualiza los parámetros de configuración del taller.
+     * Actualiza los parámetros de configuración del taller y recalcula las facturas
+     * para que la Tesorería General refleje inmediatamente las nuevas tarifas.
      */
     public synchronized ConfiguracionTaller actualizarConfiguracion(Double margenBeneficioPorcentaje,
                                                                      Double precioHoraManoObra,
@@ -61,6 +72,36 @@ public class ConfiguracionTallerService {
             config.setFondoInicial(Math.round(fondoInicial * 100.0) / 100.0);
         }
 
-        return configuracionRepository.save(config);
+        ConfiguracionTaller guardada = configuracionRepository.save(config);
+
+        // Recalcular facturas existentes con las tarifas actualizadas del taller
+        List<Factura> facturas = facturaRepository.findAll();
+        for (Factura f : facturas) {
+            Reparacion rep = f.getReparacion();
+            double costeMateriales = f.getCosteMateriales() != null ? f.getCosteMateriales() : 0.0;
+            if (rep != null && rep.getId() != null) {
+                double costeReal = reparacionMaterialRepository.findByReparacionId(rep.getId()).stream()
+                        .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
+                        .sum();
+                if (costeReal > 0) {
+                    costeMateriales = costeReal;
+                }
+            }
+            double horas = (rep != null && rep.getHorasTrabajoMecanico() != null && rep.getHorasTrabajoMecanico() > 0)
+                    ? rep.getHorasTrabajoMecanico()
+                    : (f.getHorasManoObra() != null && f.getHorasManoObra() > 0 ? f.getHorasManoObra() : 1.5);
+            double iva = f.getPorcentajeIva() != null ? f.getPorcentajeIva() : 21.0;
+
+            f.recalcularImportes(
+                    costeMateriales,
+                    horas,
+                    guardada.getPrecioHoraManoObra(),
+                    guardada.getMargenBeneficioPorcentaje(),
+                    iva
+            );
+            facturaRepository.save(f);
+        }
+
+        return guardada;
     }
 }

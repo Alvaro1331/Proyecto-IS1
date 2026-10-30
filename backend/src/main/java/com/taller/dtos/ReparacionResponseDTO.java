@@ -57,6 +57,10 @@ public class ReparacionResponseDTO {
     private List<String> materialesDetalle;
     private List<Map<String, Object>> incidencias;
     private Map<String, Object> factura;
+    private Map<String, Object> presupuestoFormal;
+    private String estadoPresupuesto;
+    private String dniCifCliente;
+    private String direccionFiscalCliente;
     private String mensaje;
 
     public ReparacionResponseDTO() {}
@@ -192,6 +196,18 @@ public class ReparacionResponseDTO {
 
     public Map<String, Object> getFactura() { return factura; }
     public void setFactura(Map<String, Object> factura) { this.factura = factura; }
+
+    public Map<String, Object> getPresupuestoFormal() { return presupuestoFormal; }
+    public void setPresupuestoFormal(Map<String, Object> presupuestoFormal) { this.presupuestoFormal = presupuestoFormal; }
+
+    public String getEstadoPresupuesto() { return estadoPresupuesto; }
+    public void setEstadoPresupuesto(String estadoPresupuesto) { this.estadoPresupuesto = estadoPresupuesto; }
+
+    public String getDniCifCliente() { return dniCifCliente; }
+    public void setDniCifCliente(String dniCifCliente) { this.dniCifCliente = dniCifCliente; }
+
+    public String getDireccionFiscalCliente() { return direccionFiscalCliente; }
+    public void setDireccionFiscalCliente(String direccionFiscalCliente) { this.direccionFiscalCliente = direccionFiscalCliente; }
 
     public String getMensaje() { return mensaje; }
     public void setMensaje(String mensaje) { this.mensaje = mensaje; }

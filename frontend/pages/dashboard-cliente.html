@@ -10,7 +10,7 @@
             background-color: var(--color-bg-card);
             border-radius: 8px;
             padding: 1.5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.75rem;
             border: 1px solid var(--color-border);
             border-left: 4px solid var(--primary);
         }
@@ -74,14 +74,6 @@
             border-radius: 6px;
             margin-bottom: 1rem;
         }
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            background: var(--color-bg-card);
-            border-radius: 8px;
-            border: 1px dashed var(--color-border);
-            color: var(--color-text-muted);
-        }
     </style>
 </head>
 <body>
@@ -97,14 +89,14 @@
         </div>
     </nav>
 
-    <main class="container" style="margin-top: 2rem;">
+    <main class="container" style="margin-top: 2rem; margin-bottom: 3rem;">
         <div id="alerts-container"></div>
 
         <!-- Perfil del Cliente -->
         <section class="bienvenida-banner">
             <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
             <div>
-                <p class="bienvenida-saludo">Mi Cuenta · Seguimiento e historial de tus vehículos</p>
+                <p class="bienvenida-saludo">Mi Cuenta · Seguimiento, Presupuestos y Citas Previas</p>
                 <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
                 <div class="bienvenida-meta">
                     <span class="bienvenida-rol" id="bienvenida-rol">CLIENTE</span>
@@ -118,23 +110,170 @@
             </div>
         </section>
 
-        <!-- Formulario para Vincular Localizador -->
-        <div class="vincular-card">
-            <h3 style="margin: 0;">➕ Vincular Nueva Reparación a tu Cuenta</h3>
-            <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0.5rem 0 0 0;">
-                Introduce el código localizador que te dio el recepcionista para guardarlo en tu cuenta y consultar su línea temporal, fotos del mecánico y factura.
-            </p>
-            <form id="form-vincular" class="vincular-form" onsubmit="vincularLocalizador(event)">
-                <input type="text" id="input-localizador" placeholder="Ej. A3F7K9X2" maxlength="12" required>
-                <button type="submit" id="btn-vincular" class="btn btn-primary">Vincular a mi Cuenta</button>
-            </form>
+        <!-- Pestañas de navegación del Cliente -->
+        <div class="tabs" style="margin-bottom: 1.5rem;">
+            <button type="button" class="tab-btn active" id="btn-cli-rep" onclick="mostrarSeccionCliente('sec-reparaciones', this)">
+                🚗 Mis Reparaciones y Presupuestos <span id="badge-pres-pendientes" class="badge badge-pending" style="display: none; margin-left: 0.35rem;">0</span>
+            </button>
+            <button type="button" class="tab-btn" id="btn-cli-citas" onclick="mostrarSeccionCliente('sec-citas-previas', this)">
+                📅 Solicitar Cita Previa
+            </button>
         </div>
 
-        <!-- Mis Reparaciones Guardadas -->
-        <div>
-            <h3 style="margin-bottom: 1rem;">🚗 Mis Vehículos, Línea Temporal y Facturas</h3>
-            <div id="repairs-container" class="repairs-grid">
-                <div class="empty-state">Cargando tus reparaciones...</div>
+        <!-- SECCIÓN 1: REPARACIONES, PRESUPUESTOS Y FACTURAS -->
+        <div id="sec-reparaciones" class="tab-content active">
+            <!-- Formulario para Vincular Localizador -->
+            <div class="vincular-card">
+                <h3 style="margin: 0;">➕ Vincular Nueva Reparación a tu Cuenta</h3>
+                <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+                    Introduce el código localizador que te entregó el recepcionista para vincularlo a tu perfil, aceptar o rechazar presupuestos y consultar la línea temporal y facturas.
+                </p>
+                <form id="form-vincular" class="vincular-form" onsubmit="vincularLocalizador(event)">
+                    <input type="text" id="input-localizador" placeholder="Ej. A3F7K9X2" maxlength="12" required>
+                    <button type="submit" id="btn-vincular" class="btn btn-primary">Vincular a mi Cuenta</button>
+                </form>
+            </div>
+
+            <!-- Mis Reparaciones Guardadas -->
+            <div>
+                <h3 style="margin-bottom: 1rem;">🚗 Mis Vehículos, Presupuestos, Línea Temporal y Facturas</h3>
+                <div id="repairs-container" class="repairs-grid">
+                    <div class="empty-state">Cargando tus reparaciones...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: SOLICITAR CITA PREVIA Y MIS CITAS (Historia de Usuario 4) -->
+        <div id="sec-citas-previas" class="tab-content">
+            <div class="card" style="border-left: 5px solid var(--info); margin-bottom: 2rem;">
+                <h2 style="margin: 0 0 0.35rem 0;">📅 Solicitar Cita Previa en el Taller</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+                    Selecciona tu vehículo, el motivo del servicio y elige un día laborable y tramo horario con aforo disponible.
+                </p>
+
+                <div id="alerta-solicitar-cita"></div>
+
+                <!-- Pantalla de confirmación de cita recién creada -->
+                <div id="resumen-cita-confirmada" style="display: none; margin-bottom: 1.5rem; padding: 1.25rem; border-radius: 8px; background: rgba(22, 163, 74, 0.14); border: 2px solid var(--success);"></div>
+
+                <form id="form-solicitar-cita" onsubmit="confirmarSolicitudCitaCliente(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>1. Selecciona tu Vehículo *</label>
+                            <select id="cita-vehiculo-select" required onchange="onCambioVehiculoCitaCliente()">
+                                <option value="">Cargando tus vehículos...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>2. Motivo de la Visita *</label>
+                            <select id="cita-motivo-select" required>
+                                <option value="">-- Selecciona el motivo del servicio --</option>
+                                <option value="Revisión periódica">Revisión periódica / Mantenimiento</option>
+                                <option value="Cambio de neumáticos">Cambio y equilibrado de neumáticos</option>
+                                <option value="Avería mecánica">Avería mecánica general</option>
+                                <option value="Frenos y suspensión">Revisión de frenos y suspensión</option>
+                                <option value="Diagnóstico electrónico">Diagnóstico electrónico / Testigos</option>
+                                <option value="Pre-ITV">Revisión Pre-ITV</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Campos adicionales si el cliente quiere registrar un vehículo nuevo al pedir cita -->
+                    <div id="cita-nuevo-vehiculo-box" style="display: none; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary-light); margin-bottom: 0.5rem;">Datos de tu vehículo para la cita:</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+                            <div>
+                                <label style="font-size: 0.78rem;">Matrícula *</label>
+                                <input type="text" id="cita-nueva-matricula" placeholder="Ej. 1234ABC" style="text-transform: uppercase;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.78rem;">Marca *</label>
+                                <input type="text" id="cita-nueva-marca" placeholder="Ej. Toyota">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.78rem;">Modelo *</label>
+                                <input type="text" id="cita-nuevo-modelo" placeholder="Ej. Auris">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Detalles o síntomas adicionales (Opcional)</label>
+                        <input type="text" id="cita-observaciones" placeholder="Ej. Ruido al girar a la derecha o cambio de aceite 30.000 km...">
+                    </div>
+
+                    <!-- Selección de Fecha Laborable y Franja Horaria -->
+                    <div style="background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
+                            <div style="flex: 1; min-width: 220px;">
+                                <label style="margin-bottom: 0.35rem;">3. Fecha de la Cita (Días laborables Lunes a Viernes) *</label>
+                                <input type="date" id="cita-fecha-input" required onchange="cargarDisponibilidadFechaCliente()">
+                            </div>
+                            <div id="cita-estado-aforo-dia" style="font-size: 0.88rem;"></div>
+                        </div>
+
+                        <label style="font-size: 0.86rem; margin-bottom: 0.4rem;">4. Selecciona un Tramo Horario Disponible *</label>
+                        <input type="hidden" id="cita-franja-seleccionada" value="">
+                        <div id="cita-franjas-container" class="slot-grid"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="btn-confirmar-cita-cliente" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+                        📅 Confirmar Cita Previa
+                    </button>
+                </form>
+            </div>
+
+            <!-- Listado de Citas Programadas del Cliente -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">🗓️ Mis Citas Programadas</h3>
+                    <button type="button" class="btn btn-secondary" style="font-size: 0.84rem;" onclick="cargarMisCitasCliente()">↻ Actualizar</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Código Cita</th>
+                                <th>Fecha y Hora</th>
+                                <th>Vehículo</th>
+                                <th>Motivo del Servicio</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-mis-citas-cliente"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Emergente de Confirmación de Presupuesto con Contraseña (Historia de Usuario 3) -->
+        <div id="modal-confirmar-presupuesto-cliente" class="modal-overlay">
+            <div class="modal card" style="max-width: 480px; width: 95%; border-top: 4px solid var(--primary);">
+                <h3 id="modal-pres-cli-titulo" style="margin: 0 0 0.5rem 0;">Confirmar Decisión sobre el Presupuesto</h3>
+                <p id="modal-pres-cli-desc" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+
+                <div id="modal-pres-cli-alert"></div>
+
+                <div class="form-group" id="wrap-motivo-rechazo-cli" style="display: none;">
+                    <label style="font-size: 0.85rem;">Motivo del rechazo (Opcional)</label>
+                    <textarea id="input-motivo-rechazo-cli" rows="2" placeholder="Indica si lo deseas el motivo por el que rechazas el presupuesto..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size: 0.85rem;">🔒 Introduce la contraseña de tu cuenta para confirmar *</label>
+                    <input type="password" id="input-password-confirm-cli" placeholder="Tu contraseña de acceso..." required>
+                    <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                        Por seguridad, es obligatorio verificar tu identidad antes de formalizar la aceptación o rechazo.
+                    </small>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalConfirmacionPresupuesto()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-ejecutar-respuesta-pres" onclick="ejecutarRespuestaPresupuestoCliente(this)">
+                        Confirmar con Contraseña
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -142,6 +281,7 @@
     <script src="../js/app.js"></script>
     <script>
         let reparacionesClienteCache = [];
+        let decisionPresupuestoActiva = { reparacionId: null, accion: null, numeroPresupuesto: '', total: 0 };
 
         document.addEventListener('DOMContentLoaded', () => {
             const user = getUsuarioActual();
@@ -154,8 +294,23 @@
             document.getElementById('profile-email').textContent = user.email || 'Sin correo registrado';
             document.getElementById('profile-phone').textContent = user.telefono || 'Sin teléfono';
 
+            inicializarFechaCitaPorDefecto();
             cargarMisReparaciones();
+            cargarVehiculosParaCitaCliente();
+            cargarMisCitasCliente();
         });
+
+        function mostrarSeccionCliente(secId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(secId).classList.add('active');
+            if (btn) btn.classList.add('active');
+            if (secId === 'sec-citas-previas') {
+                cargarVehiculosParaCitaCliente();
+                cargarDisponibilidadFechaCliente();
+                cargarMisCitasCliente();
+            }
+        }
 
         async function cargarMisReparaciones() {
             const user = getUsuarioActual();
@@ -168,6 +323,15 @@
                 const activas = reparacionesClienteCache.filter(r => r.estado !== 'ENTREGADA').length;
                 const resumen = document.getElementById('resumen-activas');
                 if (resumen) resumen.textContent = activas;
+
+                const presPendientes = reparacionesClienteCache.filter(r =>
+                    r.presupuestoFormal && r.presupuestoFormal.estado === 'PENDIENTE_ACEPTACION' && !r.presupuestoFormal.caducado
+                ).length;
+                const badgePres = document.getElementById('badge-pres-pendientes');
+                if (badgePres) {
+                    badgePres.style.display = presPendientes > 0 ? 'inline-block' : 'none';
+                    badgePres.textContent = `${presPendientes} pendiente(s)`;
+                }
 
                 if (reparacionesClienteCache.length === 0) {
                     container.innerHTML = `
@@ -187,6 +351,63 @@
                     const timelineHtml = renderizarLineaTemporalHTML(r);
                     const incidenciasHtml = renderizarIncidenciasHTML(r.incidencias || []);
 
+                    // Bloque de Presupuesto Formal Desglosado (Historias 1 y 3)
+                    let bloquePresupuestoHtml = '';
+                    if (r.presupuestoFormal) {
+                        const p = r.presupuestoFormal;
+                        const puedeResponder = (p.estado === 'PENDIENTE_ACEPTACION' && !p.caducado);
+                        let botonesRespuestaHtml = '';
+
+                        if (puedeResponder) {
+                            botonesRespuestaHtml = `
+                                <div style="margin-top: 1rem; padding: 1rem; border-radius: 8px; background: rgba(245, 158, 11, 0.12); border: 1px solid var(--warning); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                                    <div>
+                                        <strong style="color: #FCD34D; font-size: 0.95rem;">⚠️ Presupuesto pendiente de tu aceptación</strong>
+                                        <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                            Revisa el desglose de piezas y mano de obra y confirma si autorizas el inicio de la reparación.
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-success" onclick="abrirModalConfirmacionPresupuesto(${r.id}, 'ACEPTAR', '${p.numeroPresupuesto}', ${p.totalPresupuesto})">
+                                            ✅ Aceptar Presupuesto
+                                        </button>
+                                        <button type="button" class="btn btn-danger" onclick="abrirModalConfirmacionPresupuesto(${r.id}, 'RECHAZAR', '${p.numeroPresupuesto}', ${p.totalPresupuesto})">
+                                            ❌ Rechazar Presupuesto
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            const textoBloqueo = p.caducado
+                                ? `Este presupuesto superó su fecha de validez (${formatearFecha(p.fechaValidez)}).`
+                                : (p.estado === 'ACEPTADO'
+                                    ? `✅ Ya has aceptado este presupuesto. Tu vehículo está autorizado y listo para reparar.`
+                                    : `❌ Has rechazado este presupuesto.${p.motivoRechazo ? ' Motivo registrado: ' + p.motivoRechazo : ''}`);
+                            botonesRespuestaHtml = `
+                                <div style="margin-top: 0.85rem; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.86rem;">
+                                    <span>${textoBloqueo}</span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button type="button" class="btn btn-secondary" disabled style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Aceptar Presupuesto</button>
+                                        <button type="button" class="btn btn-secondary" disabled style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Rechazar Presupuesto</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        bloquePresupuestoHtml = `
+                            <div style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1.25rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
+                                    <h4 style="margin: 0; color: var(--info);">📋 Presupuesto Desglosado del Taller (${p.numeroPresupuesto})</h4>
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.82rem;" onclick="verPresupuestoCliente(${idx})">
+                                        🖨️ Ver / Descargar Presupuesto PDF
+                                    </button>
+                                </div>
+                                ${renderizarPresupuestoDesglosadoHTML(p)}
+                                ${botonesRespuestaHtml}
+                            </div>
+                        `;
+                    }
+
                     let bloqueFacturaHtml = '';
                     if (r.factura) {
                         bloqueFacturaHtml = `
@@ -204,7 +425,7 @@
                         bloqueFacturaHtml = `
                             <div style="margin-top: 1rem; padding: 0.85rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.9rem;">
                                 <div>
-                                    <span style="color: var(--text-muted);">Estimación inicial orientativa en Recepción:</span>
+                                    <span style="color: var(--text-muted);">Presupuesto de referencia:</span>
                                     <strong style="margin-left: 0.35rem;">${formatearEuros(r.estimacionInicial)}</strong>
                                 </div>
                                 <div>
@@ -221,14 +442,17 @@
                                 <span class="repair-title">🚗 ${r.marca} ${r.modelo} (${r.matricula})</span>
                                 <span style="margin-left: 0.75rem; font-family: monospace; color: var(--text-muted); font-size: 0.95rem;">Loc: <strong style="color: var(--primary);">${r.localizador}</strong></span>
                             </div>
-                            ${crearBadgeEstado(r.estado)}
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
+                                ${crearBadgeEstado(r.estado)}
+                            </div>
                         </div>
 
                         <div class="repair-meta-grid">
                             <div><strong>Fecha Entrada:</strong> ${r.fechaEntrada ? formatearFecha(r.fechaEntrada) : 'N/A'}</div>
                             <div><strong>Entrega Estimada:</strong> ${r.fechaEstimadaFin ? formatearFecha(r.fechaEstimadaFin) : 'En evaluación'} (${r.diasEstimados || 3} días)</div>
                             <div><strong>Mecánico:</strong> ${r.mecanico ? `<span style="color: var(--text-light); font-weight: 600;">🔧 ${r.mecanico}</span>` : '<span style="color: var(--warning);">Pendiente de asignar</span>'}</div>
-                            <div><strong>Estimación Orientativa:</strong> ${formatearEuros(r.estimacionInicial)}</div>
+                            <div><strong>Referencia:</strong> ${formatearEuros(r.estimacionInicial)}</div>
                         </div>
 
                         <div style="margin-bottom: 0.75rem;">
@@ -237,6 +461,7 @@
                         </div>
 
                         ${timelineHtml}
+                        ${ bloquePresupuestoHtml }
                         ${incidenciasHtml}
                         ${bloqueFacturaHtml}
                     `;
@@ -251,6 +476,72 @@
             const r = reparacionesClienteCache[idx];
             if (r && r.factura) {
                 abrirModalFacturaObjeto(r.factura);
+            }
+        }
+
+        function verPresupuestoCliente(idx) {
+            const r = reparacionesClienteCache[idx];
+            if (r && r.presupuestoFormal) {
+                abrirModalPresupuestoObjeto(r.presupuestoFormal);
+            }
+        }
+
+        // ======== HISTORIA 3: CONFIRMACIÓN DE PRESUPUESTO CON CONTRASEÑA ========
+        function abrirModalConfirmacionPresupuesto(reparacionId, accion, numeroPresupuesto, total) {
+            decisionPresupuestoActiva = { reparacionId, accion, numeroPresupuesto, total };
+            document.getElementById('modal-pres-cli-alert').innerHTML = '';
+            document.getElementById('input-password-confirm-cli').value = '';
+            document.getElementById('input-motivo-rechazo-cli').value = '';
+
+            const esAceptar = (accion === 'ACEPTAR');
+            document.getElementById('modal-pres-cli-titulo').textContent = esAceptar
+                ? `✅ Confirmar Aceptación de Presupuesto`
+                : `❌ Confirmar Rechazo de Presupuesto`;
+            document.getElementById('modal-pres-cli-desc').innerHTML = esAceptar
+                ? `Vas a <strong>ACEPTAR</strong> el presupuesto <strong>${numeroPresupuesto}</strong> por un total de <strong>${formatearEuros(total)}</strong> (IVA incluido). El taller pasará tu vehículo a estado listo para reparar.`
+                : `Vas a <strong>RECHAZAR</strong> el presupuesto <strong>${numeroPresupuesto}</strong> (${formatearEuros(total)}).`;
+
+            document.getElementById('wrap-motivo-rechazo-cli').style.display = esAceptar ? 'none' : 'block';
+            const btn = document.getElementById('btn-ejecutar-respuesta-pres');
+            btn.className = esAceptar ? 'btn btn-success' : 'btn btn-danger';
+            btn.textContent = esAceptar ? '✅ Confirmar Aceptación' : '❌ Confirmar Rechazo';
+
+            document.getElementById('modal-confirmar-presupuesto-cliente').style.display = 'flex';
+            setTimeout(() => document.getElementById('input-password-confirm-cli').focus(), 80);
+        }
+
+        function cerrarModalConfirmacionPresupuesto() {
+            document.getElementById('modal-confirmar-presupuesto-cliente').style.display = 'none';
+        }
+
+        async function ejecutarRespuestaPresupuestoCliente(btn) {
+            const alertBox = document.getElementById('modal-pres-cli-alert');
+            alertBox.innerHTML = '';
+            const password = document.getElementById('input-password-confirm-cli').value;
+            const motivoRechazo = document.getElementById('input-motivo-rechazo-cli').value.trim();
+
+            if (!password) {
+                mostrarAlerta('Debes introducir la contraseña de tu cuenta para confirmar.', 'error', alertBox);
+                return;
+            }
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch(`/reparaciones/${decisionPresupuestoActiva.reparacionId}/presupuesto-formal/responder`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        accion: decisionPresupuestoActiva.accion,
+                        password,
+                        motivoRechazo
+                    })
+                });
+                cerrarModalConfirmacionPresupuesto();
+                mostrarAlerta(res.mensaje || 'Decisión registrada correctamente.', 'success', document.getElementById('alerts-container'));
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message || 'Contraseña incorrecta', 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
             }
         }
 
@@ -275,10 +566,250 @@
                 mostrarAlerta(res.mensaje || '¡Reparación vinculada con éxito!', 'success', alerts);
                 input.value = '';
                 cargarMisReparaciones();
+                cargarVehiculosParaCitaCliente();
             } catch (error) {
                 mostrarAlerta(error.message || 'No se pudo vincular la reparación.', 'error', alerts);
             } finally {
                 toggleLoading(btn, false);
+            }
+        }
+
+        // ======== HISTORIA 4: SOLICITAR CITA PREVIA DESDE LA APP DEL CLIENTE ========
+        function inicializarFechaCitaPorDefecto() {
+            const inputFecha = document.getElementById('cita-fecha-input');
+            if (!inputFecha) return;
+            const hoy = new Date();
+            const hoyIso = hoy.toISOString().split('T')[0];
+            inputFecha.min = hoyIso;
+
+            // Seleccionar próximo día laborable (Lunes a Viernes)
+            const sugerida = new Date();
+            sugerida.setDate(sugerida.getDate() + 1);
+            while (sugerida.getDay() === 0 || sugerida.getDay() === 6) {
+                sugerida.setDate(sugerida.getDate() + 1);
+            }
+            inputFecha.value = sugerida.toISOString().split('T')[0];
+        }
+
+        async function cargarVehiculosParaCitaCliente() {
+            const user = getUsuarioActual();
+            const sel = document.getElementById('cita-vehiculo-select');
+            if (!user || !sel) return;
+
+            try {
+                const vehiculos = await apiFetch(`/citas/cliente/${user.id}/vehiculos`);
+                let html = '<option value="">-- Selecciona uno de tus vehículos --</option>';
+                (vehiculos || []).forEach(v => {
+                    html += `<option value="${v.id}">${v.marca} ${v.modelo} (${v.matricula})</option>`;
+                });
+                html += `<option value="NUEVO">➕ Otro vehículo mío (introducir matrícula)</option>`;
+                sel.innerHTML = html;
+                if (vehiculos && vehiculos.length > 0) {
+                    sel.value = vehiculos[0].id;
+                }
+                onCambioVehiculoCitaCliente();
+            } catch (e) {
+                sel.innerHTML = `<option value="NUEVO">➕ Introducir mi vehículo manualmente</option>`;
+                onCambioVehiculoCitaCliente();
+            }
+        }
+
+        function onCambioVehiculoCitaCliente() {
+            const val = document.getElementById('cita-vehiculo-select')?.value;
+            const box = document.getElementById('cita-nuevo-vehiculo-box');
+            if (box) {
+                box.style.display = (val === 'NUEVO') ? 'block' : 'none';
+            }
+        }
+
+        async function cargarDisponibilidadFechaCliente() {
+            const fecha = document.getElementById('cita-fecha-input')?.value;
+            const container = document.getElementById('cita-franjas-container');
+            const infoAforo = document.getElementById('cita-estado-aforo-dia');
+            const inputFranja = document.getElementById('cita-franja-seleccionada');
+            if (!fecha || !container) return;
+
+            inputFranja.value = '';
+            container.innerHTML = `<div class="text-muted">Consultando horarios disponibles...</div>`;
+
+            try {
+                const disp = await apiFetch(`/citas/disponibilidad?fecha=${fecha}`);
+                const ocupadas = disp.ocupadasDia || 0;
+                const capMax = disp.capacidadMaximaDiaria || 8;
+                const claseColor = disp.nivelOcupacion === 'ROJO' ? 'cap-rojo' : (disp.nivelOcupacion === 'AMARILLO' ? 'cap-amarillo' : 'cap-verde');
+
+                infoAforo.innerHTML = `
+                    <span class="cap-indicator ${claseColor}" style="width: auto; padding: 0.3rem 0.75rem; font-size: 0.82rem;">
+                        Aforo del día: ${ocupadas}/${capMax} vehículos (${disp.plazasLibresDia} libres)
+                    </span>
+                `;
+
+                if (!disp.habilitado && disp.motivoBloqueo) {
+                    container.innerHTML = `
+                        <div class="alert alert-warning" style="grid-column: 1 / -1; margin-bottom: 0;">
+                            <span>⚠️ ${disp.motivoBloqueo} Por favor, selecciona otro día laborable en el calendario.</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = (disp.franjas || []).map(f => {
+                    const disClass = !f.disponible ? 'slot-disabled' : '';
+                    const estadoTexto = f.horaPasada
+                        ? 'Hora pasada'
+                        : (f.completo ? 'Completo (0 libres)' : `${f.plazasLibres} plaza(s) libre(s)`);
+                    return `
+                        <div class="slot-card ${disClass}" id="slot-cli-${f.franja.replace(':', '')}"
+                             onclick="${f.disponible ? `seleccionarFranjaCliente('${f.franja}')` : ''}">
+                            <div style="font-size: 1rem; font-weight: 700;">🕒 ${f.franja}</div>
+                            <div style="font-size: 0.76rem; color: ${f.disponible ? '#4ADE80' : 'var(--text-muted)'}; margin-top: 0.2rem;">
+                                ${estadoTexto}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                container.innerHTML = `<div class="alert alert-error"><span>Error al consultar disponibilidad: ${e.message}</span></div>`;
+            }
+        }
+
+        function seleccionarFranjaCliente(franja) {
+            document.getElementById('cita-franja-seleccionada').value = franja;
+            document.querySelectorAll('#cita-franjas-container .slot-card').forEach(el => el.classList.remove('slot-selected'));
+            const target = document.getElementById(`slot-cli-${franja.replace(':', '')}`);
+            if (target) target.classList.add('slot-selected');
+        }
+
+        async function confirmarSolicitudCitaCliente(e) {
+            e.preventDefault();
+            const user = getUsuarioActual();
+            const alertBox = document.getElementById('alerta-solicitar-cita');
+            const resumenBox = document.getElementById('resumen-cita-confirmada');
+            const btn = document.getElementById('btn-confirmar-cita-cliente');
+            alertBox.innerHTML = '';
+            resumenBox.style.display = 'none';
+
+            const vehiculoVal = document.getElementById('cita-vehiculo-select').value;
+            const motivo = document.getElementById('cita-motivo-select').value;
+            const observaciones = document.getElementById('cita-observaciones').value.trim();
+            const fecha = document.getElementById('cita-fecha-input').value;
+            const franjaHoraria = document.getElementById('cita-franja-seleccionada').value;
+
+            if (!vehiculoVal) {
+                mostrarAlerta('No puedes avanzar: debes seleccionar uno de tus vehículos registrados.', 'error', alertBox);
+                return;
+            }
+            if (!motivo) {
+                mostrarAlerta('No puedes avanzar: debes especificar el motivo de la cita.', 'error', alertBox);
+                return;
+            }
+            if (!fecha || !franjaHoraria) {
+                mostrarAlerta('Debes elegir una fecha laborable válida y pulsar sobre un tramo horario disponible.', 'error', alertBox);
+                return;
+            }
+
+            const payload = {
+                clienteId: user.id,
+                fecha,
+                franjaHoraria,
+                motivo,
+                observaciones
+            };
+
+            if (vehiculoVal === 'NUEVO') {
+                const mat = document.getElementById('cita-nueva-matricula').value.trim().toUpperCase();
+                const marca = document.getElementById('cita-nueva-marca').value.trim();
+                const modelo = document.getElementById('cita-nuevo-modelo').value.trim();
+                if (!mat || !marca || !modelo) {
+                    mostrarAlerta('Por favor indica la matrícula, marca y modelo de tu vehículo.', 'error', alertBox);
+                    return;
+                }
+                payload.matricula = mat;
+                payload.marca = marca;
+                payload.modelo = modelo;
+            } else {
+                payload.vehiculoId = Number(vehiculoVal);
+            }
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch('/citas', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                resumenBox.style.display = 'block';
+                resumenBox.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                        <div>
+                            <h3 style="margin: 0; color: #4ADE80;">✅ ¡Cita Previa Confirmada! (${res.codigoCita})</h3>
+                            <p style="margin: 0.25rem 0 0 0; color: var(--text-light); font-size: 0.92rem;">
+                                Te esperamos el <strong>${formatearFecha(res.fecha)}</strong> a las <strong>${res.franjaHoraria}</strong> con tu vehículo <strong>${res.marcaVehiculo} ${res.modeloVehiculo} (${res.matriculaVehiculo})</strong>.
+                            </p>
+                            <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                Motivo registrado: <strong>${res.motivo}</strong> · Estado: <span class="badge badge-confirmed">${res.estado}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('cita-observaciones').value = '';
+                await cargarDisponibilidadFechaCliente();
+                await cargarMisCitasCliente();
+                await cargarVehiculosParaCitaCliente();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+                await cargarDisponibilidadFechaCliente();
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        async function cargarMisCitasCliente() {
+            const user = getUsuarioActual();
+            const tbody = document.getElementById('tabla-mis-citas-cliente');
+            if (!user || !tbody) return;
+
+            try {
+                const citas = await apiFetch(`/citas/cliente/${user.id}`);
+                if (!citas || citas.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No tienes citas previas agendadas todavía.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = citas.map(c => `
+                    <tr>
+                        <td><strong style="font-family: monospace; color: var(--primary);">${c.codigoCita}</strong></td>
+                        <td><strong>${formatearFecha(c.fecha)}</strong> a las <strong style="color: var(--primary-light);">${c.franjaHoraria}</strong></td>
+                        <td><strong>${c.matriculaVehiculo}</strong> (${c.marcaVehiculo} ${c.modeloVehiculo})</td>
+                        <td>${c.motivo}${c.observaciones ? `<div style="font-size:0.78rem; color:var(--text-muted);">${c.observaciones}</div>` : ''}</td>
+                        <td>
+                            <span class="badge ${c.estado === 'CONFIRMADA' || c.estado === 'RECEPCIONADA' ? 'badge-confirmed' : (c.estado === 'CANCELADA' ? 'badge-delivered' : 'badge-pending')}">
+                                ${c.estado}
+                            </span>
+                        </td>
+                        <td>
+                            ${(c.estado === 'CONFIRMADA' || c.estado === 'PENDIENTE')
+                                ? `<button type="button" class="btn btn-danger" style="padding: 0.25rem 0.55rem; font-size: 0.76rem;" onclick="cancelarCitaCliente(${c.id})">Cancelar Cita</button>`
+                                : `<span class="text-muted" style="font-size: 0.8rem;">-</span>`
+                            }
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color: var(--accent);">Error al cargar tus citas: ${e.message}</td></tr>`;
+            }
+        }
+
+        async function cancelarCitaCliente(citaId) {
+            try {
+                await apiFetch(`/citas/${citaId}/estado`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ estado: 'CANCELADA' })
+                });
+                mostrarAlerta('Tu cita ha sido cancelada correctamente.', 'success', document.getElementById('alerts-container'));
+                await cargarMisCitasCliente();
+                await cargarDisponibilidadFechaCliente();
+            } catch (e) {
+                mostrarAlerta(e.message, 'error', document.getElementById('alerts-container'));
             }
         }
     </script>

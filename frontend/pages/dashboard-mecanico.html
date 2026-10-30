@@ -3,64 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Mecánico - MotorFlow</title>
+    <title>Panel de Mecánico - MotorFlow</title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1.15rem;
+            margin-bottom: 1.75rem;
         }
-        .dashboard-grid {
+        .mec-tabs {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .mec-tab-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .mec-tab-btn {
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mec-tab-btn:hover {
+            color: var(--text-light);
+            border-color: var(--primary);
+        }
+        .mec-tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
+        }
+        .filter-pills {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+        .filter-pill {
+            padding: 0.38rem 0.85rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .filter-pill.active {
+            background: rgba(59, 130, 246, 0.18);
+            color: #93c5fd;
+            border-color: #3b82f6;
+        }
+
+        /* Tarjeta de Orden de Trabajo */
+        .wo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.35rem;
+        }
+        .wo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+        }
+        .wo-card.phase-diagnostico {
+            border-left: 5px solid #f59e0b;
+        }
+        .wo-card.phase-activa {
+            border-left: 5px solid #3b82f6;
+        }
+        .wo-card.phase-finalizada {
+            border-left: 5px solid #10b981;
+        }
+        .wo-header {
+            padding: 1.1rem 1.35rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .wo-vehicle-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .wo-plate {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            font-family: monospace;
+            font-weight: 800;
+            font-size: 1rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            letter-spacing: 0.06em;
+        }
+
+        /* Stepper visual de 4 pasos */
+        .wo-stepper {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            padding: 0.85rem 1.35rem;
+            background: rgba(0, 0, 0, 0.22);
+            border-bottom: 1px solid var(--border);
         }
-        @media (min-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 2.15fr 1fr;
+        @media (max-width: 768px) {
+            .wo-stepper {
+                grid-template-columns: repeat(2, 1fr);
             }
+        }
+        .wo-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            padding: 0.4rem 0.65rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+        }
+        .wo-step.done {
+            color: #4ade80;
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.25);
+        }
+        .wo-step.current {
+            color: #fff;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.16);
+            border-color: rgba(59, 130, 246, 0.45);
+        }
+        .wo-step.blocked {
+            color: #fbbf24;
+            font-weight: 700;
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+
+        .wo-body {
+            padding: 1.25rem 1.35rem;
+        }
+        .wo-averia-box {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.15rem;
+        }
+        .wo-status-banner {
+            border-radius: 8px;
+            padding: 1rem 1.15rem;
+            margin-bottom: 1.15rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .wo-status-banner.banner-warn {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fde68a;
+        }
+        .wo-status-banner.banner-danger {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.45);
+            color: #fecaca;
+        }
+        .wo-status-banner.banner-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #a7f3d0;
+        }
+
+        /* Grid de trabajo en 3 bloques limpios */
+        .wo-work-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+            gap: 1.1rem;
+        }
+        .wo-panel {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .wo-panel h4 {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.92rem;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .inline-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .inline-input-group input {
+            width: 80px;
+            padding: 0.35rem 0.5rem;
+            text-align: center;
+            font-weight: 700;
+        }
+        .wo-footer {
+            padding: 0.9rem 1.35rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
         }
         .stock-low {
             background-color: rgba(220, 38, 38, 0.1);
             color: #ef4444;
-        }
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .cost-preview-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 1.25rem;
-            font-size: 0.9rem;
-        }
-        .cost-preview-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.35rem;
-        }
-        .cost-preview-row:last-child {
-            margin-bottom: 0;
-            padding-top: 0.4rem;
-            border-top: 1px dashed var(--border);
-            font-weight: 700;
-        }
-        .inline-control {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            margin-top: 0.25rem;
-        }
-        .inline-control input {
-            width: 72px;
-            padding: 0.28rem 0.4rem;
-            font-weight: 700;
-            text-align: center;
         }
     </style>
 </head>
@@ -70,7 +256,7 @@
             <a href="dashboard-mecanico.html" style="color: white; text-decoration: none;">MotorFlow</a>
         </div>
         <div class="nav-links">
-            <a href="dashboard-mecanico.html" class="active">Dashboard</a>
+            <a href="dashboard-mecanico.html" class="active">Panel de Taller</a>
             <a href="consulta-estado.html">Consulta Pública</a>
         </div>
         <div class="nav-user">
@@ -85,7 +271,7 @@
         <section class="bienvenida-banner">
             <div class="bienvenida-avatar" id="bienvenida-avatar">--</div>
             <div>
-                <p class="bienvenida-saludo">Panel de Mecánico · Seguimiento de reparaciones, horas e incidencias</p>
+                <p class="bienvenida-saludo">Panel Técnico de Taller · Diagnóstico, Presupuestos y Reparaciones</p>
                 <h1 class="bienvenida-nombre" id="bienvenida-nombre">Cargando...</h1>
                 <div class="bienvenida-meta">
                     <span class="bienvenida-rol" id="bienvenida-rol">-</span>
@@ -94,178 +280,178 @@
             </div>
         </section>
 
+        <!-- KPIs claros -->
         <div class="stats-grid">
             <div class="stat-card card">
-                <h3>Mis Reparaciones (En Proceso)</h3>
-                <div class="stat-value" id="stat-en-proceso" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
+                <h3>🔍 En Diagnóstico / Presupuesto</h3>
+                <div class="stat-value" id="stat-pendientes-pres" style="font-size: 1.9rem; font-weight: bold; color: var(--warning);">0</div>
+                <small style="color: var(--text-muted); font-size: 0.78rem;">Esperando presupuesto o firma cliente</small>
             </div>
             <div class="stat-card card">
-                <h3>Horas Registradas (Activas)</h3>
-                <div class="stat-value" id="stat-horas-totales" style="font-size: 2rem; font-weight: bold; color: var(--info);">0,0 h</div>
+                <h3>🔧 En Reparación Activa</h3>
+                <div class="stat-value" id="stat-en-proceso" style="font-size: 1.9rem; font-weight: bold; color: var(--primary);">0</div>
+                <small style="color: var(--text-muted); font-size: 0.78rem;">Con presupuesto aceptado por cliente</small>
             </div>
             <div class="stat-card card">
-                <h3>Coste Piezas Usadas (Activas)</h3>
-                <div class="stat-value" id="stat-coste-piezas" style="font-size: 2rem; font-weight: bold; color: var(--warning);">0,00 €</div>
+                <h3>⏱️ Horas Registradas</h3>
+                <div class="stat-value" id="stat-horas-totales" style="font-size: 1.9rem; font-weight: bold; color: var(--info);">0,0 h</div>
+                <small style="color: var(--text-muted); font-size: 0.78rem;">Mano de obra acumulada</small>
             </div>
             <div class="stat-card card">
-                <h3>Materiales en Almacén (Tipos)</h3>
-                <div class="stat-value" id="stat-materiales" style="font-size: 2rem; font-weight: bold; color: var(--success);">0</div>
+                <h3>🔩 Coste en Piezas Usadas</h3>
+                <div class="stat-value" id="stat-coste-piezas" style="font-size: 1.9rem; font-weight: bold; color: var(--success);">0,00 €</div>
+                <small style="color: var(--text-muted); font-size: 0.78rem;">Repuestos imputados a vehículos</small>
             </div>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="main-column">
-                <section class="card" style="margin-bottom: 2rem;">
-                    <div class="card-header flex-between" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <div>
-                            <h3 style="margin: 0;">🔧 Mis Reparaciones Asignadas</h3>
-                            <p style="margin: 0.25rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
-                                Trabaja sin límite presupuestario artificial. Registra las horas reales trabajadas, ajusta los días estimados si hay imprevistos y sube fotos/incidencias.
-                            </p>
-                        </div>
-                        <button class="btn btn-primary btn-sm" onclick="cargarMisReparaciones()">↻ Actualizar</button>
-                    </div>
-                    <div class="card-body" style="padding: 1rem;">
-                        <div class="table-responsive">
-                            <table class="table" id="tabla-reparaciones" style="width: 100%; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="text-align: left; border-bottom: 2px solid var(--border);">
-                                        <th style="padding: 0.75rem;">ID / Loc.</th>
-                                        <th style="padding: 0.75rem;">Vehículo / Cliente</th>
-                                        <th style="padding: 0.75rem;">Estado</th>
-                                        <th style="padding: 0.75rem;">Avería, Piezas e Incidencias</th>
-                                        <th style="padding: 0.75rem;">Horas y Días Estimados</th>
-                                        <th style="padding: 0.75rem;">Costes Acumulados</th>
-                                        <th style="padding: 0.75rem;">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card">
-                    <div class="card-header flex-between" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <h3 style="margin: 0;">📦 Inventario de Materiales del Almacén</h3>
-                        <input type="text" id="buscar-material" class="form-control" style="max-width: 250px; padding: 0.5rem;" placeholder="Buscar material por nombre..." onkeyup="filtrarMateriales()">
-                    </div>
-                    <div class="card-body" style="padding: 1rem;">
-                        <div class="table-responsive">
-                            <table class="table" id="tabla-materiales" style="width: 100%; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="text-align: left; border-bottom: 2px solid var(--border);">
-                                        <th style="padding: 0.75rem;">Nombre</th>
-                                        <th style="padding: 0.75rem;">Descripción</th>
-                                        <th style="padding: 0.75rem;">Stock Disponible</th>
-                                        <th style="padding: 0.75rem;">Precio Unit.</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
+        <!-- Barra de Pestañas -->
+        <div class="mec-tabs">
+            <div class="mec-tab-group">
+                <button type="button" class="mec-tab-btn active" id="tab-btn-ordenes" onclick="cambiarVistaMecanico('ORDENES')">
+                    🛠️ Mis Órdenes de Trabajo
+                </button>
+                <button type="button" class="mec-tab-btn" id="tab-btn-almacen" onclick="cambiarVistaMecanico('ALMACEN')">
+                    📦 Catálogo de Almacén (<span id="stat-materiales">0</span>)
+                </button>
             </div>
-
-            <div class="side-column">
-                <!-- Tarjeta 1: Usar Material del Almacén (sin tope bloqueante) -->
-                <section class="card" style="border-top: 4px solid var(--primary); margin-bottom: 1.5rem;">
-                    <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <h3 style="margin: 0;">🔩 Registrar Material Usado</h3>
-                        <p style="margin: 0.35rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
-                            Usa libremente las piezas necesarias del almacén. Se sumarán automáticamente a la factura final de la reparación.
-                        </p>
-                    </div>
-                    <div class="card-body" style="padding: 1rem;">
-                        <form id="form-usar-material">
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="select-reparacion">Reparación (En Proceso)</label>
-                                <select id="select-reparacion" required onchange="actualizarPrevisualizacionCoste()">
-                                    <option value="">Seleccione una reparación</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="select-material">Material del Almacén</label>
-                                <select id="select-material" required onchange="actualizarPrevisualizacionCoste()">
-                                    <option value="">Seleccione un material</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="cantidad-material">Cantidad (Unidades)</label>
-                                <input type="number" id="cantidad-material" min="1" value="1" required oninput="actualizarPrevisualizacionCoste()">
-                            </div>
-
-                            <div id="cost-preview-box" class="cost-preview-box">
-                                <div class="cost-preview-row">
-                                    <span style="color: var(--text-muted);">Piezas acumuladas en reparación:</span>
-                                    <strong id="prev-acumulado">-</strong>
-                                </div>
-                                <div class="cost-preview-row">
-                                    <span style="color: var(--text-muted);">Coste material a añadir:</span>
-                                    <strong id="prev-coste" style="color: var(--warning);">0,00 €</strong>
-                                </div>
-                                <div class="cost-preview-row">
-                                    <span>Nuevo total en materiales:</span>
-                                    <span id="prev-nuevo-total" style="color: var(--info);">-</span>
-                                </div>
-                                <div id="prev-aviso" style="display: none; margin-top: 0.6rem; padding: 0.6rem 0.75rem; background: rgba(220, 38, 38, 0.15); border: 1px solid #ef4444; border-radius: 6px; color: #fca5a5; font-weight: 600; font-size: 0.84rem;"></div>
-                            </div>
-
-                            <div id="alerta-uso-material" style="margin-bottom: 0.75rem;"></div>
-
-                            <button type="submit" class="btn btn-primary" id="btn-registrar-material" style="width: 100%; padding: 0.75rem;">
-                                + Añadir Pieza a la Reparación
-                            </button>
-                        </form>
-                    </div>
-                </section>
-
-                <!-- Tarjeta 2: Subir Incidencia y Foto para la Línea Temporal del Cliente -->
-                <section class="card" style="border-top: 4px solid var(--info);">
-                    <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--border);">
-                        <h3 style="margin: 0;">📸 Registrar Incidencia / Subir Foto</h3>
-                        <p style="margin: 0.35rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
-                            Documenta imprevistos, piezas dañadas o avances con fotos reales. El cliente lo verá al instante en su línea temporal.
-                        </p>
-                    </div>
-                    <div class="card-body" style="padding: 1rem;">
-                        <form id="form-incidencia" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="inc-reparacion">Reparación</label>
-                                <select id="inc-reparacion" required>
-                                    <option value="">Seleccione una reparación</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="inc-descripcion">Explicación / Nota técnica para el cliente</label>
-                                <textarea id="inc-descripcion" rows="3" placeholder="Ej. Al desmontar el cárter se detectó junta deteriorada. Se adjunta fotografía..." required></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="inc-impacto">Impacto orientativo en el coste (€) <small style="color: var(--text-muted);">(Opcional)</small></label>
-                                <input type="number" id="inc-impacto" min="0" step="0.50" value="0.00">
-                            </div>
-                            <div class="form-group">
-                                <label for="inc-foto">Fotografía de la pieza / avería <small style="color: var(--text-muted);">(JPG, PNG, WEBP)</small></label>
-                                <input type="file" id="inc-foto" accept="image/*" style="padding: 0.5rem;">
-                            </div>
-                            <div id="alerta-incidencia" style="margin-bottom: 0.75rem;"></div>
-                            <button type="submit" class="btn btn-primary" id="btn-subir-incidencia" style="width: 100%; background: var(--info); padding: 0.75rem;">
-                                📤 Publicar Incidencia en Línea Temporal
-                            </button>
-                        </form>
-                    </div>
-                </section>
-            </div>
+            <button type="button" class="btn btn-secondary" onclick="cargarMisReparaciones()">
+                ↻ Actualizar Taller
+            </button>
         </div>
+
+        <!-- VISTA 1: ÓRDENES DE TRABAJO (TARJETAS AMPLIAS Y CLARAS) -->
+        <section id="vista-ordenes">
+            <div class="filter-pills">
+                <button type="button" class="filter-pill active" data-filtro="TODAS" onclick="filtrarOrdenesMecanico('TODAS', this)">
+                    Todas las asignadas (<span id="count-todas">0</span>)
+                </button>
+                <button type="button" class="filter-pill" data-filtro="DIAGNOSTICO" onclick="filtrarOrdenesMecanico('DIAGNOSTICO', this)">
+                    1️⃣ Fase Diagnóstico / Esperando Cliente (<span id="count-diag">0</span>)
+                </button>
+                <button type="button" class="filter-pill" data-filtro="EN_REPARACION" onclick="filtrarOrdenesMecanico('EN_REPARACION', this)">
+                    2️⃣ En Reparación Activa (<span id="count-activas">0</span>)
+                </button>
+                <button type="button" class="filter-pill" data-filtro="FINALIZADAS" onclick="filtrarOrdenesMecanico('FINALIZADAS', this)">
+                    3️⃣ Finalizadas (<span id="count-fin">0</span>)
+                </button>
+            </div>
+
+            <div id="contenedor-ordenes-trabajo" class="wo-list"></div>
+        </section>
+
+        <!-- VISTA 2: CATÁLOGO DE ALMACÉN (A ANCHO COMPLETO) -->
+        <section id="vista-almacen" style="display: none;">
+            <div class="card">
+                <div class="card-header" style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <h3 style="margin: 0;">📦 Inventario de Repuestos y Materiales del Almacén</h3>
+                        <p style="margin: 0.2rem 0 0 0; font-size: 0.82rem; color: var(--text-muted);">Consulta la disponibilidad y precios unitarios de todas las piezas del taller.</p>
+                    </div>
+                    <input type="text" id="buscar-material" class="form-control" style="max-width: 280px; padding: 0.5rem 0.75rem;" placeholder="🔍 Buscar pieza por nombre..." onkeyup="filtrarMateriales()">
+                </div>
+                <div class="card-body" style="padding: 1rem 1.25rem;">
+                    <div class="table-responsive">
+                        <table class="table" id="tabla-materiales">
+                            <thead>
+                                <tr>
+                                    <th>Repuesto / Material</th>
+                                    <th>Descripción Técnica</th>
+                                    <th>Stock Disponible</th>
+                                    <th>Precio Unitario</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
+
+    <!-- MODAL 1: AÑADIR PIEZA DEL ALMACÉN A UNA REPARACIÓN -->
+    <div id="modal-usar-pieza" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9998; align-items: center; justify-content: center; padding: 1rem;">
+        <div class="card" style="width: 100%; max-width: 500px; padding: 1.5rem; border: 1px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">🔩 Añadir Pieza del Almacén</h3>
+                <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem;" onclick="cerrarModalPieza()">✕</button>
+            </div>
+            <p id="modal-pieza-subtitulo" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+            <form id="form-usar-material">
+                <input type="hidden" id="select-reparacion">
+                <div class="form-group">
+                    <label for="select-material">Selecciona Pieza del Almacén *</label>
+                    <select id="select-material" required onchange="actualizarPrevisualizacionCoste()">
+                        <option value="">Seleccione un material</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cantidad-material">Cantidad (Unidades) *</label>
+                    <input type="number" id="cantidad-material" min="1" value="1" required oninput="actualizarPrevisualizacionCoste()">
+                </div>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem; font-size: 0.86rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                        <span style="color: var(--text-muted);">Piezas ya instaladas:</span>
+                        <strong id="prev-acumulado">0,00 €</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                        <span style="color: var(--text-muted);">Coste pieza a añadir:</span>
+                        <strong id="prev-coste" style="color: var(--warning);">0,00 €</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 0.35rem; border-top: 1px dashed var(--border); font-weight: 700;">
+                        <span>Nuevo total en piezas:</span>
+                        <span id="prev-nuevo-total" style="color: var(--info);">0,00 €</span>
+                    </div>
+                    <div id="prev-aviso" style="display: none; margin-top: 0.55rem; padding: 0.5rem; background: rgba(220,38,38,0.15); border: 1px solid #ef4444; border-radius: 6px; color: #fca5a5; font-size: 0.8rem;"></div>
+                </div>
+                <div id="alerta-uso-material"></div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalPieza()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-registrar-material">+ Instalar Pieza</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SUBIR FOTO / NOTA DE AVANCE A LA LÍNEA TEMPORAL -->
+    <div id="modal-subir-incidencia" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9998; align-items: center; justify-content: center; padding: 1rem;">
+        <div class="card" style="width: 100%; max-width: 520px; padding: 1.5rem; border: 1px solid var(--info);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;">📸 Publicar Avance o Fotografía</h3>
+                <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem;" onclick="cerrarModalIncidencia()">✕</button>
+            </div>
+            <p id="modal-inc-subtitulo" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+            <form id="form-incidencia" enctype="multipart/form-data">
+                <input type="hidden" id="inc-reparacion">
+                <div class="form-group">
+                    <label for="inc-descripcion">Explicación técnica / Nota de avance para el cliente *</label>
+                    <textarea id="inc-descripcion" rows="3" placeholder="Ej. Se ha desmontado el conjunto y sustituido la pieza dañada. Se adjunta foto del estado..." required></textarea>
+                </div>
+                <input type="hidden" id="inc-impacto" value="0.00">
+                <div class="form-group">
+                    <label for="inc-foto">Fotografía adjunta <small style="color: var(--text-muted);">(Opcional · JPG, PNG, WEBP)</small></label>
+                    <input type="file" id="inc-foto" accept="image/*" style="padding: 0.45rem;" onchange="previsualizarFotoSeleccionada()">
+                    <div id="preview-foto-container" style="display: none; margin-top: 0.6rem; padding: 0.55rem; background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 6px; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.65rem;">
+                            <img id="preview-foto-img" src="" alt="Previsualización" style="width: 60px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);">
+                            <span id="preview-foto-nombre" style="font-size: 0.78rem; color: var(--text-muted); word-break: break-all;"></span>
+                        </div>
+                        <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.55rem; font-size: 0.75rem;" onclick="limpiarFotoSeleccionada()">🗑️ Quitar</button>
+                    </div>
+                </div>
+                <div id="alerta-incidencia"></div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalIncidencia()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-subir-incidencia" style="background: var(--info);">📤 Publicar en Línea Temporal</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="../js/app.js"></script>
     <script>
         let materialesCache = [];
         let misReparacionesCache = [];
+        let filtroOrdenActual = 'TODAS';
 
         document.addEventListener('DOMContentLoaded', async () => {
             requireAuth(['MECANICO', 'ADMIN']);
@@ -275,21 +461,55 @@
             pintarCabeceraUsuario(user);
 
             await Promise.all([
-                cargarMisReparaciones(),
-                cargarMateriales()
+                cargarMateriales(),
+                cargarMisReparaciones()
             ]);
 
             document.getElementById('form-usar-material').addEventListener('submit', handleUsarMaterial);
             document.getElementById('form-incidencia').addEventListener('submit', handleSubirIncidencia);
         });
 
+        function cambiarVistaMecanico(vista) {
+            const vOrdenes = document.getElementById('vista-ordenes');
+            const vAlmacen = document.getElementById('vista-almacen');
+            const btnOrdenes = document.getElementById('tab-btn-ordenes');
+            const btnAlmacen = document.getElementById('tab-btn-almacen');
+
+            if (vista === 'ALMACEN') {
+                vOrdenes.style.display = 'none';
+                vAlmacen.style.display = 'block';
+                btnOrdenes.classList.remove('active');
+                btnAlmacen.classList.add('active');
+            } else {
+                vOrdenes.style.display = 'block';
+                vAlmacen.style.display = 'none';
+                btnOrdenes.classList.add('active');
+                btnAlmacen.classList.remove('active');
+            }
+        }
+
+        function filtrarOrdenesMecanico(filtro, btnEl) {
+            filtroOrdenActual = filtro;
+            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            renderizarOrdenesTrabajo();
+        }
+
+        function clasificarFaseOrden(rep) {
+            if (rep.estado === 'FINALIZADA' || rep.estado === 'CONFIRMADA') {
+                return 'FINALIZADAS';
+            }
+            const estPres = rep.estadoPresupuesto || (rep.presupuestoFormal ? rep.presupuestoFormal.estado : 'SIN_PRESUPUESTO');
+            if (estPres === 'ACEPTADO' && rep.estado === 'EN_PROCESO') {
+                return 'EN_REPARACION';
+            }
+            return 'DIAGNOSTICO';
+        }
+
         async function cargarMisReparaciones() {
             const user = getUsuarioActual();
-            const tbody = document.querySelector('#tabla-reparaciones tbody');
-            const selectReparacion = document.getElementById('select-reparacion');
-            const selectIncReparacion = document.getElementById('inc-reparacion');
-
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 1rem;"><div class="spinner"></div> Cargando...</td></tr>';
+            const contenedor = document.getElementById('contenedor-ordenes-trabajo');
+            contenedor.innerHTML = '<div class="card text-center" style="padding: 2rem;"><div class="spinner"></div> Cargando tus órdenes de trabajo...</div>';
 
             try {
                 const todasReparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
@@ -298,131 +518,409 @@
                     .map(enriquecerReparacionFinanzas);
                 misReparacionesCache = reparaciones;
 
-                let enProcesoCount = 0;
+                let diagCount = 0;
+                let enReparacionCount = 0;
+                let finCount = 0;
                 let horasTotales = 0;
                 let costePiezasTotal = 0;
 
-                if (reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center empty-state" style="padding: 2rem;">No tienes reparaciones activas asignadas en este momento.</td></tr>';
-                    selectReparacion.innerHTML = '<option value="">No hay reparaciones en proceso</option>';
-                    selectIncReparacion.innerHTML = '<option value="">No hay reparaciones activas</option>';
-                    document.getElementById('stat-en-proceso').textContent = '0';
-                    document.getElementById('stat-horas-totales').textContent = '0,0 h';
-                    document.getElementById('stat-coste-piezas').textContent = '0,00 €';
-                    actualizarPrevisualizacionCoste();
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                selectReparacion.innerHTML = '<option value="">Seleccione una reparación</option>';
-                selectIncReparacion.innerHTML = '<option value="">Seleccione una reparación</option>';
-
                 reparaciones.forEach(rep => {
-                    const matricula = rep.matriculaVehiculo || rep.vehiculo?.matricula || '-';
-                    const marca = rep.marcaVehiculo || rep.vehiculo?.marca || '';
-                    const modelo = rep.modeloVehiculo || rep.vehiculo?.modelo || '';
-                    const clienteNombre = rep.nombreCliente || rep.vehiculo?.cliente?.nombre || 'N/A';
+                    const fase = clasificarFaseOrden(rep);
+                    if (fase === 'DIAGNOSTICO') diagCount++;
+                    else if (fase === 'EN_REPARACION') enReparacionCount++;
+                    else if (fase === 'FINALIZADAS') finCount++;
 
                     horasTotales += Number(rep.horasTrabajoMecanico || 0);
                     costePiezasTotal += Number(rep.costeMateriales || 0);
-
-                    if (rep.estado === 'EN_PROCESO') {
-                        enProcesoCount++;
-                        const opt = document.createElement('option');
-                        opt.value = rep.id;
-                        opt.textContent = `[#${rep.id}] ${matricula} (${marca} ${modelo}) — Piezas: ${formatearEuros(rep.costeMateriales)}`;
-                        selectReparacion.appendChild(opt);
-                    }
-
-                    const optInc = document.createElement('option');
-                    optInc.value = rep.id;
-                    optInc.textContent = `[#${rep.id}] ${matricula} (${marca} ${modelo})`;
-                    selectIncReparacion.appendChild(optInc);
-
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid var(--border)';
-
-                    let btnFinalizar = '<span class="text-muted">-</span>';
-                    if (rep.estado === 'EN_PROCESO') {
-                        btnFinalizar = `<button class="btn btn-success btn-sm" onclick="confirmarFinalizar(${rep.id})" style="padding: 0.4rem 0.7rem; font-size: 0.85rem;">🏁 Terminar Reparación</button>`;
-                    } else if (rep.estado === 'FINALIZADA') {
-                        btnFinalizar = `<span style="color: #C084FC; font-size: 0.82rem; font-weight: 600;">⏳ Pendiente confirmación Admin</span>`;
-                    } else if (rep.estado === 'CONFIRMADA') {
-                        btnFinalizar = `<span style="color: #4ADE80; font-size: 0.82rem; font-weight: 600;">✓ Confirmada por Admin</span>`;
-                    }
-
-                    const piezasHtml = (rep.materialesDetalle && rep.materialesDetalle.length > 0)
-                        ? `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--info);">🔩 ${rep.materialesDetalle.join(' · ')}</div>`
-                        : `<div style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">Sin materiales usados aún</div>`;
-
-                    const numInc = Array.isArray(rep.incidencias) ? rep.incidencias.length : 0;
-                    const incHtml = numInc > 0
-                        ? `<div style="margin-top: 0.3rem; font-size: 0.78rem; color: var(--primary-light);">📸 ${numInc} incidencia(s) registrada(s) ${rep.incidencias.map(i => i.rutaFoto ? `<a href="${resolverUrlFoto(i.rutaFoto)}" target="_blank" style="margin-left:0.35rem; text-decoration:underline;">[Ver foto]</a>` : '').join('')}</div>`
-                        : `<div style="margin-top: 0.3rem; font-size: 0.78rem; color: var(--text-muted);">Sin incidencias anotadas</div>`;
-
-                    const seguimientoHtml = `
-                        <div style="font-size: 0.83rem; line-height: 1.5; min-width: 210px;">
-                            <div>
-                                <span>⏱️ Horas M.O.:</span>
-                                <div class="inline-control">
-                                    <input type="number" id="horas-rep-${rep.id}" value="${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}" min="0" step="0.5">
-                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.76rem;" onclick="guardarHorasTrabajo(${rep.id})">Guardar h</button>
-                                </div>
-                            </div>
-                            <div style="margin-top: 0.4rem;">
-                                <span>📅 Días estimados:</span>
-                                <div class="inline-control">
-                                    <input type="number" id="dias-rep-${rep.id}" value="${rep.diasEstimados || 3}" min="1" step="1">
-                                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.76rem;" onclick="guardarDiasEstimados(${rep.id})">Guardar días</button>
-                                </div>
-                            </div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
-                                Fin previsto: <strong>${formatearFecha(rep.fechaEstimadaFin)}</strong>
-                            </div>
-                        </div>
-                    `;
-
-                    const costesHtml = `
-                        <div style="font-size: 0.84rem; line-height: 1.45; min-width: 175px;">
-                            <div style="color: var(--text-muted);">Estimación inicial: <strong>${formatearEuros(rep.estimacionInicial)}</strong></div>
-                            <div style="color: var(--warning);">Piezas usadas: <strong>${formatearEuros(rep.costeMateriales)}</strong></div>
-                            <div style="color: var(--info);">Mano de obra (${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}h): <strong>${formatearEuros(rep.subtotalManoObra)}</strong></div>
-                            <div style="color: var(--success); font-weight: 700; margin-top: 0.2rem;">Total previsto (c/IVA): ${formatearEuros(rep.totalCalculadoPrevisto)}</div>
-                        </div>
-                    `;
-
-                    tr.innerHTML = `
-                        <td style="padding: 0.75rem;">
-                            <strong>#${rep.id}</strong>
-                            <div style="font-family: monospace; font-size: 0.82rem; color: var(--primary);">${rep.localizador || ''}</div>
-                        </td>
-                        <td style="padding: 0.75rem;">
-                            <strong>${matricula}</strong>
-                            <div style="font-size: 0.82rem; color: var(--text-muted);">${marca} ${modelo}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-light);">👤 ${clienteNombre}</div>
-                        </td>
-                        <td style="padding: 0.75rem;">${crearBadgeEstado(rep.estado)}</td>
-                        <td style="padding: 0.75rem;">
-                            <div>${rep.descripcionAveria || ''}</div>
-                            ${piezasHtml}
-                            ${incHtml}
-                        </td>
-                        <td style="padding: 0.75rem;">${seguimientoHtml}</td>
-                        <td style="padding: 0.75rem;">${costesHtml}</td>
-                        <td style="padding: 0.75rem;">${btnFinalizar}</td>
-                    `;
-                    tbody.appendChild(tr);
                 });
 
-                document.getElementById('stat-en-proceso').textContent = enProcesoCount;
+                document.getElementById('stat-pendientes-pres').textContent = diagCount;
+                document.getElementById('stat-en-proceso').textContent = enReparacionCount;
                 document.getElementById('stat-horas-totales').textContent = `${horasTotales.toFixed(1)} h`;
                 document.getElementById('stat-coste-piezas').textContent = formatearEuros(costePiezasTotal);
-                actualizarPrevisualizacionCoste();
 
+                document.getElementById('count-todas').textContent = reparaciones.length;
+                document.getElementById('count-diag').textContent = diagCount;
+                document.getElementById('count-activas').textContent = enReparacionCount;
+                document.getElementById('count-fin').textContent = finCount;
+
+                renderizarOrdenesTrabajo();
             } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar reparaciones: ${error.message}</td></tr>`;
-                mostrarAlerta('Error al cargar mis reparaciones', 'error', document.getElementById('alertas-container'));
+                contenedor.innerHTML = `<div class="alert alert-error"><span>Error al cargar reparaciones: ${error.message}</span></div>`;
             }
+        }
+
+        function renderizarOrdenesTrabajo() {
+            const contenedor = document.getElementById('contenedor-ordenes-trabajo');
+            const filtradas = misReparacionesCache.filter(rep => {
+                if (filtroOrdenActual === 'TODAS') return true;
+                return clasificarFaseOrden(rep) === filtroOrdenActual;
+            });
+
+            if (filtradas.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="card text-center" style="padding: 2.5rem; color: var(--text-muted);">
+                        No hay órdenes de trabajo en esta categoría actualmente.
+                    </div>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = filtradas.map(rep => construirTarjetaOrden(rep)).join('');
+        }
+
+        function construirTarjetaOrden(rep) {
+            const matricula = rep.matriculaVehiculo || rep.vehiculo?.matricula || '-';
+            const marca = rep.marcaVehiculo || rep.vehiculo?.marca || '';
+            const modelo = rep.modeloVehiculo || rep.vehiculo?.modelo || '';
+            const clienteNombre = rep.nombreCliente || rep.vehiculo?.cliente?.nombre || 'Cliente';
+            const telefonoCliente = rep.telefonoCliente || '';
+
+            const p = rep.presupuestoFormal;
+            const estPres = rep.estadoPresupuesto || (p ? p.estado : 'SIN_PRESUPUESTO');
+            const presupuestoAceptado = estPres === 'ACEPTADO';
+            const esFinalizada = rep.estado === 'FINALIZADA' || rep.estado === 'CONFIRMADA';
+            const puedeTrabajar = presupuestoAceptado && rep.estado === 'EN_PROCESO';
+
+            // Clases de fase visual
+            let phaseClass = 'phase-diagnostico';
+            if (esFinalizada) phaseClass = 'phase-finalizada';
+            else if (puedeTrabajar) phaseClass = 'phase-activa';
+
+            // Cálculo del Stepper de 4 pasos
+            const step1Class = p ? 'done' : 'current';
+            const step2Class = !p ? '' : (estPres === 'ACEPTADO' ? 'done' : 'blocked');
+            const step3Class = esFinalizada ? 'done' : (puedeTrabajar ? 'current' : '');
+            const step4Class = esFinalizada ? 'done' : '';
+
+            // Banner explicativo de estado y acciones principales según la fase realista
+            let bannerHtml = '';
+            if (esFinalizada) {
+                bannerHtml = `
+                    <div class="wo-status-banner banner-success">
+                        <div>
+                            <strong>✅ Intervención Mecánica Finalizada</strong>
+                            <div style="font-size: 0.84rem; margin-top: 0.2rem; opacity: 0.9;">
+                                El trabajo en taller ha concluido. Pendiente de cierre administrativo / facturación en Recepción.
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            ${p ? `<button type="button" class="btn btn-secondary" onclick="verPresupuestoMecanico(${rep.id})">🖨️ Ver Presupuesto (${p.numeroPresupuesto})</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (estPres === 'SIN_PRESUPUESTO') {
+                bannerHtml = `
+                    <div class="wo-status-banner banner-warn">
+                        <div>
+                            <strong>🔍 Paso 1 · Vehículo en Diagnóstico (Pendiente de Presupuesto)</strong>
+                            <div style="font-size: 0.84rem; margin-top: 0.2rem; opacity: 0.95;">
+                                Inspecciona el vehículo y elabora el <strong>Presupuesto Desglosado (Piezas + Mano de Obra)</strong>.
+                                Por normativa del taller, <strong>está bloqueado el inicio de la reparación y el uso de piezas</strong> hasta que el cliente acepte el presupuesto.
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-primary" style="background: var(--warning); color: #0f172a; font-weight: 700;" onclick="abrirPresupuestoMecanico(${rep.id})">
+                                📋 Elaborar Presupuesto Desglosado
+                            </button>
+                            <button type="button" class="btn btn-secondary" disabled title="El cliente debe aceptar primero el presupuesto">
+                                🔒 Iniciar Reparación (Bloqueado)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (estPres === 'PENDIENTE_ACEPTACION') {
+                const esAmpliacion = rep.estado === 'EN_PROCESO';
+                bannerHtml = `
+                    <div class="wo-status-banner banner-warn">
+                        <div>
+                            <strong>⏳ ${esAmpliacion ? 'Reparación en Pausa por Ampliación de Presupuesto' : 'Paso 2 · Esperando Aprobación del Cliente'} (${p.numeroPresupuesto} · ${formatearEuros(p.totalPresupuesto)})</strong>
+                            <div style="font-size: 0.84rem; margin-top: 0.2rem; opacity: 0.95;">
+                                ${esAmpliacion
+                                    ? 'Se ha enviado al cliente una ampliación de presupuesto por imprevisto/avería adicional. El consumo de nuevas piezas y el cierre están pausados hasta que el cliente lo confirme con su contraseña.'
+                                    : 'El presupuesto ya ha sido enviado al área privada del cliente. No puedes iniciar la reparación ni imputar repuestos hasta que el cliente lo acepte.'}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="verPresupuestoMecanico(${rep.id})">
+                                🖨️ Ver / PDF (${p.numeroPresupuesto})
+                            </button>
+                            <button type="button" class="btn btn-primary" style="background: var(--info);" onclick="abrirPresupuestoMecanico(${rep.id})">
+                                ✏️ Modificar Presupuesto
+                            </button>
+                            <button type="button" class="btn btn-secondary" disabled>
+                                🔒 Esperando Firma del Cliente
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (estPres === 'RECHAZADO') {
+                bannerHtml = `
+                    <div class="wo-status-banner banner-danger">
+                        <div>
+                            <strong>❌ Presupuesto Rechazado por el Cliente (${p.numeroPresupuesto})</strong>
+                            <div style="font-size: 0.84rem; margin-top: 0.2rem;">
+                                Motivo indicado por el cliente: <em>"${p.motivoRechazo || 'Sin motivo especificado'}"</em>.
+                                Puedes ajustar el diagnóstico y emitir una nueva propuesta si el cliente solicita revisión.
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="verPresupuestoMecanico(${rep.id})">
+                                🖨️ Ver Presupuesto
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="abrirPresupuestoMecanico(${rep.id})">
+                                📋 Emitir Nuevo Presupuesto Revisado
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (estPres === 'ACEPTADO' && rep.estado === 'PENDIENTE') {
+                bannerHtml = `
+                    <div class="wo-status-banner banner-success">
+                        <div>
+                            <strong>✅ Presupuesto ${p.numeroPresupuesto} (${formatearEuros(p.totalPresupuesto)}) ACEPTADO por el Cliente</strong>
+                            <div style="font-size: 0.84rem; margin-top: 0.2rem;">
+                                El cliente ha autorizado los trabajos con su contraseña. Ya puedes iniciar la reparación en taller.
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="verPresupuestoMecanico(${rep.id})">
+                                🖨️ Ver Presupuesto
+                            </button>
+                            <button type="button" class="btn btn-success" style="font-weight: 700;" onclick="iniciarReparacionAutorizada(${rep.id})">
+                                ▶️ Iniciar Reparación Ahora
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Paneles de trabajo (visibles en limpio cuando está en curso o como resumen en las demás fases)
+            const listaPiezas = (rep.materialesDetalle && rep.materialesDetalle.length > 0)
+                ? `<ul style="margin: 0 0 0.75rem 1.1rem; padding: 0; font-size: 0.83rem; color: var(--text-light); line-height: 1.55;">
+                       ${rep.materialesDetalle.map(m => `<li>${m}</li>`).join('')}
+                   </ul>`
+                : `<p style="margin: 0 0 0.75rem 0; font-size: 0.82rem; color: var(--text-muted);">Ningún repuesto imputado todavía.</p>`;
+
+            const numInc = Array.isArray(rep.incidencias) ? rep.incidencias.length : 0;
+            const listaIncidencias = numInc > 0
+                ? `<div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 170px; overflow-y: auto; margin-bottom: 0.75rem; padding-right: 0.2rem;">
+                       ${rep.incidencias.map(i => `
+                           <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.35rem 0.55rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.78rem;">
+                               <div style="min-width: 0; flex: 1;">
+                                   <span style="color: var(--text-light);">${i.descripcion || ''}</span>
+                                   ${i.rutaFoto ? `<a href="${resolverUrlFoto(i.rutaFoto)}" target="_blank" style="color: var(--info); font-weight: 600; margin-left: 0.35rem;">[📷 Ver foto]</a>` : ''}
+                               </div>
+                               <div style="display: inline-flex; gap: 0.25rem; flex-shrink: 0;">
+                                   ${i.rutaFoto ? `<button type="button" class="btn btn-danger" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;" title="Borrar solo la foto" onclick="eliminarFotoSubida(${rep.id}, ${i.id})">🗑️ Foto</button>` : ''}
+                                   <button type="button" class="btn btn-secondary" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;" title="Borrar nota completa" onclick="eliminarIncidenciaSubida(${rep.id}, ${i.id})">✕</button>
+                               </div>
+                           </div>
+                       `).join('')}
+                   </div>`
+                : `<p style="margin: 0 0 0.75rem 0; font-size: 0.82rem; color: var(--text-muted);">Sin notas ni fotos registradas.</p>`;
+
+            return `
+                <article class="wo-card ${phaseClass}">
+                    <!-- Cabecera de la Orden -->
+                    <div class="wo-header">
+                        <div class="wo-vehicle-title">
+                            <span style="font-weight: 800; color: var(--primary-light); font-size: 1rem;">Orden #${rep.id}</span>
+                            <span class="wo-plate">${matricula}</span>
+                            <strong style="font-size: 1.05rem;">${marca} ${modelo}</strong>
+                            <span style="font-size: 0.84rem; color: var(--text-muted);">· 👤 ${clienteNombre} ${telefonoCliente ? `(${telefonoCliente})` : ''}</span>
+                            <span style="font-family: monospace; font-size: 0.78rem; color: var(--text-muted); background: rgba(255,255,255,0.04); padding: 0.15rem 0.45rem; border-radius: 4px;">Loc: ${rep.localizador || '-'}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            ${renderizarBadgePresupuesto(estPres)}
+                            ${crearBadgeEstado(rep.estado)}
+                        </div>
+                    </div>
+
+                    <!-- Stepper de 4 Pasos -->
+                    <div class="wo-stepper">
+                        <div class="wo-step ${step1Class}">
+                            <span>1️⃣</span>
+                            <span>Diagnóstico y Presupuesto</span>
+                        </div>
+                        <div class="wo-step ${step2Class}">
+                            <span>2️⃣</span>
+                            <span>${estPres === 'ACEPTADO' ? 'Presupuesto Aceptado' : (estPres === 'PENDIENTE_ACEPTACION' ? 'Esperando al Cliente' : 'Aprobación Cliente')}</span>
+                        </div>
+                        <div class="wo-step ${step3Class}">
+                            <span>3️⃣</span>
+                            <span>Reparación en Taller</span>
+                        </div>
+                        <div class="wo-step ${step4Class}">
+                            <span>4️⃣</span>
+                            <span>Finalizada</span>
+                        </div>
+                    </div>
+
+                    <div class="wo-body">
+                        <!-- Síntoma / Avería reportada -->
+                        <div class="wo-averia-box">
+                            <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.2rem;">
+                                Síntoma / Avería declarada en Recepción
+                            </div>
+                            <div style="font-size: 0.95rem; font-weight: 500; color: var(--text-light);">
+                                ${rep.descripcionAveria || 'Sin descripción'}
+                            </div>
+                            ${p && p.diagnosticoPrevio ? `
+                                <div style="margin-top: 0.45rem; padding-top: 0.45rem; border-top: 1px dashed var(--border); font-size: 0.84rem; color: #93c5fd;">
+                                    <strong>🩺 Diagnóstico Técnico:</strong> ${p.diagnosticoPrevio}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${bannerHtml}
+
+                        <!-- 3 Paneles Operativos Limpios -->
+                        <div class="wo-work-grid">
+                            <!-- Panel 1: Tiempos y Resumen Económico -->
+                            <div class="wo-panel">
+                                <div>
+                                    <h4>
+                                        <span>⏱️ Tiempos y Costes</span>
+                                        <small style="color: var(--text-muted); font-weight: 400;">Fin: ${formatearFecha(rep.fechaEstimadaFin)}</small>
+                                    </h4>
+                                    <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.85rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem;">
+                                            <span>Horas Mano Obra:</span>
+                                            <div class="inline-input-group">
+                                                <input type="number" id="horas-rep-${rep.id}" value="${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}" min="0" step="0.5" ${!puedeTrabajar ? 'disabled' : ''}>
+                                                <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.76rem;" ${!puedeTrabajar ? 'disabled' : ''} onclick="guardarHorasTrabajo(${rep.id})">Guardar</button>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem;">
+                                            <span>Días estimados:</span>
+                                            <div class="inline-input-group">
+                                                <input type="number" id="dias-rep-${rep.id}" value="${rep.diasEstimados || 3}" min="1" step="1" ${esFinalizada ? 'disabled' : ''}>
+                                                <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.76rem;" ${esFinalizada ? 'disabled' : ''} onclick="guardarDiasEstimados(${rep.id})">Guardar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.25); border-radius: 6px; padding: 0.65rem 0.8rem; font-size: 0.81rem; line-height: 1.5;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-muted);">Presupuesto aprobado:</span>
+                                        <strong>${p ? formatearEuros(p.totalPresupuesto) : formatearEuros(rep.estimacionInicial)}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; color: var(--warning);">
+                                        <span>Piezas instaladas:</span>
+                                        <strong>${formatearEuros(rep.costeMateriales)}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; color: var(--info);">
+                                        <span>Mano de obra (${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}h):</span>
+                                        <strong>${formatearEuros(rep.subtotalManoObra)}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; color: var(--success); font-weight: 700; border-top: 1px dashed var(--border); margin-top: 0.25rem; padding-top: 0.25rem;">
+                                        <span>Total real acumulado (c/IVA):</span>
+                                        <span>${formatearEuros(rep.totalCalculadoPrevisto)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Panel 2: Piezas y Materiales Usados -->
+                            <div class="wo-panel">
+                                <div>
+                                    <h4>
+                                        <span>🔩 Repuestos Instalados</span>
+                                        <span style="font-size: 0.8rem; color: var(--warning);">${formatearEuros(rep.costeMateriales)}</span>
+                                    </h4>
+                                    ${listaPiezas}
+                                </div>
+                                <button type="button" class="btn btn-primary" style="width: 100%; font-size: 0.82rem;" ${!puedeTrabajar ? 'disabled title="Requiere presupuesto ACEPTADO y reparación EN PROCESO"' : ''} onclick="abrirModalPiezaMecanico(${rep.id})">
+                                    ${puedeTrabajar ? '+ Añadir Pieza del Almacén' : '🔒 Añadir Pieza (Requiere Aprobación)'}
+                                </button>
+                            </div>
+
+                            <!-- Panel 3: Línea Temporal, Fotos e Imprevistos -->
+                            <div class="wo-panel">
+                                <div>
+                                    <h4>
+                                        <span>📸 Línea Temporal y Fotos</span>
+                                        <span style="font-size: 0.78rem; color: var(--text-muted);">${numInc} nota(s)</span>
+                                    </h4>
+                                    ${listaIncidencias}
+                                </div>
+                                <div style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem;" ${esFinalizada ? 'disabled' : ''} onclick="abrirModalIncidenciaMecanico(${rep.id})">
+                                        📸 Subir Foto / Nota
+                                    </button>
+                                    ${puedeTrabajar ? `
+                                        <button type="button" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem; border-color: var(--warning); color: #fde68a;" title="Si encuentras una avería oculta o problema adicional, amplía el presupuesto para que el cliente lo autorice" onclick="abrirPresupuestoMecanico(${rep.id})">
+                                            ⚠️ Imprevisto (+Presup.)
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pie de la Orden de Trabajo -->
+                    ${puedeTrabajar ? `
+                        <div class="wo-footer">
+                            <div style="font-size: 0.83rem; color: var(--text-muted);">
+                                ✅ Presupuesto <strong>${p ? p.numeroPresupuesto : ''}</strong> aceptado por el cliente. Cuando termines el montaje y pruebas, finaliza la orden.
+                            </div>
+                            <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                                ${p ? `<button type="button" class="btn btn-secondary" onclick="verPresupuestoMecanico(${rep.id})">🖨️ Ver Presupuesto PDF</button>` : ''}
+                                <button type="button" class="btn btn-success" style="font-weight: 700; padding: 0.5rem 1.15rem;" onclick="confirmarFinalizar(${rep.id})">
+                                    🏁 Terminar Reparación
+                                </button>
+                            </div>
+                        </div>
+                    ` : ''}
+                </article>
+            `;
+        }
+
+        async function iniciarReparacionAutorizada(repId) {
+            try {
+                await apiFetch(`/reparaciones/${repId}/estado`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ estado: 'EN_PROCESO' })
+                });
+                mostrarAlerta(`Reparación #${repId} iniciada correctamente en taller.`, 'success', document.getElementById('alertas-container'));
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+            }
+        }
+
+        function abrirModalPiezaMecanico(repId) {
+            const rep = misReparacionesCache.find(r => r.id === repId);
+            if (!rep) return;
+            document.getElementById('select-reparacion').value = rep.id;
+            document.getElementById('modal-pieza-subtitulo').textContent =
+                `Orden #${rep.id} · ${rep.matriculaVehiculo} (${rep.marcaVehiculo} ${rep.modeloVehiculo}) — Cliente: ${rep.nombreCliente}`;
+            document.getElementById('select-material').value = '';
+            document.getElementById('cantidad-material').value = 1;
+            document.getElementById('alerta-uso-material').innerHTML = '';
+            actualizarPrevisualizacionCoste();
+            document.getElementById('modal-usar-pieza').style.display = 'flex';
+        }
+
+        function cerrarModalPieza() {
+            document.getElementById('modal-usar-pieza').style.display = 'none';
+        }
+
+        function abrirModalIncidenciaMecanico(repId) {
+            const rep = misReparacionesCache.find(r => r.id === repId);
+            if (!rep) return;
+            document.getElementById('inc-reparacion').value = rep.id;
+            document.getElementById('modal-inc-subtitulo').textContent =
+                `Orden #${rep.id} · ${rep.matriculaVehiculo} (${rep.marcaVehiculo} ${rep.modeloVehiculo}) — Se mostrará en la línea temporal del cliente.`;
+            document.getElementById('form-incidencia').reset();
+            document.getElementById('inc-reparacion').value = rep.id;
+            limpiarFotoSeleccionada();
+            document.getElementById('alerta-incidencia').innerHTML = '';
+            document.getElementById('modal-subir-incidencia').style.display = 'flex';
+        }
+
+        function cerrarModalIncidencia() {
+            document.getElementById('modal-subir-incidencia').style.display = 'none';
         }
 
         async function guardarHorasTrabajo(repId) {
@@ -463,6 +961,66 @@
             }
         }
 
+        function previsualizarFotoSeleccionada() {
+            const input = document.getElementById('inc-foto');
+            const container = document.getElementById('preview-foto-container');
+            const img = document.getElementById('preview-foto-img');
+            const nombre = document.getElementById('preview-foto-nombre');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                img.src = URL.createObjectURL(file);
+                nombre.textContent = file.name;
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none';
+                img.src = '';
+                nombre.textContent = '';
+            }
+        }
+
+        function limpiarFotoSeleccionada() {
+            const input = document.getElementById('inc-foto');
+            if (input) input.value = '';
+            previsualizarFotoSeleccionada();
+        }
+
+        async function eliminarFotoSubida(reparacionId, incidenciaId) {
+            mostrarModal(
+                'Eliminar Fotografía',
+                '¿Estás seguro de que quieres eliminar la foto de esta incidencia? La nota de texto se mantendrá y el archivo de imagen se borrará del servidor.',
+                async () => {
+                    try {
+                        await apiFetch(`/reparaciones/${reparacionId}/incidencias/${incidenciaId}/foto`, {
+                            method: 'DELETE'
+                        });
+                        mostrarAlerta('Fotografía eliminada correctamente.', 'success', document.getElementById('alertas-container'));
+                        await cargarMisReparaciones();
+                    } catch (error) {
+                        mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+                    }
+                }
+            );
+        }
+
+        async function eliminarIncidenciaSubida(reparacionId, incidenciaId) {
+            mostrarModal(
+                'Eliminar Nota Completa',
+                '¿Estás seguro de que quieres borrar esta nota y su foto adjunta de la línea temporal del cliente?',
+                async () => {
+                    try {
+                        await apiFetch(`/reparaciones/${reparacionId}/incidencias/${incidenciaId}`, {
+                            method: 'DELETE'
+                        });
+                        mostrarAlerta('Nota y fotografía eliminadas correctamente.', 'success', document.getElementById('alertas-container'));
+                        await cargarMisReparaciones();
+                    } catch (error) {
+                        mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+                    }
+                }
+            );
+        }
+
         async function handleSubirIncidencia(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-subir-incidencia');
@@ -472,7 +1030,7 @@
             const fotoFile = document.getElementById('inc-foto').files[0];
 
             if (!repId || !descripcion) {
-                mostrarAlerta('Selecciona una reparación y escribe la descripción de la incidencia.', 'error', document.getElementById('alerta-incidencia'));
+                mostrarAlerta('Escribe la descripción técnica del avance.', 'error', document.getElementById('alerta-incidencia'));
                 return;
             }
 
@@ -489,9 +1047,8 @@
                     method: 'POST',
                     body: formData
                 });
-                mostrarAlerta('Incidencia y foto publicadas correctamente en la línea temporal del cliente.', 'success', document.getElementById('alerta-incidencia'));
-                document.getElementById('form-incidencia').reset();
-                document.getElementById('inc-impacto').value = '0.00';
+                cerrarModalIncidencia();
+                mostrarAlerta('Avance publicado correctamente en la línea temporal del cliente.', 'success', document.getElementById('alertas-container'));
                 await cargarMisReparaciones();
             } catch (error) {
                 mostrarAlerta(error.message, 'error', document.getElementById('alerta-incidencia'));
@@ -520,10 +1077,10 @@
                     opt.textContent = `${mat.nombre} — ${formatearEuros(precioVal)}/ud (Stock: ${stockVal})`;
                     selectMaterial.appendChild(opt);
                 });
-                actualizarPrevisualizacionCoste();
-
             } catch (error) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar materiales: ${error.message}</td></tr>`;
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center" style="color: var(--accent); padding: 1rem;">Error al cargar materiales: ${error.message}</td></tr>`;
+                }
             }
         }
 
@@ -540,17 +1097,17 @@
             const elNuevoTotal = document.getElementById('prev-nuevo-total');
             const elAviso = document.getElementById('prev-aviso');
 
-            const costeActual = rep ? Number(rep.costeMateriales || 0) : null;
+            const costeActual = rep ? Number(rep.costeMateriales || 0) : 0;
             const stockDisp = mat ? (mat.stockDisponible ?? mat.stock ?? 0) : null;
             const coste = (mat && cantidad > 0) ? (cantidad * Number(mat.precioUnitario || 0)) : 0;
 
-            elAcum.textContent = costeActual !== null ? formatearEuros(costeActual) : 'Selecciona reparación';
+            elAcum.textContent = formatearEuros(costeActual);
             elCoste.textContent = formatearEuros(coste);
-            elNuevoTotal.textContent = costeActual !== null ? formatearEuros(costeActual + coste) : '-';
+            elNuevoTotal.textContent = formatearEuros(costeActual + coste);
 
             if (mat && cantidad > stockDisp) {
                 elAviso.style.display = 'block';
-                elAviso.innerHTML = `⚠️ Stock insuficiente de "${mat.nombre}": solicitas ${cantidad} uds pero solo hay ${stockDisp} disponibles en almacén.`;
+                elAviso.innerHTML = `⚠️ Stock insuficiente de "${mat.nombre}": solicitas ${cantidad} uds pero solo hay ${stockDisp} disponibles.`;
             } else {
                 elAviso.style.display = 'none';
                 elAviso.innerHTML = '';
@@ -559,6 +1116,7 @@
 
         function renderMaterialesTable(materiales) {
             const tbody = document.querySelector('#tabla-materiales tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             if (materiales.length === 0) {
@@ -569,14 +1127,13 @@
             materiales.forEach(mat => {
                 const stockVal = mat.stockDisponible ?? mat.stock ?? 0;
                 const tr = document.createElement('tr');
-                tr.style.borderBottom = '1px solid var(--border)';
                 if (stockVal < 5) tr.classList.add('stock-low');
 
                 tr.innerHTML = `
-                    <td style="padding: 0.75rem;">${mat.nombre}</td>
-                    <td style="padding: 0.75rem;">${mat.descripcion || '-'}</td>
-                    <td style="padding: 0.75rem;">${stockVal} ${stockVal < 5 ? '<span class="badge" style="background: var(--accent); color: white; margin-left: 5px;">Bajo</span>' : ''}</td>
-                    <td style="padding: 0.75rem;">${formatearEuros(mat.precioUnitario)}</td>
+                    <td><strong>${mat.nombre}</strong></td>
+                    <td>${mat.descripcion || '-'}</td>
+                    <td>${stockVal} uds ${stockVal < 5 ? '<span class="badge" style="background: var(--accent); color: white; margin-left: 5px;">Stock Bajo</span>' : ''}</td>
+                    <td><strong>${formatearEuros(mat.precioUnitario)}</strong></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -594,7 +1151,7 @@
 
             mostrarModal(
                 'Terminar Reparación',
-                '¿Confirmas que has terminado el trabajo mecánico? Se guardarán tus horas de mano de obra y pasará a Recepción y Administración para formalizar la Factura y entregar el vehículo.',
+                '¿Confirmas que has terminado el trabajo mecánico? Se guardarán tus horas de mano de obra y pasará a Recepción y Administración para emitir la Factura y entregar el vehículo.',
                 async () => {
                     try {
                         if (horasVal !== null && !isNaN(horasVal) && horasVal >= 0) {
@@ -620,11 +1177,6 @@
             );
         }
 
-        function mostrarAlertaMaterial(mensaje, tipo = 'error') {
-            mostrarAlerta(mensaje, tipo, document.getElementById('alerta-uso-material'));
-            mostrarAlerta(mensaje, tipo, document.getElementById('alertas-container'));
-        }
-
         async function handleUsarMaterial(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-registrar-material');
@@ -633,7 +1185,7 @@
             const cantidad = parseInt(document.getElementById('cantidad-material').value, 10);
 
             if (!reparacionId || !materialId || !cantidad || cantidad < 1) {
-                mostrarAlertaMaterial('Por favor selecciona una reparación, un material y una cantidad válida (1 o más).', 'error');
+                mostrarAlerta('Selecciona un material y una cantidad válida.', 'error', document.getElementById('alerta-uso-material'));
                 return;
             }
 
@@ -642,7 +1194,7 @@
             const coste = mat ? (cantidad * Number(mat.precioUnitario || 0)) : 0;
 
             if (mat && cantidad > stockDisp) {
-                mostrarAlertaMaterial(`Stock insuficiente de "${mat.nombre}": solicitas ${cantidad} unidades, pero solo hay ${stockDisp} disponibles.`, 'error');
+                mostrarAlerta(`Stock insuficiente de "${mat.nombre}": solo hay ${stockDisp} disponibles.`, 'error', document.getElementById('alerta-uso-material'));
                 return;
             }
 
@@ -658,18 +1210,30 @@
                     registrarUsoMaterialLocal(reparacionId, mat.nombre, cantidad, mat.precioUnitario);
                 }
 
-                mostrarAlertaMaterial(`Pieza registrada: ${cantidad}x ${mat ? mat.nombre : 'material'} (${formatearEuros(coste)}) añadida a la reparación #${reparacionId}.`, 'success');
-                document.getElementById('form-usar-material').reset();
-                document.getElementById('cantidad-material').value = 1;
+                cerrarModalPieza();
+                mostrarAlerta(`Pieza instalada: ${cantidad}x ${mat ? mat.nombre : 'material'} (${formatearEuros(coste)}) añadida a la Orden #${reparacionId}.`, 'success', document.getElementById('alertas-container'));
 
                 await Promise.all([
                     cargarMisReparaciones(),
                     cargarMateriales()
                 ]);
             } catch (error) {
-                mostrarAlertaMaterial(`Error al registrar material: ${error.message}`, 'error');
+                mostrarAlerta(error.message, 'error', document.getElementById('alerta-uso-material'));
             } finally {
                 toggleLoading(btn, false);
+            }
+        }
+
+        function abrirPresupuestoMecanico(reparacionId) {
+            const rep = misReparacionesCache.find(r => r.id === reparacionId);
+            if (!rep) return;
+            abrirModalGenerarPresupuesto(rep, cargarMisReparaciones);
+        }
+
+        function verPresupuestoMecanico(reparacionId) {
+            const rep = misReparacionesCache.find(r => r.id === reparacionId);
+            if (rep && rep.presupuestoFormal) {
+                abrirModalPresupuestoObjeto(rep.presupuestoFormal);
             }
         }
     </script>

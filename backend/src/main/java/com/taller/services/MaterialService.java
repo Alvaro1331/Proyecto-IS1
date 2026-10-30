@@ -115,6 +115,11 @@ public class MaterialService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
 
+        if (!reparacionService.tienePresupuestoAceptado(reparacionId)) {
+            throw new IllegalArgumentException(
+                    "Operación bloqueada: no se pueden consumir piezas del almacén hasta que el cliente haya ACEPTADO el presupuesto desglosado.");
+        }
+
         Material material = materialRepository.findById(materialId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró el material con ID: " + materialId));

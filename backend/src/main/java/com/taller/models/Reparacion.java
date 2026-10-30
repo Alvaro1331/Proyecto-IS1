@@ -99,6 +99,10 @@ public class Reparacion {
     @OneToOne(mappedBy = "reparacion", cascade = CascadeType.ALL)
     private Factura factura;
 
+    // Presupuesto desglosado tras diagnóstico (Historias 1 y 3)
+    @OneToOne(mappedBy = "reparacion", cascade = CascadeType.ALL)
+    private PresupuestoReparacion presupuestoFormal;
+
     // --- Constructores ---
     public Reparacion() {}
 
@@ -216,4 +220,7 @@ public class Reparacion {
 
     public Factura getFactura() { return factura; }
     public void setFactura(Factura factura) { this.factura = factura; }
+
+    public PresupuestoReparacion getPresupuestoFormal() { return presupuestoFormal; }
+    public void setPresupuestoFormal(PresupuestoReparacion presupuestoFormal) { this.presupuestoFormal = presupuestoFormal; }
 }

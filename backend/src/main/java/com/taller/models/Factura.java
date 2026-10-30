@@ -67,6 +67,12 @@ public class Factura {
     @Column(nullable = false)
     private Double totalFactura = 0.0;
 
+    @Column(length = 25)
+    private String dniCifCliente;
+
+    @Column(length = 250)
+    private String direccionFiscalCliente;
+
     public Factura() {}
 
     public Factura(String numeroFactura, Reparacion reparacion, Double costeMateriales,
@@ -140,4 +146,10 @@ public class Factura {
 
     public Double getTotalFactura() { return totalFactura; }
     public void setTotalFactura(Double totalFactura) { this.totalFactura = totalFactura; }
+
+    public String getDniCifCliente() { return dniCifCliente; }
+    public void setDniCifCliente(String dniCifCliente) { this.dniCifCliente = dniCifCliente; }
+
+    public String getDireccionFiscalCliente() { return direccionFiscalCliente; }
+    public void setDireccionFiscalCliente(String direccionFiscalCliente) { this.direccionFiscalCliente = direccionFiscalCliente; }
 }

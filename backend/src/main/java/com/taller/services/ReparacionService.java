@@ -53,6 +53,12 @@ public class ReparacionService {
     private FacturaRepository facturaRepository;
 
     @Autowired
+    private PresupuestoReparacionRepository presupuestoRepository;
+
+    @Autowired
+    private ClienteRepository clienteRepository;
+
+    @Autowired
     private ConfiguracionTallerService configuracionService;
 
     /**
@@ -133,13 +139,23 @@ public class ReparacionService {
         }
 
         reparacion.setMecanico(mecanico);
-        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE) {
+        Optional<PresupuestoReparacion> optPres = presupuestoRepository.findByReparacionId(reparacionId);
+        boolean presupuestoAceptado = optPres.isPresent() && "ACEPTADO".equalsIgnoreCase(optPres.get().getEstado());
+        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE && presupuestoAceptado) {
             reparacion.setEstado(EstadoReparacion.EN_PROCESO);
         }
         reparacionRepository.save(reparacion);
 
-        return convertirAResponseDTO(reparacion,
-                "Mecánico " + mecanico.getNombre() + " asignado correctamente.");
+        String msg = presupuestoAceptado
+                ? "Mecánico " + mecanico.getNombre() + " asignado. El presupuesto ya está aceptado, por lo que la reparación pasa a EN PROCESO."
+                : "Mecánico " + mecanico.getNombre() + " asignado para diagnóstico. La reparación permanece PENDIENTE hasta que se emita el presupuesto y el cliente lo acepte.";
+        return convertirAResponseDTO(reparacion, msg);
+    }
+
+    public boolean tienePresupuestoAceptado(Long reparacionId) {
+        return presupuestoRepository.findByReparacionId(reparacionId)
+                .map(p -> "ACEPTADO".equalsIgnoreCase(p.getEstado()))
+                .orElse(false);
     }
 
     /**
@@ -172,6 +188,11 @@ public class ReparacionService {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
+
+        if (!tienePresupuestoAceptado(reparacionId)) {
+            throw new IllegalArgumentException(
+                    "Operación bloqueada: no se pueden registrar horas de trabajo hasta que el cliente haya ACEPTADO el presupuesto desglosado.");
+        }
 
         double horasRedondeadas = Math.round(horas * 100.0) / 100.0;
         reparacion.setHorasTrabajoMecanico(horasRedondeadas);
@@ -274,6 +295,69 @@ public class ReparacionService {
     }
 
     /**
+     * Elimina únicamente la foto asociada a una incidencia (manteniendo el texto de la nota)
+     * y borra el archivo de imagen físico de la carpeta uploads/.
+     */
+    public Map<String, Object> eliminarFotoIncidencia(Long reparacionId, Long incidenciaId) {
+        IncidenciaReparacion incidencia = incidenciaRepository.findById(incidenciaId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No se encontró la incidencia con ID: " + incidenciaId));
+
+        if (!incidencia.getReparacion().getId().equals(reparacionId)) {
+            throw new IllegalArgumentException("La incidencia no pertenece a la reparación #" + reparacionId);
+        }
+
+        if (incidencia.getRutaFoto() == null || incidencia.getRutaFoto().isBlank()) {
+            throw new IllegalArgumentException("Esta incidencia no tiene ninguna foto adjunta para eliminar.");
+        }
+
+        borrarArchivoFotoFisico(incidencia.getRutaFoto());
+        incidencia.setRutaFoto(null);
+        incidenciaRepository.save(incidencia);
+
+        Map<String, Object> respuesta = mapearIncidencia(incidencia);
+        respuesta.put("mensaje", "La fotografía de la incidencia se ha eliminado correctamente.");
+        return respuesta;
+    }
+
+    /**
+     * Elimina por completo una incidencia y su fotografía física del disco si la tuviera.
+     */
+    public Map<String, Object> eliminarIncidencia(Long reparacionId, Long incidenciaId) {
+        IncidenciaReparacion incidencia = incidenciaRepository.findById(incidenciaId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No se encontró la incidencia con ID: " + incidenciaId));
+
+        if (!incidencia.getReparacion().getId().equals(reparacionId)) {
+            throw new IllegalArgumentException("La incidencia no pertenece a la reparación #" + reparacionId);
+        }
+
+        if (incidencia.getRutaFoto() != null && !incidencia.getRutaFoto().isBlank()) {
+            borrarArchivoFotoFisico(incidencia.getRutaFoto());
+        }
+
+        incidenciaRepository.delete(incidencia);
+
+        return Map.of(
+                "id", incidenciaId,
+                "reparacionId", reparacionId,
+                "mensaje", "Incidencia y fotografía eliminadas correctamente."
+        );
+    }
+
+    private void borrarArchivoFotoFisico(String rutaFotoPublica) {
+        try {
+            String nombreArchivo = rutaFotoPublica.replaceFirst("^/uploads/", "");
+            Path ruta1 = Paths.get("uploads").toAbsolutePath().normalize().resolve(nombreArchivo);
+            Files.deleteIfExists(ruta1);
+
+            Path ruta2 = Paths.get("backend", "uploads").toAbsolutePath().normalize().resolve(nombreArchivo);
+            Files.deleteIfExists(ruta2);
+        } catch (IOException ignored) {
+        }
+    }
+
+    /**
      * Genera o actualiza la Factura formal de una reparación basándose en:
      * - Coste real de piezas usadas
      * - Horas de mano de obra trabajadas × precioHora (configurado por el Admin)
@@ -281,15 +365,42 @@ public class ReparacionService {
      * - IVA (21%)
      */
     public synchronized Map<String, Object> generarFactura(Long reparacionId, Double horasManoObraOpcional) {
+        return generarFactura(reparacionId, horasManoObraOpcional, null, null, false);
+    }
+
+    public synchronized Map<String, Object> generarFactura(Long reparacionId, Double horasManoObraOpcional,
+                                                           String dniCif, String direccionFiscal,
+                                                           boolean validarDatosFiscales) {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
 
-        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE) {
-            throw new IllegalArgumentException("No se puede facturar una reparación que aún está PENDIENTE de iniciar.");
+        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE || reparacion.getEstado() == EstadoReparacion.EN_PROCESO) {
+            throw new IllegalArgumentException(
+                    "No se puede generar la factura si la reparación no está en estado FINALIZADA o CONFIRMADA (estado actual: "
+                            + reparacion.getEstado().name() + ").");
         }
 
-        if (horasManoObraOpcional != null && horasManoObraOpcional >= 0) {
+        Cliente cliente = reparacion.getVehiculo().getCliente();
+        if (dniCif != null && !dniCif.trim().isEmpty()) {
+            cliente.setDniCif(dniCif.trim().toUpperCase());
+        }
+        if (direccionFiscal != null && !direccionFiscal.trim().isEmpty()) {
+            cliente.setDireccionFiscal(direccionFiscal.trim());
+        }
+        if ((dniCif != null && !dniCif.trim().isEmpty()) || (direccionFiscal != null && !direccionFiscal.trim().isEmpty())) {
+            clienteRepository.save(cliente);
+        }
+
+        if (validarDatosFiscales) {
+            if (cliente.getDniCif() == null || cliente.getDniCif().trim().isEmpty()
+                    || cliente.getDireccionFiscal() == null || cliente.getDireccionFiscal().trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "No se puede generar la factura: el registro carece de datos fiscales obligatorios del cliente (DNI/CIF y Dirección Fiscal).");
+            }
+        }
+
+        if (horasManoObraOpcional != null && horasManoObraOpcional > 0) {
             reparacion.setHorasTrabajoMecanico(Math.round(horasManoObraOpcional * 100.0) / 100.0);
             reparacionRepository.save(reparacion);
         } else if (reparacion.getHorasTrabajoMecanico() == null || reparacion.getHorasTrabajoMecanico() <= 0) {
@@ -314,12 +425,296 @@ public class ReparacionService {
             factura = new Factura(numeroFactura, reparacion, costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
         }
 
+        factura.setDniCifCliente(cliente.getDniCif() != null ? cliente.getDniCif() : "");
+        factura.setDireccionFiscalCliente(cliente.getDireccionFiscal() != null ? cliente.getDireccionFiscal() : "");
+
         facturaRepository.save(factura);
         reparacion.setFactura(factura);
 
         Map<String, Object> dto = mapearFacturaCompleta(factura);
-        dto.put("mensaje", "Factura " + factura.getNumeroFactura() + " formalizada correctamente.");
+        dto.put("mensaje", "Factura " + factura.getNumeroFactura() + " generada y registrada correctamente.");
         return dto;
+    }
+
+    // ======== HISTORIA DE USUARIO 1 Y 3: PRESUPUESTO DESGLOSADO Y ACEPTACIÓN DEL CLIENTE ========
+
+    /**
+     * Genera o actualiza un Presupuesto Desglosado tras el diagnóstico técnico (Historia 1).
+     * Diferencia líneas de tipo "PIEZA" (Pieza/Repuesto) y "MANO_OBRA" (Mano de obra).
+     */
+    public synchronized Map<String, Object> guardarPresupuestoDesglosado(Long reparacionId,
+                                                                         String diagnosticoPrevio,
+                                                                         Integer diasValidez,
+                                                                         List<Map<String, Object>> lineasRaw) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (lineasRaw == null || lineasRaw.isEmpty()) {
+            throw new IllegalArgumentException("El presupuesto debe contener al menos un concepto (pieza o mano de obra).");
+        }
+
+        ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
+        int validez = (diasValidez != null && diasValidez > 0) ? diasValidez : 15;
+
+        Optional<PresupuestoReparacion> optExistente = presupuestoRepository.findByReparacionId(reparacionId);
+        PresupuestoReparacion presupuesto;
+        if (optExistente.isPresent()) {
+            presupuesto = optExistente.get();
+            presupuesto.setDiagnosticoPrevio(diagnosticoPrevio != null ? diagnosticoPrevio.trim() : reparacion.getDescripcionAveria());
+            presupuesto.setFechaEmision(LocalDate.now());
+            presupuesto.setFechaValidez(LocalDate.now().plusDays(validez));
+            presupuesto.setEstado("PENDIENTE_ACEPTACION");
+            presupuesto.setMotivoRechazo(null);
+            presupuesto.setFechaRespuestaCliente(null);
+            presupuesto.setPorcentajeMargen(config.getMargenBeneficioPorcentaje());
+            presupuesto.setPorcentajeIva(21.0);
+            presupuesto.getLineas().clear();
+        } else {
+            String numero = generarNumeroPresupuestoUnico();
+            presupuesto = new PresupuestoReparacion(
+                    numero,
+                    reparacion,
+                    diagnosticoPrevio != null ? diagnosticoPrevio.trim() : reparacion.getDescripcionAveria(),
+                    LocalDate.now().plusDays(validez),
+                    config.getMargenBeneficioPorcentaje(),
+                    21.0
+            );
+        }
+
+        double horasTotalesEstimadas = 0.0;
+        for (Map<String, Object> item : lineasRaw) {
+            String tipo = item.get("tipo") != null ? item.get("tipo").toString().trim().toUpperCase() : "PIEZA";
+            if (!"PIEZA".equals(tipo) && !"MANO_OBRA".equals(tipo)) {
+                tipo = "PIEZA";
+            }
+            String concepto = item.get("concepto") != null ? item.get("concepto").toString().trim() : "";
+            if (concepto.isEmpty()) {
+                throw new IllegalArgumentException("Todas las líneas del presupuesto deben incluir un concepto descriptivo.");
+            }
+            double cantidad = item.get("cantidad") != null ? Double.parseDouble(item.get("cantidad").toString()) : 0.0;
+            double precioUnitario = item.get("precioUnitario") != null ? Double.parseDouble(item.get("precioUnitario").toString()) : 0.0;
+
+            if (cantidad <= 0 || precioUnitario <= 0) {
+                throw new IllegalArgumentException("No se permite guardar el presupuesto: las cantidades, horas e importes unitarios deben ser mayores que cero (> 0).");
+            }
+
+            Long materialId = item.get("materialId") != null && !item.get("materialId").toString().isBlank()
+                    ? Long.valueOf(item.get("materialId").toString()) : null;
+
+            if ("MANO_OBRA".equals(tipo)) {
+                horasTotalesEstimadas += cantidad;
+            }
+
+            LineaPresupuesto linea = new LineaPresupuesto(presupuesto, tipo, concepto, cantidad, precioUnitario, materialId);
+            presupuesto.getLineas().add(linea);
+        }
+
+        presupuesto.recalcularTotales();
+        presupuestoRepository.save(presupuesto);
+
+        // Actualizar el presupuesto de referencia en la reparación y horas estimadas si aún era 0
+        reparacion.setPresupuesto(presupuesto.getTotalPresupuesto());
+        reparacion.setPresupuestoEstimado(presupuesto.getTotalPresupuesto());
+        if ((reparacion.getHorasTrabajoMecanico() == null || reparacion.getHorasTrabajoMecanico() <= 0) && horasTotalesEstimadas > 0) {
+            reparacion.setHorasTrabajoMecanico(Math.round(horasTotalesEstimadas * 100.0) / 100.0);
+        }
+        reparacionRepository.save(reparacion);
+
+        boolean eraAmpliacion = optExistente.isPresent() && reparacion.getEstado() == EstadoReparacion.EN_PROCESO;
+        // Registrar hito en la línea temporal de la reparación
+        incidenciaRepository.save(new IncidenciaReparacion(
+                reparacion,
+                (eraAmpliacion
+                        ? "⚠️ Ampliación de Presupuesto " + presupuesto.getNumeroPresupuesto() + " por avería adicional/imprevisto emitida por "
+                        : "📋 Presupuesto desglosado " + presupuesto.getNumeroPresupuesto() + " emitido por ")
+                        + String.format("%.2f €", presupuesto.getTotalPresupuesto())
+                        + " (Piezas: " + String.format("%.2f €", presupuesto.getSubtotalPiezas())
+                        + " | Mano de obra: " + String.format("%.2f €", presupuesto.getSubtotalManoObra())
+                        + " + Margen/IVA). Estado: PENDIENTE DE ACEPTACIÓN DEL CLIENTE (reparación bloqueada hasta confirmación).",
+                0.0,
+                null
+        ));
+
+        Map<String, Object> dto = mapearPresupuestoCompleto(presupuesto);
+        dto.put("mensaje", eraAmpliacion
+                ? "Ampliación de presupuesto " + presupuesto.getNumeroPresupuesto() + " enviada al cliente. La reparación queda en pausa hasta su aceptación."
+                : "Presupuesto " + presupuesto.getNumeroPresupuesto() + " guardado y enviado al cliente (PENDIENTE_ACEPTACION).");
+        return dto;
+    }
+
+    /**
+     * Crea un presupuesto inicialmente ACEPTADO (para reparaciones de muestra que ya están en taller o aceptadas en recepción).
+     */
+    public synchronized void crearPresupuestoAceptadoInicial(Long reparacionId,
+                                                             String diagnosticoPrevio,
+                                                             List<Map<String, Object>> lineasRaw) {
+        if (presupuestoRepository.findByReparacionId(reparacionId).isPresent()) {
+            return;
+        }
+        guardarPresupuestoDesglosado(reparacionId, diagnosticoPrevio, 15, lineasRaw);
+        presupuestoRepository.findByReparacionId(reparacionId).ifPresent(p -> {
+            p.setEstado("ACEPTADO");
+            p.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            presupuestoRepository.save(p);
+        });
+    }
+
+    private String generarNumeroPresupuestoUnico() {
+        int anio = LocalDate.now().getYear();
+        long total = presupuestoRepository.count() + 1;
+        String candidato = String.format("PRES-%d-%03d", anio, total);
+        while (presupuestoRepository.findByNumeroPresupuesto(candidato).isPresent()) {
+            total++;
+            candidato = String.format("PRES-%d-%03d", anio, total);
+        }
+        return candidato;
+    }
+
+    public Map<String, Object> obtenerPresupuestoPorReparacion(Long reparacionId) {
+        PresupuestoReparacion p = presupuestoRepository.findByReparacionId(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Todavía no se ha emitido un presupuesto desglosado para la reparación #" + reparacionId));
+        return mapearPresupuestoCompleto(p);
+    }
+
+    /**
+     * Historia de Usuario 3: Permite al cliente ACEPTAR o RECHAZAR un presupuesto en estado PENDIENTE_ACEPTACION
+     * verificando obligatoriamente la contraseña de su cuenta.
+     */
+    public synchronized Map<String, Object> responderPresupuestoCliente(Long reparacionId,
+                                                                        String accion,
+                                                                        String password,
+                                                                        String motivoRechazo) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("Esta reparación no tiene un presupuesto formal pendiente."));
+
+        if (!"PENDIENTE_ACEPTACION".equalsIgnoreCase(presupuesto.getEstado())) {
+            throw new IllegalStateException("No se puede modificar este presupuesto porque ya se encuentra en estado "
+                    + presupuesto.getEstado() + ".");
+        }
+
+        if (presupuesto.estaCaducado()) {
+            throw new IllegalStateException("Este presupuesto ha superado su fecha de validez ("
+                    + presupuesto.getFechaValidez() + ") y ya no puede ser aceptado ni rechazado.");
+        }
+
+        if (password == null || password.isBlank()) {
+            throw new SecurityException("Debes introducir tu contraseña para confirmar la operación.");
+        }
+
+        Cliente cliente = reparacion.getVehiculo().getCliente();
+        boolean passwordValida = false;
+        if (cliente.getPassword() != null && cliente.getPassword().equals(password)) {
+            passwordValida = true;
+        } else {
+            // También comprobar si la reparación está vinculada a otro perfil de cliente con cuenta
+            for (Cliente c : clienteRepository.findAll()) {
+                if (c.getReparacionesVinculadas() != null
+                        && c.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(reparacionId))
+                        && c.getPassword() != null && c.getPassword().equals(password)) {
+                    passwordValida = true;
+                    break;
+                }
+            }
+        }
+
+        if (!passwordValida) {
+            throw new SecurityException("Contraseña incorrecta");
+        }
+
+        String accionNorm = accion != null ? accion.trim().toUpperCase() : "";
+        if ("ACEPTAR".equals(accionNorm) || "ACEPTADO".equals(accionNorm)) {
+            presupuesto.setEstado("ACEPTADO");
+            presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            presupuesto.setMotivoRechazo(null);
+            presupuestoRepository.save(presupuesto);
+
+            if (reparacion.getEstado() == EstadoReparacion.PENDIENTE) {
+                reparacion.setEstado(EstadoReparacion.EN_PROCESO);
+            }
+            reparacion.setPresupuesto(presupuesto.getTotalPresupuesto());
+            reparacionRepository.save(reparacion);
+
+            incidenciaRepository.save(new IncidenciaReparacion(
+                    reparacion,
+                    "✅ Presupuesto " + presupuesto.getNumeroPresupuesto() + " ACEPTADO por el cliente. Vehículo autorizado y listo para reparar.",
+                    0.0,
+                    null
+            ));
+        } else if ("RECHAZAR".equals(accionNorm) || "RECHAZADO".equals(accionNorm)) {
+            presupuesto.setEstado("RECHAZADO");
+            presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            String motivo = (motivoRechazo != null && !motivoRechazo.trim().isEmpty())
+                    ? motivoRechazo.trim() : "Sin motivo especificado";
+            presupuesto.setMotivoRechazo(motivo);
+            presupuestoRepository.save(presupuesto);
+
+            incidenciaRepository.save(new IncidenciaReparacion(
+                    reparacion,
+                    "❌ Presupuesto " + presupuesto.getNumeroPresupuesto() + " RECHAZADO por el cliente. Motivo: " + motivo,
+                    0.0,
+                    null
+            ));
+        } else {
+            throw new IllegalArgumentException("Acción no válida. Debe ser ACEPTAR o RECHAZAR.");
+        }
+
+        Map<String, Object> dto = mapearPresupuestoCompleto(presupuesto);
+        dto.put("estadoReparacion", reparacion.getEstado().name());
+        dto.put("mensaje", "ACEPTADO".equals(presupuesto.getEstado())
+                ? "Has aceptado el presupuesto correctamente. El taller ya puede iniciar la reparación."
+                : "Has rechazado el presupuesto. Se ha notificado al taller tu decisión.");
+        return dto;
+    }
+
+    public Map<String, Object> mapearPresupuestoCompleto(PresupuestoReparacion p) {
+        Reparacion r = p.getReparacion();
+        List<Map<String, Object>> lineasDto = p.getLineas().stream().map(l -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", l.getId());
+            m.put("tipo", l.getTipo());
+            m.put("concepto", l.getConcepto());
+            m.put("cantidad", l.getCantidad());
+            m.put("precioUnitario", l.getPrecioUnitario());
+            m.put("subtotal", l.getSubtotal());
+            m.put("materialId", l.getMaterialId());
+            return m;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", p.getId());
+        map.put("numeroPresupuesto", p.getNumeroPresupuesto());
+        map.put("reparacionId", r.getId());
+        map.put("localizador", r.getLocalizador());
+        map.put("diagnosticoPrevio", p.getDiagnosticoPrevio());
+        map.put("fechaEmision", p.getFechaEmision() != null ? p.getFechaEmision().toString() : LocalDate.now().toString());
+        map.put("fechaValidez", p.getFechaValidez() != null ? p.getFechaValidez().toString() : LocalDate.now().plusDays(15).toString());
+        map.put("caducado", p.estaCaducado());
+        map.put("estado", p.getEstado());
+        map.put("motivoRechazo", p.getMotivoRechazo());
+        map.put("fechaRespuestaCliente", p.getFechaRespuestaCliente() != null ? p.getFechaRespuestaCliente().toString() : null);
+        map.put("matriculaVehiculo", r.getVehiculo().getMatricula());
+        map.put("marcaVehiculo", r.getVehiculo().getMarca());
+        map.put("modeloVehiculo", r.getVehiculo().getModelo());
+        map.put("nombreCliente", r.getVehiculo().getCliente().getNombre());
+        map.put("telefonoCliente", r.getVehiculo().getCliente().getTelefono());
+        map.put("dniCifCliente", r.getVehiculo().getCliente().getDniCif() != null ? r.getVehiculo().getCliente().getDniCif() : "");
+        map.put("direccionFiscalCliente", r.getVehiculo().getCliente().getDireccionFiscal() != null ? r.getVehiculo().getCliente().getDireccionFiscal() : "");
+        map.put("nombreMecanico", r.getMecanico() != null ? r.getMecanico().getNombre() : "Mecánico Jefe");
+        map.put("subtotalPiezas", p.getSubtotalPiezas());
+        map.put("subtotalManoObra", p.getSubtotalManoObra());
+        map.put("subtotalBase", p.getSubtotalBase());
+        map.put("porcentajeMargen", p.getPorcentajeMargen());
+        map.put("importeMargen", p.getImporteMargen());
+        map.put("baseImponible", p.getBaseImponible());
+        map.put("porcentajeIva", p.getPorcentajeIva());
+        map.put("importeIva", p.getImporteIva());
+        map.put("totalPresupuesto", p.getTotalPresupuesto());
+        map.put("lineas", lineasDto);
+        return map;
     }
 
     private String generarNumeroFacturaUnico() {
@@ -378,6 +773,12 @@ public class ReparacionService {
         map.put("modeloVehiculo", r.getVehiculo().getModelo());
         map.put("nombreCliente", r.getVehiculo().getCliente().getNombre());
         map.put("telefonoCliente", r.getVehiculo().getCliente().getTelefono());
+        map.put("dniCifCliente", f.getDniCifCliente() != null && !f.getDniCifCliente().isEmpty()
+                ? f.getDniCifCliente()
+                : (r.getVehiculo().getCliente().getDniCif() != null ? r.getVehiculo().getCliente().getDniCif() : ""));
+        map.put("direccionFiscalCliente", f.getDireccionFiscalCliente() != null && !f.getDireccionFiscalCliente().isEmpty()
+                ? f.getDireccionFiscalCliente()
+                : (r.getVehiculo().getCliente().getDireccionFiscal() != null ? r.getVehiculo().getCliente().getDireccionFiscal() : ""));
         map.put("nombreMecanico", r.getMecanico() != null ? r.getMecanico().getNombre() : "Sin asignar");
         map.put("nombreRecepcionista", r.getRecepcionista() != null ? r.getRecepcionista().getNombre() : "-");
         map.put("descripcionAveria", r.getDescripcionAveria());
@@ -477,6 +878,21 @@ public class ReparacionService {
         if (nuevoEstado != EstadoReparacion.PENDIENTE && reparacion.getMecanico() == null) {
             throw new IllegalArgumentException(
                     "No se puede cambiar el estado a " + nuevoEstado + " porque la reparación no tiene ningún mecánico asignado.");
+        }
+
+        if (nuevoEstado == EstadoReparacion.EN_PROCESO || nuevoEstado == EstadoReparacion.FINALIZADA) {
+            Optional<PresupuestoReparacion> optPres = presupuestoRepository.findByReparacionId(reparacionId);
+            if (optPres.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Operación bloqueada: no se puede iniciar ni finalizar la reparación sin haber generado antes el presupuesto desglosado y contar con la aceptación del cliente.");
+            }
+            String estadoPres = optPres.get().getEstado();
+            if (!"ACEPTADO".equalsIgnoreCase(estadoPres)) {
+                throw new IllegalArgumentException(
+                        "Operación bloqueada: el presupuesto (" + optPres.get().getNumeroPresupuesto()
+                                + ") se encuentra en estado " + estadoPres
+                                + ". El cliente debe aceptar el presupuesto antes de iniciar o finalizar la reparación.");
+            }
         }
 
         reparacion.setEstado(nuevoEstado);
@@ -687,6 +1103,10 @@ public class ReparacionService {
         Optional<Factura> optFactura = facturaRepository.findByReparacionId(reparacion.getId());
         Map<String, Object> facturaMap = optFactura.map(this::mapearFacturaCompleta).orElse(null);
 
+        Optional<PresupuestoReparacion> optPresupuesto = presupuestoRepository.findByReparacionId(reparacion.getId());
+        Map<String, Object> presupuestoMap = optPresupuesto.map(this::mapearPresupuestoCompleto).orElse(null);
+        String estadoPresupuesto = optPresupuesto.map(PresupuestoReparacion::getEstado).orElse("SIN_PRESUPUESTO");
+
         double totalPrevisto = calcularTotalPrevistoReparacion(reparacion);
         Double totalFinalFactura = optFactura.map(Factura::getTotalFactura).orElse(null);
 
@@ -744,6 +1164,10 @@ public class ReparacionService {
         dto.setMaterialesDetalle(materialesDetalle);
         dto.setIncidencias(incidenciasDto);
         dto.setFactura(facturaMap);
+        dto.setPresupuestoFormal(presupuestoMap);
+        dto.setEstadoPresupuesto(estadoPresupuesto);
+        dto.setDniCifCliente(reparacion.getVehiculo().getCliente().getDniCif() != null ? reparacion.getVehiculo().getCliente().getDniCif() : "");
+        dto.setDireccionFiscalCliente(reparacion.getVehiculo().getCliente().getDireccionFiscal() != null ? reparacion.getVehiculo().getCliente().getDireccionFiscal() : "");
         dto.setMensaje(mensaje);
         return dto;
     }

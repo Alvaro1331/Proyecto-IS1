@@ -32,8 +32,14 @@ public class Cliente {
     @JsonIgnore
     private String password;
 
+    // Datos fiscales del cliente para emisión de facturas oficiales (DNI/CIF y Dirección)
+    @Column(length = 25)
+    private String dniCif;
+
+    @Column(length = 250)
+    private String direccionFiscal;
+
     // Un cliente puede tener múltiples vehículos
-    // mappedBy = "cliente" indica que el campo "cliente" en Vehiculo es el que gestiona la relación
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Vehiculo> vehiculos;
@@ -62,6 +68,12 @@ public class Cliente {
         this.password = password;
     }
 
+    public Cliente(String nombre, String telefono, String email, String password, String dniCif, String direccionFiscal) {
+        this(nombre, telefono, email, password);
+        this.dniCif = dniCif;
+        this.direccionFiscal = direccionFiscal;
+    }
+
     /**
      * Comprueba si el cliente tiene credenciales de acceso registradas.
      */
@@ -84,6 +96,12 @@ public class Cliente {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getDniCif() { return dniCif; }
+    public void setDniCif(String dniCif) { this.dniCif = dniCif; }
+
+    public String getDireccionFiscal() { return direccionFiscal; }
+    public void setDireccionFiscal(String direccionFiscal) { this.direccionFiscal = direccionFiscal; }
 
     public List<Vehiculo> getVehiculos() { return vehiculos; }
     public void setVehiculos(List<Vehiculo> vehiculos) { this.vehiculos = vehiculos; }
