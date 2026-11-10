@@ -271,6 +271,8 @@ public class DatosPrueba implements CommandLineRunner {
                     }
                 }
             }
+        } catch (Exception ignored) {}
+
         try {
             if (notificacionRepository.count() == 0) {
                 clienteRepository.findByEmail("juan@email.com").ifPresent(cliente -> {
