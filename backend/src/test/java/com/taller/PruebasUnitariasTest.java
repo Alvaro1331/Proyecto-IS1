@@ -5,6 +5,7 @@ import com.taller.dtos.UsuarioResponseDTO;
 import com.taller.models.*;
 import com.taller.repositories.ClienteRepository;
 import com.taller.repositories.MaterialRepository;
+import com.taller.repositories.NotificacionClienteRepository;
 import com.taller.repositories.ReparacionRepository;
 import com.taller.repositories.UsuarioRepository;
 import com.taller.repositories.VehiculoRepository;
@@ -457,5 +458,63 @@ public class PruebasUnitariasTest {
         });
 
         assertEquals("No hay ninguna solicitud de recuperación activa para este correo.", ex.getMessage());
+    }
+
+    /**
+     * PRUEBA 21:
+     * Verifica la creación de una NotificacionCliente: que el objeto se inicializa
+     * con el tipo correcto, el título y mensaje asignados, y que nace en estado no leída.
+     * También verifica que el método setLeida(true) la marca como leída correctamente.
+     */
+    @Test
+    @DisplayName("Prueba 21: Creación y marcado de lectura de NotificacionCliente")
+    void test21_CreacionYLecturaNotificacionCliente() {
+        Cliente cliente = new Cliente("Juan Pérez", "611111111", "juan@email.com", "juan123");
+        NotificacionCliente notificacion = new NotificacionCliente(
+                cliente,
+                null,
+                TipoNotificacion.LISTO_PARA_RECOGER,
+                "¡Tu coche está listo!",
+                "La reparación ha finalizado y ya puedes pasar a recogerlo."
+        );
+
+        assertNotNull(notificacion, "La notificación no debe ser nula");
+        assertEquals(TipoNotificacion.LISTO_PARA_RECOGER, notificacion.getTipo(), "El tipo debe coincidir con LISTO_PARA_RECOGER");
+        assertEquals("¡Tu coche está listo!", notificacion.getTitulo(), "El título debe coincidir");
+        assertFalse(notificacion.isLeida(), "La notificación debe nacer como no leída");
+
+        notificacion.setLeida(true);
+        assertTrue(notificacion.isLeida(), "Tras marcarla, la notificación debe quedar leída");
+    }
+
+    /**
+     * PRUEBA 22:
+     * Verifica que NotificacionService persiste correctamente una notificación
+     * en el repositorio mediante un mock, y que el objeto devuelto contiene
+     * el ID, el tipo y el cliente esperados.
+     */
+    @Test
+    @DisplayName("Prueba 22: Persistencia de NotificacionCliente a través de NotificacionService")
+    void test22_PersistenciaNotificacionEnServicio() {
+        NotificacionClienteRepository repoMock = mock(NotificacionClienteRepository.class);
+        NotificacionService notifService = new NotificacionService();
+        ReflectionTestUtils.setField(notifService, "notificacionRepository", repoMock);
+
+        Cliente cliente = new Cliente("María Sánchez", "622222222", "maria@email.com", "maria123");
+        NotificacionCliente guardadaMock = new NotificacionCliente(
+                cliente, null, TipoNotificacion.EN_PROCESO, "En proceso", "Tu vehículo ha empezado a repararse"
+        );
+        guardadaMock.setId(101L);
+
+        when(repoMock.save(any(NotificacionCliente.class))).thenReturn(guardadaMock);
+
+        NotificacionCliente resultado = notifService.crearYProcesarNotificacion(
+                cliente, null, TipoNotificacion.EN_PROCESO, "En proceso", "Tu vehículo ha empezado a repararse"
+        );
+
+        assertNotNull(resultado, "El resultado no debe ser nulo");
+        assertEquals(101L, resultado.getId(), "El ID debe ser 101");
+        assertEquals(TipoNotificacion.EN_PROCESO, resultado.getTipo(), "El tipo debe ser EN_PROCESO");
+        verify(repoMock, times(1)).save(any(NotificacionCliente.class));
     }
 }

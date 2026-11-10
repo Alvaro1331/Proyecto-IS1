@@ -149,12 +149,12 @@
         <div class="meta-box">
             <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
             <strong>Fecha:</strong> Febrero 2026 &nbsp;|&nbsp; 
-            <strong>Estado:</strong> 100% Operativo y Verificado (20/20 Pruebas Exitosas)
+            <strong>Estado:</strong> 100% Operativo y Verificado (22/22 Pruebas Exitosas)
         </div>
     </div>
 
     <div class="alert alert-success">
-        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>20 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad y Control de Acceso RBAC)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>22 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC y Notificaciones al Cliente)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
     </div>
 
     <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
@@ -328,7 +328,7 @@
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">5. Catálogo Completo de las 20 Pruebas Unitarias Implementadas</h2>
+    <h2 class="section-title">5. Catálogo Completo de las 22 Pruebas Unitarias Implementadas</h2>
     <p>
         La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable y de seguridad del taller:
     </p>
@@ -463,6 +463,18 @@
                 <td><strong>SEGURIDAD (Flujo Antifraude):</strong> Rechaza la verificación de códigos si no existe una petición previa activa en memoria, mitigando ataques de fuerza bruta y manipulación de tokens.</td>
                 <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("No hay ninguna solicitud activa...", msg)</code></td>
             </tr>
+            <tr>
+                <td><strong>21</strong></td>
+                <td><code>NotificacionCliente</code><br><code>Constructor y setLeida()</code></td>
+                <td>Verifica que una notificación al cliente se crea con el tipo correcto (<code>LISTO_PARA_RECOGER</code>), el título asignado y en estado no leída. Comprueba también que el método <code>setLeida(true)</code> la marca correctamente como leída.</td>
+                <td><code>assertNotNull(notificacion)</code><br><code>assertEquals(tipo)</code><br><code>assertFalse(isLeida())</code><br><code>assertTrue(isLeida())</code></td>
+            </tr>
+            <tr>
+                <td><strong>22</strong></td>
+                <td><code>NotificacionService</code><br><code>crearYProcesarNotificacion()</code></td>
+                <td>Verifica que el servicio de notificaciones persiste correctamente el aviso en el repositorio mediante un mock de Mockito, y que el objeto devuelto contiene el ID, el tipo (<code>EN_PROCESO</code>) y los datos del cliente correctos.</td>
+                <td><code>assertNotNull(resultado)</code><br><code>assertEquals(101L, getId())</code><br><code>assertEquals(EN_PROCESO, tipo)</code><br><code>verify(repoMock, times(1))</code></td>
+            </tr>
         </tbody>
     </table>
 
@@ -475,7 +487,7 @@
         <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
         <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
         <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
-        <li>En el panel inferior de IntelliJ se mostrarán los <strong>20 tests con el check verde de aprobación</strong>.</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>22 tests con el check verde de aprobación</strong>.</li>
     </ol>
 
     <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
@@ -487,11 +499,11 @@
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running com.taller.PruebasUnitariasTest
-[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.454 s -- in com.taller.PruebasUnitariasTest
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.454 s -- in com.taller.PruebasUnitariasTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
@@ -511,9 +523,9 @@
     <div class="alert alert-info">
         <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
         <ul>
-            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 20 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 22 pruebas y módulo de seguridad.</li>
             <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
-            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 20 pruebas unitarias listo para copiar.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 22 pruebas unitarias listo para copiar.</li>
         </ul>
     </div>
 
