@@ -1,9 +1,14 @@
 package com.taller;
 
+import com.taller.dtos.ReparacionRequestDTO;
 import com.taller.dtos.UsuarioResponseDTO;
 import com.taller.models.*;
+import com.taller.repositories.ClienteRepository;
+import com.taller.repositories.MaterialRepository;
+import com.taller.repositories.ReparacionRepository;
 import com.taller.repositories.UsuarioRepository;
-import com.taller.services.UsuarioService;
+import com.taller.repositories.VehiculoRepository;
+import com.taller.services.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -212,5 +217,245 @@ public class PruebasUnitariasTest {
         // Caso 2: Cliente con cuenta completa para iniciar sesión
         Cliente clienteConCuenta = new Cliente("Juan Pérez", "611111111", "juan@email.com", "juan123");
         assertTrue(clienteConCuenta.tieneCuenta(), "Un cliente con email y contraseña debe tener cuenta de acceso válida");
+    }
+
+    /**
+     * PRUEBA 10:
+     * Verifica que el método estático generarCodigoCita() de la clase CitaPrevia
+     * genera un código no nulo con el prefijo "CITA-" y una longitud total de 9 caracteres.
+     */
+    @Test
+    @DisplayName("Prueba 10: Generación del código identificativo de Cita Previa")
+    void test10_GenerarCodigoCitaPrevia() {
+        String codigo = CitaPrevia.generarCodigoCita();
+
+        assertNotNull(codigo, "El código de cita no debe ser nulo");
+        assertTrue(codigo.startsWith("CITA-"), "El código debe comenzar con el prefijo 'CITA-'");
+        assertEquals(9, codigo.length(), "El código de cita debe tener exactamente 9 caracteres (CITA- + 4 alfanuméricos)");
+    }
+
+    /**
+     * PRUEBA 11:
+     * Verifica que el método actualizarStock de MaterialService valida que el stock no sea
+     * negativo, lanzando IllegalArgumentException si se introduce un valor menor que cero.
+     */
+    @Test
+    @DisplayName("Prueba 11: Rechazo de actualización con stock negativo en MaterialService")
+    void test11_ActualizarStockNegativoLanzaExcepcion() {
+        MaterialRepository materialRepo = mock(MaterialRepository.class);
+        MaterialService materialService = new MaterialService();
+        ReflectionTestUtils.setField(materialService, "materialRepository", materialRepo);
+
+        Material material = new Material("Batería 12V 70Ah", "Batería de arranque", 5, 85.0);
+        when(materialRepo.findById(1L)).thenReturn(Optional.of(material));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            materialService.actualizarStock(1L, -3);
+        });
+
+        assertEquals("El stock no puede ser negativo.", ex.getMessage());
+    }
+
+    /**
+     * PRUEBA 12:
+     * Verifica que el registro de un nuevo cliente en ClienteService falla
+     * si el correo electrónico ya se encuentra registrado en el sistema.
+     */
+    @Test
+    @DisplayName("Prueba 12: Rechazo de registro de cliente con email duplicado")
+    void test12_RegistroClienteEmailDuplicado() {
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        ClienteService clienteService = new ClienteService();
+        ReflectionTestUtils.setField(clienteService, "clienteRepository", clienteRepo);
+
+        Cliente clienteExistente = new Cliente("Carlos López", "622222222", "carlos@email.com", "pass123");
+        when(clienteRepo.findByEmail("carlos@email.com")).thenReturn(Optional.of(clienteExistente));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            clienteService.registrarCliente("Carlos López", "622222222", "carlos@email.com", "nuevaPass");
+        });
+
+        assertTrue(ex.getMessage().contains("Ya existe una cuenta con el correo"), "Debe indicar que el email ya está en uso");
+    }
+
+    /**
+     * PRUEBA 13:
+     * Verifica que al crear una Reparación con días estimados definidos,
+     * el estado inicial es PENDIENTE y la fecha estimada de fin se calcula
+     * automáticamente sumando dichos días a la fecha de entrada actual.
+     */
+    @Test
+    @DisplayName("Prueba 13: Inicialización y cálculo de fecha estimada en Reparación")
+    void test13_InicializacionReparacionYFechaEstimadaFin() {
+        Vehiculo vehiculo = new Vehiculo("1234-XYZ", "Toyota", "Corolla", 2020, null);
+        Usuario recepcionista = new Usuario("Laura", "laura@taller.com", "laura123", "600000002", Rol.RECEPCIONISTA);
+
+        Reparacion reparacion = new Reparacion(vehiculo, recepcionista, "Revisión 50.000 km", 250.0, 5);
+
+        assertEquals(EstadoReparacion.PENDIENTE, reparacion.getEstado(), "El estado inicial debe ser PENDIENTE");
+        assertEquals(250.0, reparacion.getPresupuesto(), 0.001, "El presupuesto estimado inicial debe ser 250.0 €");
+        assertEquals(5, reparacion.getDiasEstimados(), "Los días estimados deben ser 5");
+        assertEquals(LocalDate.now().plusDays(5), reparacion.getFechaEstimadaFin(), "La fecha estimada de fin debe ser hoy + 5 días");
+    }
+
+    /**
+     * PRUEBA 14:
+     * Verifica la correcta vinculación e integridad de datos entre un Vehículo
+     * y su Cliente propietario registrado en el sistema.
+     */
+    @Test
+    @DisplayName("Prueba 14: Vinculación e integridad de Vehículo con su Cliente propietario")
+    void test14_VinculacionVehiculoCliente() {
+        Cliente cliente = new Cliente("Ana Martínez", "644444444", "ana@email.com", "ana123");
+        Vehiculo vehiculo = new Vehiculo("5678-BBB", "Ford", "Focus", 2018, cliente);
+
+        assertNotNull(vehiculo.getCliente(), "El vehículo debe tener un cliente asignado");
+        assertEquals("Ana Martínez", vehiculo.getCliente().getNombre());
+        assertEquals("5678-BBB", vehiculo.getMatricula());
+        assertEquals("Ford", vehiculo.getMarca());
+        assertEquals("Focus", vehiculo.getModelo());
+        assertEquals(2018, vehiculo.getAno());
+    }
+
+    /**
+     * PRUEBA 15:
+     * Verifica los valores de configuración por defecto del Singleton de Configuración del Taller
+     * (margen de beneficio 15%, tarifa de mano de obra 35€/h y fondo inicial de tesorería de 2000€).
+     */
+    @Test
+    @DisplayName("Prueba 15: Verificación de valores por defecto de la Configuración del Taller")
+    void test15_ValoresPorDefectoConfiguracionTaller() {
+        ConfiguracionTaller config = new ConfiguracionTaller();
+
+        assertEquals(15.0, config.getMargenBeneficioPorcentaje(), 0.001, "El margen por defecto debe ser 15%");
+        assertEquals(35.0, config.getPrecioHoraManoObra(), 0.001, "El precio de mano de obra debe ser 35.0 €/h");
+        assertEquals(2000.0, config.getFondoInicial(), 0.001, "El fondo inicial de tesorería debe ser 2000.0 €");
+    }
+
+    /**
+     * PRUEBA 16 (SEGURIDAD - AUTENTICACIÓN):
+     * Verifica que el intento de inicio de sesión con un usuario que no existe en el sistema
+     * es rechazado inmediatamente con una excepción de seguridad (IllegalArgumentException),
+     * impidiendo el acceso a cuentas inexistentes.
+     */
+    @Test
+    @DisplayName("Prueba 16: Seguridad - Rechazo de autenticación para usuario inexistente")
+    void test16_Seguridad_LoginUsuarioInexistenteRechazado() {
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        UsuarioService usuarioService = new UsuarioService();
+        ReflectionTestUtils.setField(usuarioService, "usuarioRepository", usuarioRepo);
+
+        when(usuarioRepo.findByEmail("atacante@externo.com")).thenReturn(Optional.empty());
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            usuarioService.login("atacante@externo.com", "clave1234");
+        });
+
+        assertTrue(ex.getMessage().contains("Usuario no encontrado"), "El sistema debe rechazar el login de emails inexistentes");
+    }
+
+    /**
+     * PRUEBA 17 (SEGURIDAD - CONTROL DE ACCESO BASADO EN ROLES / RBAC):
+     * Verifica que un usuario sin rol de RECEPCIONISTA ni ADMIN (por ejemplo, un MECANICO)
+     * no puede crear ni abrir órdenes de reparación en el sistema, haciendo cumplir el principio
+     * de mínimo privilegio.
+     */
+    @Test
+    @DisplayName("Prueba 17: Seguridad (RBAC) - Bloqueo de creación de reparación a roles no autorizados")
+    void test17_Seguridad_CrearReparacionDenegadaParaRolesSinPermiso() {
+        VehiculoRepository vehiculoRepo = mock(VehiculoRepository.class);
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        ReparacionService reparacionService = new ReparacionService();
+        ReflectionTestUtils.setField(reparacionService, "vehiculoRepository", vehiculoRepo);
+        ReflectionTestUtils.setField(reparacionService, "usuarioRepository", usuarioRepo);
+
+        Vehiculo vehiculo = new Vehiculo("9999-ZZZ", "Seat", "León", 2021, null);
+        when(vehiculoRepo.findById(1L)).thenReturn(Optional.of(vehiculo));
+
+        // Un mecánico intenta ejecutar la acción administrativa de recepción
+        Usuario mecanico = new Usuario("Pedro Mecanico", "pedro@taller.com", "pass", "600000003", Rol.MECANICO);
+        when(usuarioRepo.findById(2L)).thenReturn(Optional.of(mecanico));
+
+        ReparacionRequestDTO dto = new ReparacionRequestDTO();
+        dto.setVehiculoId(1L);
+        dto.setRecepcionistaId(2L);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            reparacionService.crearReparacion(dto);
+        });
+
+        assertTrue(ex.getMessage().contains("no tiene permisos de recepcionista"), "Debe impedir que roles ajenos a recepción creen reparaciones");
+    }
+
+    /**
+     * PRUEBA 18 (SEGURIDAD - CONTROL DE ACCESO BASADO EN ROLES / RBAC):
+     * Verifica que el sistema impide asignar tareas de taller a un usuario que no tiene
+     * el rol de MECANICO o ADMIN (por ejemplo, asignar el coche a un recepcionista).
+     */
+    @Test
+    @DisplayName("Prueba 18: Seguridad (RBAC) - Bloqueo de asignación técnica a usuarios sin rol mecánico")
+    void test18_Seguridad_AsignacionMecanicoDenegadaARolesInadecuados() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        ReparacionService reparacionService = new ReparacionService();
+        ReflectionTestUtils.setField(reparacionService, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(reparacionService, "usuarioRepository", usuarioRepo);
+
+        Reparacion reparacion = new Reparacion();
+        when(reparacionRepo.findById(5L)).thenReturn(Optional.of(reparacion));
+
+        // Recepcionista intentando ser asignado como operario técnico
+        Usuario recepcionista = new Usuario("Laura Recepcion", "laura@taller.com", "pass", "600000002", Rol.RECEPCIONISTA);
+        when(usuarioRepo.findById(8L)).thenReturn(Optional.of(recepcionista));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            reparacionService.asignarMecanico(5L, 8L);
+        });
+
+        assertTrue(ex.getMessage().contains("no tiene rol de mecánico"), "Debe impedir que empleados sin cualificación técnica asuman reparaciones");
+    }
+
+    /**
+     * PRUEBA 19 (SEGURIDAD - PROTECCIÓN DE CUENTAS):
+     * Verifica que un cliente registrado de forma presencial en el taller físico (que solo tiene
+     * nombre y teléfono, pero carece de credenciales de acceso) no puede iniciar sesión por la web,
+     * protegiendo el sistema contra accesos no autorizados a fichas sin cuenta.
+     */
+    @Test
+    @DisplayName("Prueba 19: Seguridad - Bloqueo de inicio de sesión a clientes sin credenciales registradas")
+    void test19_Seguridad_LoginDenegadoAClientesSinCuentaWeb() {
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        ClienteService clienteService = new ClienteService();
+        ReflectionTestUtils.setField(clienteService, "clienteRepository", clienteRepo);
+
+        // Cliente presencial que no se ha registrado en la plataforma
+        Cliente clienteSinCuenta = new Cliente("Cliente Presencial", "688112233");
+        when(clienteRepo.findByTelefono("688112233")).thenReturn(Optional.of(clienteSinCuenta));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            clienteService.loginCliente("688112233", "passwordIntento");
+        });
+
+        assertEquals("Este cliente no tiene cuenta. Regístrate primero.", ex.getMessage());
+    }
+
+    /**
+     * PRUEBA 20 (SEGURIDAD - FLUJO ANTIFRAUDE EN RECUPERACIÓN DE CONTRASEÑA):
+     * Verifica que el servicio de recuperación de credenciales rechaza intentos de verificación
+     * de códigos si no existe una solicitud legítima previa en memoria para dicho correo,
+     * impidiendo ataques de fuerza bruta o inyecciones de código.
+     */
+    @Test
+    @DisplayName("Prueba 20: Seguridad - Rechazo de verificación de código sin solicitud previa activa")
+    void test20_Seguridad_RechazoCodigoRecuperacionSinSolicitudPrevia() {
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        RecuperacionPasswordService recService = new RecuperacionPasswordService();
+        ReflectionTestUtils.setField(recService, "clienteRepository", clienteRepo);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            recService.verificarCodigo("victima@email.com", "123456");
+        });
+
+        assertEquals("No hay ninguna solicitud de recuperación activa para este correo.", ex.getMessage());
     }
 }
