@@ -2,11 +2,13 @@ package com.taller;
 
 import com.taller.dtos.ReparacionRequestDTO;
 import com.taller.dtos.UsuarioResponseDTO;
+import com.taller.dtos.VehiculoRequestDTO;
 import com.taller.models.*;
 import com.taller.repositories.ClienteRepository;
 import com.taller.repositories.MaterialRepository;
 import com.taller.repositories.NotificacionClienteRepository;
 import com.taller.repositories.ReparacionRepository;
+import com.taller.repositories.ReparacionMaterialRepository;
 import com.taller.repositories.UsuarioRepository;
 import com.taller.repositories.VehiculoRepository;
 import com.taller.services.*;
@@ -14,7 +16,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -516,5 +520,331 @@ public class PruebasUnitariasTest {
         assertEquals(101L, resultado.getId(), "El ID debe ser 101");
         assertEquals(TipoNotificacion.EN_PROCESO, resultado.getTipo(), "El tipo debe ser EN_PROCESO");
         verify(repoMock, times(1)).save(any(NotificacionCliente.class));
+    }
+
+    // =========================================================================
+    //  NUEVAS PRUEBAS UNITARIAS (23 – 33) — NOVIEMBRE 2026
+    //  Cobertura extendida: VehiculoService, CitaPreviaService, MaterialService,
+    //  ReparacionService (máquina de estados) y ClienteService.
+    // =========================================================================
+
+    /**
+     * PRUEBA 23 (VehiculoService - Validación de matrícula vacía):
+     * Verifica que el registro de un vehículo falla con IllegalArgumentException
+     * cuando la matrícula proporcionada está vacía o es nula, protegiendo la integridad
+     * de los datos del inventario de vehículos.
+     */
+    @Test
+    @DisplayName("Prueba 23: Rechazo de registro de vehículo con matrícula vacía")
+    void test23_RegistroVehiculoConMatriculaVacia() {
+        VehiculoRepository vehiculoRepo = mock(VehiculoRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        VehiculoService vehiculoService = new VehiculoService();
+        ReflectionTestUtils.setField(vehiculoService, "vehiculoRepository", vehiculoRepo);
+        ReflectionTestUtils.setField(vehiculoService, "clienteRepository", clienteRepo);
+
+        // Caso 1: Matrícula vacía (cadena en blanco)
+        VehiculoRequestDTO dto = new VehiculoRequestDTO();
+        dto.setMatricula("   ");
+        dto.setMarca("Toyota");
+        dto.setModelo("Corolla");
+        dto.setAno(2020);
+        dto.setClienteNombre("Juan García");
+        dto.setClienteTelefono("600123456");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            vehiculoService.registrarVehiculo(dto);
+        });
+
+        assertEquals("La matrícula no puede estar vacía.", ex.getMessage());
+    }
+
+    /**
+     * PRUEBA 24 (VehiculoService - Validación de matrícula duplicada):
+     * Verifica que el sistema rechaza el registro de un vehículo cuando ya existe
+     * otro vehículo con la misma matrícula en la base de datos, evitando duplicados.
+     */
+    @Test
+    @DisplayName("Prueba 24: Rechazo de registro de vehículo con matrícula duplicada")
+    void test24_RegistroVehiculoConMatriculaDuplicada() {
+        VehiculoRepository vehiculoRepo = mock(VehiculoRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        VehiculoService vehiculoService = new VehiculoService();
+        ReflectionTestUtils.setField(vehiculoService, "vehiculoRepository", vehiculoRepo);
+        ReflectionTestUtils.setField(vehiculoService, "clienteRepository", clienteRepo);
+
+        // Simulamos que la matrícula ya existe en la base de datos
+        when(vehiculoRepo.existsByMatricula("1234ABC")).thenReturn(true);
+
+        VehiculoRequestDTO dto = new VehiculoRequestDTO();
+        dto.setMatricula("1234ABC");
+        dto.setMarca("Toyota");
+        dto.setModelo("Corolla");
+        dto.setAno(2020);
+        dto.setClienteNombre("Juan García");
+        dto.setClienteTelefono("600123456");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            vehiculoService.registrarVehiculo(dto);
+        });
+
+        assertTrue(ex.getMessage().contains("Ya existe un vehículo con la matrícula"),
+                "Debe indicar que la matrícula ya está registrada");
+    }
+
+    /**
+     * PRUEBA 25 (VehiculoService - Validación de año inválido):
+     * Verifica que el registro de un vehículo falla cuando el año proporcionado
+     * es anterior a 1900 o nulo, garantizando que solo se registran fechas lógicas.
+     */
+    @Test
+    @DisplayName("Prueba 25: Rechazo de registro de vehículo con año anterior a 1900")
+    void test25_RegistroVehiculoConAnoInvalido() {
+        VehiculoRepository vehiculoRepo = mock(VehiculoRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        VehiculoService vehiculoService = new VehiculoService();
+        ReflectionTestUtils.setField(vehiculoService, "vehiculoRepository", vehiculoRepo);
+        ReflectionTestUtils.setField(vehiculoService, "clienteRepository", clienteRepo);
+
+        when(vehiculoRepo.existsByMatricula("9999ZZZ")).thenReturn(false);
+
+        VehiculoRequestDTO dto = new VehiculoRequestDTO();
+        dto.setMatricula("9999ZZZ");
+        dto.setMarca("Seat");
+        dto.setModelo("Ibiza");
+        dto.setAno(1850);  // Año anterior a 1900 (inválido)
+        dto.setClienteNombre("Pedro López");
+        dto.setClienteTelefono("611222333");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            vehiculoService.registrarVehiculo(dto);
+        });
+
+        assertEquals("El año del vehículo debe ser válido y posterior a 1900.", ex.getMessage());
+    }
+
+    /**
+     * PRUEBA 26 (CitaPreviaService - Detección de fines de semana):
+     * Verifica que el método esFinDeSemana() reconoce correctamente un sábado
+     * y un domingo como fin de semana, y un día laborable como día entre semana.
+     */
+    @Test
+    @DisplayName("Prueba 26: Detección correcta de fines de semana en CitaPreviaService")
+    void test26_DeteccionFinDeSemana() {
+        CitaPreviaService citaService = new CitaPreviaService();
+
+        // Buscamos el próximo sábado y domingo a partir de hoy
+        LocalDate hoy = LocalDate.now();
+        LocalDate proximoSabado = hoy.with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.SATURDAY));
+        LocalDate proximoDomingo = proximoSabado.plusDays(1);
+        LocalDate proximoLunes = proximoDomingo.plusDays(1);
+
+        assertTrue(citaService.esFinDeSemana(proximoSabado),
+                "Un sábado debe ser detectado como fin de semana");
+        assertTrue(citaService.esFinDeSemana(proximoDomingo),
+                "Un domingo debe ser detectado como fin de semana");
+        assertFalse(citaService.esFinDeSemana(proximoLunes),
+                "Un lunes NO debe ser detectado como fin de semana");
+    }
+
+    /**
+     * PRUEBA 27 (CitaPreviaService - Detección de festivos nacionales):
+     * Verifica que el método esFestivo() identifica correctamente las fechas
+     * festivas oficiales (1 de enero, 25 de diciembre) y rechaza días laborables.
+     */
+    @Test
+    @DisplayName("Prueba 27: Detección correcta de festivos nacionales en CitaPreviaService")
+    void test27_DeteccionFestivosNacionales() {
+        CitaPreviaService citaService = new CitaPreviaService();
+
+        // Festivos conocidos (año futuro para evitar problemas con fechas pasadas)
+        LocalDate anoNuevo = LocalDate.of(2027, 1, 1);
+        LocalDate navidad = LocalDate.of(2027, 12, 25);
+        LocalDate diaConstitucion = LocalDate.of(2027, 12, 6);
+
+        // Día laborable normal (15 de marzo de 2027)
+        LocalDate diaLaboral = LocalDate.of(2027, 3, 15);
+
+        assertTrue(citaService.esFestivo(anoNuevo), "El 1 de enero debe ser festivo");
+        assertTrue(citaService.esFestivo(navidad), "El 25 de diciembre debe ser festivo");
+        assertTrue(citaService.esFestivo(diaConstitucion), "El 6 de diciembre debe ser festivo");
+        assertFalse(citaService.esFestivo(diaLaboral), "El 15 de marzo no es festivo");
+    }
+
+    /**
+     * PRUEBA 28 (CitaPreviaService - Validación de día laborable):
+     * Verifica que el método esDiaLaborable() combina correctamente las comprobaciones
+     * de fin de semana y festivo, devolviendo true solo para días hábiles.
+     */
+    @Test
+    @DisplayName("Prueba 28: Validación combinada de día laborable en CitaPreviaService")
+    void test28_ValidacionDiaLaborable() {
+        CitaPreviaService citaService = new CitaPreviaService();
+
+        // Un martes 15 de marzo de 2027 (ni festivo ni fin de semana) → laborable
+        LocalDate martes = LocalDate.of(2027, 3, 16); // 16 marzo 2027 es martes
+        assertTrue(citaService.esDiaLaborable(martes),
+                "Un martes que no es festivo debe ser día laborable");
+
+        // Navidad 2027 (25 de diciembre, sábado) → no laborable por festivo
+        LocalDate navidad2027 = LocalDate.of(2027, 12, 25);
+        assertFalse(citaService.esDiaLaborable(navidad2027),
+                "Navidad no es día laborable aunque caiga en día entre semana");
+
+        // Un domingo cualquiera → no laborable
+        LocalDate hoy = LocalDate.now();
+        LocalDate proximoDomingo = hoy.with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.SUNDAY));
+        assertFalse(citaService.esDiaLaborable(proximoDomingo),
+                "Un domingo no debe ser día laborable");
+    }
+
+    /**
+     * PRUEBA 29 (MaterialService - Rechazo por stock insuficiente):
+     * Verifica que al intentar usar más unidades de un material de las que hay
+     * en stock, el sistema lanza IllegalArgumentException indicando la falta de stock.
+     */
+    @Test
+    @DisplayName("Prueba 29: Rechazo de uso de material cuando el stock es insuficiente")
+    void test29_UsarMaterialConStockInsuficiente() {
+        MaterialRepository materialRepo = mock(MaterialRepository.class);
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionMaterialRepository reparacionMaterialRepo = mock(ReparacionMaterialRepository.class);
+        ReparacionService reparacionServiceMock = mock(ReparacionService.class);
+
+        MaterialService materialService = new MaterialService();
+        ReflectionTestUtils.setField(materialService, "materialRepository", materialRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionMaterialRepository", reparacionMaterialRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionService", reparacionServiceMock);
+
+        // Mock de la reparación y del presupuesto aceptado
+        Reparacion reparacion = new Reparacion();
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(reparacion));
+        when(reparacionServiceMock.tienePresupuestoAceptado(1L)).thenReturn(true);
+
+        // Material con solo 2 unidades de stock
+        Material material = new Material("Pastillas de freno", "Pastillas delanteras", 2, 35.00);
+        when(materialRepo.findById(10L)).thenReturn(Optional.of(material));
+
+        // Intentar usar 5 unidades (más de las disponibles)
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            materialService.usarMaterialEnReparacion(1L, 10L, 5);
+        });
+
+        assertTrue(ex.getMessage().contains("Stock insuficiente"),
+                "Debe indicar que no hay stock suficiente");
+    }
+
+    /**
+     * PRUEBA 30 (MaterialService - Bloqueo sin presupuesto aceptado):
+     * Verifica que el sistema impide consumir materiales del almacén si el presupuesto
+     * de la reparación aún no ha sido ACEPTADO por el cliente.
+     */
+    @Test
+    @DisplayName("Prueba 30: Bloqueo de uso de material sin presupuesto aceptado por el cliente")
+    void test30_UsarMaterialSinPresupuestoAceptado() {
+        MaterialRepository materialRepo = mock(MaterialRepository.class);
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionMaterialRepository reparacionMaterialRepo = mock(ReparacionMaterialRepository.class);
+        ReparacionService reparacionServiceMock = mock(ReparacionService.class);
+
+        MaterialService materialService = new MaterialService();
+        ReflectionTestUtils.setField(materialService, "materialRepository", materialRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionMaterialRepository", reparacionMaterialRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionService", reparacionServiceMock);
+
+        // Mock de la reparación existente
+        Reparacion reparacion = new Reparacion();
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(reparacion));
+
+        // El presupuesto NO está aceptado
+        when(reparacionServiceMock.tienePresupuestoAceptado(1L)).thenReturn(false);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            materialService.usarMaterialEnReparacion(1L, 10L, 2);
+        });
+
+        assertTrue(ex.getMessage().contains("Operación bloqueada"),
+                "Debe indicar que la operación está bloqueada hasta que el presupuesto sea aceptado");
+    }
+
+    /**
+     * PRUEBA 31 (ReparacionService - Máquina de estados: Rechazo de entrega directa desde EN_PROCESO):
+     * Verifica que la transición directa de EN_PROCESO a ENTREGADA es rechazada, ya que primero
+     * el mecánico debe finalizar la reparación y el administrador debe confirmarla.
+     */
+    @Test
+    @DisplayName("Prueba 31: Rechazo de transición directa de EN_PROCESO a ENTREGADA")
+    void test31_RechazoTransicionDirectaEnProcesoAEntregada() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionService reparacionService = new ReparacionService();
+        ReflectionTestUtils.setField(reparacionService, "reparacionRepository", reparacionRepo);
+
+        // Reparación actualmente EN_PROCESO
+        Reparacion reparacion = new Reparacion();
+        reparacion.setEstado(EstadoReparacion.EN_PROCESO);
+        reparacion.setMecanico(new Usuario("Mec", "mec@t.com", "pass", "600", Rol.MECANICO));
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(reparacion));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            reparacionService.actualizarEstado(1L, "ENTREGADA");
+        });
+
+        assertTrue(ex.getMessage().contains("No se puede entregar el vehículo directamente desde EN_PROCESO"),
+                "Debe prohibir saltar de EN_PROCESO directamente a ENTREGADA");
+    }
+
+    /**
+     * PRUEBA 32 (ReparacionService - Máquina de estados: Rechazo de modificación tras ENTREGADA):
+     * Verifica que una vez que la reparación está en estado ENTREGADA, no se puede
+     * modificar su estado a ningún otro valor, protegiendo la integridad de reparaciones cerradas.
+     */
+    @Test
+    @DisplayName("Prueba 32: Rechazo de cambio de estado en reparación ya ENTREGADA")
+    void test32_RechazoModificacionEstadoEntregada() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionService reparacionService = new ReparacionService();
+        ReflectionTestUtils.setField(reparacionService, "reparacionRepository", reparacionRepo);
+
+        // Reparación ya ENTREGADA (operación cerrada)
+        Reparacion reparacion = new Reparacion();
+        reparacion.setEstado(EstadoReparacion.ENTREGADA);
+        reparacion.setMecanico(new Usuario("Mec", "mec@t.com", "pass", "600", Rol.MECANICO));
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(reparacion));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            reparacionService.actualizarEstado(1L, "EN_PROCESO");
+        });
+
+        assertTrue(ex.getMessage().contains("ya está ENTREGADA"),
+                "Debe indicar que una reparación entregada no se puede modificar");
+    }
+
+    /**
+     * PRUEBA 33 (ReparacionService - Máquina de estados: Rechazo de retroceso en el flujo):
+     * Verifica que no se permite retroceder en la cadena de estados (por ejemplo, de FINALIZADA
+     * a PENDIENTE), garantizando el flujo unidireccional de la reparación.
+     */
+    @Test
+    @DisplayName("Prueba 33: Rechazo de retroceso en el flujo de estados de reparación")
+    void test33_RechazoRetrocesoEstadoReparacion() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionService reparacionService = new ReparacionService();
+        ReflectionTestUtils.setField(reparacionService, "reparacionRepository", reparacionRepo);
+
+        // Reparación actualmente FINALIZADA
+        Reparacion reparacion = new Reparacion();
+        reparacion.setEstado(EstadoReparacion.FINALIZADA);
+        reparacion.setMecanico(new Usuario("Mec", "mec@t.com", "pass", "600", Rol.MECANICO));
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(reparacion));
+
+        // Intentar retroceder a PENDIENTE (ordinal 0 < ordinal 2 de FINALIZADA)
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            reparacionService.actualizarEstado(1L, "PENDIENTE");
+        });
+
+        assertTrue(ex.getMessage().contains("No se puede cambiar de"),
+                "Debe indicar que no se puede retroceder en el flujo de estados");
     }
 }

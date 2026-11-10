@@ -149,12 +149,12 @@
         <div class="meta-box">
             <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
             <strong>Fecha:</strong> Febrero 2026 &nbsp;|&nbsp; 
-            <strong>Estado:</strong> 100% Operativo y Verificado (22/22 Pruebas Exitosas)
+            <strong>Estado:</strong> 100% Operativo y Verificado (33/33 Pruebas Exitosas)
         </div>
     </div>
 
     <div class="alert alert-success">
-        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>22 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC y Notificaciones al Cliente)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>33 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Notificaciones al Cliente, Citas Previas, Vehículos y Máquina de Estados de Reparación)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
     </div>
 
     <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
@@ -328,9 +328,9 @@
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">5. Catálogo Completo de las 22 Pruebas Unitarias Implementadas</h2>
+    <h2 class="section-title">5. Catálogo Completo de las 33 Pruebas Unitarias Implementadas</h2>
     <p>
-        La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable y de seguridad del taller:
+        La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable, de gestión y de seguridad del taller:
     </p>
 
     <table>
@@ -475,6 +475,72 @@
                 <td>Verifica que el servicio de notificaciones persiste correctamente el aviso en el repositorio mediante un mock de Mockito, y que el objeto devuelto contiene el ID, el tipo (<code>EN_PROCESO</code>) y los datos del cliente correctos.</td>
                 <td><code>assertNotNull(resultado)</code><br><code>assertEquals(101L, getId())</code><br><code>assertEquals(EN_PROCESO, tipo)</code><br><code>verify(repoMock, times(1))</code></td>
             </tr>
+            <tr>
+                <td><strong>23</strong></td>
+                <td><code>VehiculoService</code><br><code>registrarVehiculo()</code></td>
+                <td>Verifica que el registro de un vehículo es rechazado con <code>IllegalArgumentException</code> cuando la matrícula proporcionada está vacía o son solo espacios en blanco, protegiendo la integridad del catálogo de vehículos.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("La matrícula no puede estar vacía.", ex.getMessage())</code></td>
+            </tr>
+            <tr>
+                <td><strong>24</strong></td>
+                <td><code>VehiculoService</code><br><code>registrarVehiculo()</code></td>
+                <td>Verifica que el sistema impide registrar un vehículo si ya existe otro con la misma matrícula en la base de datos (<code>existsByMatricula = true</code>), evitando duplicidades y colisiones de inventario.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("Ya existe un vehículo con la matrícula"))</code></td>
+            </tr>
+            <tr>
+                <td><strong>25</strong></td>
+                <td><code>VehiculoService</code><br><code>registrarVehiculo()</code></td>
+                <td>Verifica el rechazo del registro de un vehículo cuando el año de fabricación es anterior a 1900 o inválido, asegurando que solo se registran datos cronológicamente coherentes.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("El año del vehículo debe ser válido y posterior a 1900.", ex.getMessage())</code></td>
+            </tr>
+            <tr>
+                <td><strong>26</strong></td>
+                <td><code>CitaPreviaService</code><br><code>esFinDeSemana()</code></td>
+                <td>Verifica que el servicio de citas identifica con exactitud los sábados y domingos como días de taller cerrado (fin de semana) y descarta los días laborables (lunes a viernes).</td>
+                <td><code>assertTrue(esFinDeSemana(sabado))</code><br><code>assertTrue(esFinDeSemana(domingo))</code><br><code>assertFalse(esFinDeSemana(lunes))</code></td>
+            </tr>
+            <tr>
+                <td><strong>27</strong></td>
+                <td><code>CitaPreviaService</code><br><code>esFestivo()</code></td>
+                <td>Verifica que el calendario oficial detecta los festivos nacionales (Año Nuevo, Navidad, Día de la Constitución) y no bloquea jornadas laborales ordinarias.</td>
+                <td><code>assertTrue(esFestivo(anoNuevo))</code><br><code>assertTrue(esFestivo(navidad))</code><br><code>assertFalse(esFestivo(diaLaboral))</code></td>
+            </tr>
+            <tr>
+                <td><strong>28</strong></td>
+                <td><code>CitaPreviaService</code><br><code>esDiaLaborable()</code></td>
+                <td>Verifica la lógica combinada de días laborables, asegurando que solo devuelve verdadero para jornadas hábiles que no coincidan ni con fin de semana ni con festivo nacional.</td>
+                <td><code>assertTrue(esDiaLaborable(martes))</code><br><code>assertFalse(esDiaLaborable(navidad))</code><br><code>assertFalse(esDiaLaborable(domingo))</code></td>
+            </tr>
+            <tr>
+                <td><strong>29</strong></td>
+                <td><code>MaterialService</code><br><code>usarMaterialEnReparacion()</code></td>
+                <td>Verifica que el sistema rechaza el consumo de piezas en una orden de trabajo si la cantidad solicitada supera las unidades disponibles en el stock físico del almacén.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("Stock insuficiente"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>30</strong></td>
+                <td><code>MaterialService</code><br><code>usarMaterialEnReparacion()</code></td>
+                <td><strong>CONTROL ECONÓMICO Y DE GASTO:</strong> Bloquea el consumo de materiales de almacén si el presupuesto desglosado aún no ha sido formalmente ACEPTADO por el cliente, protegiendo las piezas del taller.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("Operación bloqueada"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>31</strong></td>
+                <td><code>ReparacionService</code><br><code>actualizarEstado()</code></td>
+                <td><strong>INTEGRIDAD DEL FLUJO (Máquina de Estados):</strong> Bloquea la transición directa no permitida de <code>EN_PROCESO</code> a <code>ENTREGADA</code> sin haber finalizado el trabajo técnico ni haber sido confirmada por el Administrador.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("No se puede entregar el vehículo directamente desde EN_PROCESO"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>32</strong></td>
+                <td><code>ReparacionService</code><br><code>actualizarEstado()</code></td>
+                <td><strong>INTEGRIDAD DEL CICLO DE VIDA:</strong> Bloquea cualquier modificación o cambio de estado posterior en una reparación que ya ha sido marcada como <code>ENTREGADA</code>, garantizando la inmutabilidad de órdenes cerradas.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("ya está ENTREGADA"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>33</strong></td>
+                <td><code>ReparacionService</code><br><code>actualizarEstado()</code></td>
+                <td><strong>FLUJO UNIDIRECCIONAL:</strong> Impide retroceder en la secuencia lógica de estados del ciclo de vida de la reparación (por ejemplo, intentar pasar de <code>FINALIZADA</code> a <code>PENDIENTE</code>).</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("No se puede cambiar de"))</code></td>
+            </tr>
         </tbody>
     </table>
 
@@ -487,29 +553,29 @@
         <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
         <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
         <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
-        <li>En el panel inferior de IntelliJ se mostrarán los <strong>22 tests con el check verde de aprobación</strong>.</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>33 tests con el check verde de aprobación</strong>.</li>
     </ol>
 
     <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
     <p>Desde una terminal de PowerShell en la carpeta <code>backend</code>, ejecuta el comando de pruebas:</p>
     <div class="code-block">.\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest</div>
 
-    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 1.45 s):</h3>
+    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 1.78 s):</h3>
     <div class="code-block">[INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running com.taller.PruebasUnitariasTest
-[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.454 s -- in com.taller.PruebasUnitariasTest
+[INFO] Tests run: 33, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.782 s -- in com.taller.PruebasUnitariasTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 33, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  7.931 s
-[INFO] Finished at: 2026-11-10T10:45:42+01:00
+[INFO] Total time:  8.215 s
+[INFO] Finished at: 2026-11-10T16:45:10+01:00
 [INFO] ------------------------------------------------------------------------</div>
 
     <h2 class="section-title">7. Pasos para Crear una Nueva Prueba Unitaria de Seguridad (Checklist Rápido)</h2>
@@ -523,9 +589,9 @@
     <div class="alert alert-info">
         <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
         <ul>
-            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 22 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 33 pruebas y módulo de seguridad.</li>
             <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
-            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 22 pruebas unitarias listo para copiar.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 33 pruebas unitarias listo para copiar.</li>
         </ul>
     </div>
 
