@@ -13,6 +13,7 @@ Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión d
   ·Marcos Martín Clemente<br>
   ·Álvaro Sánchez Camacho<br>
 <br>
+
 ## Información para nuevos desarrolladores:
 Esta sección se tiene y se ira rellenando a medida que se vaya desarrollando el software. 
 En la wiki está documentado el proceso de desarrollo, es muy útil para saber los hitos completados y los objetivos próximos. Además en el apartado de projects hay una sección que permite visionar las historias de usuario relacionadas con el proyecto, y su estado de desarrollo actual.
@@ -44,6 +45,34 @@ Equipo Frontend: Se encargan de todo lo que el usuario ve en pantalla: los formu
 
 Equipo Backend: Se encargan de la lógica del servidor: recibir peticiones, validar datos, guardarlos en la base de datos y devolverlos al frontend. Trabajan dentro de la carpeta backend.
 
+### Estándar del Entorno y Versión de Java (JDK 17)
+Para garantizar la compatibilidad entre todos los integrantes del equipo y evitar errores de compilación cruzada, el proyecto está completamente estandarizado en **Java 17 (LTS)** (usando distribuciones como *Eclipse Temurin JDK 17* o *Microsoft OpenJDK 17*).
+* Tanto el archivo `pom.xml` de Maven como la configuración de IntelliJ IDEA (`.idea/misc.xml`) tienen fijado el nivel de lenguaje en Java 17.
+* Se recomienda que cualquier nuevo colaborador configure su IDE con esta versión de JDK.
+
+### Suite Completa de Pruebas Unitarias y Seguridad (JUnit 5 + Mockito)
+El sistema dispone de una suite integral de **33 pruebas unitarias automatizadas** que garantizan el correcto funcionamiento y la seguridad del taller:
+* **Ubicación del código de pruebas:** `backend/src/test/java/com/taller/PruebasUnitariasTest.java`
+* **Módulos auditados:**
+  * **Cálculos y Contabilidad:** Comprobación matemática de facturas, desglose de mano de obra, márgenes comerciales del taller, IVA (21%) y presupuestos con líneas de piezas.
+  * **Ciberseguridad y Control de Acceso (RBAC):** Bloqueo a mecánicos para crear órdenes de recepción, bloqueo a recepcionistas para asignaciones técnicas, rechazo de credenciales incorrectas, bloqueo de usuarios inexistentes y protección antifraude en recuperación de contraseñas.
+  * **Máquina de Estados de Reparación:** Validación estricta del ciclo de vida (`PENDIENTE` ➔ `EN_PROCESO` ➔ `FINALIZADA` ➔ `CONFIRMADA` ➔ `ENTREGADA`), prohibiendo saltos ilegales, retrocesos o ediciones sobre reparaciones ya entregadas.
+  * **Almacén y Vehículos:** Validación de stock negativo, stock insuficiente, bloqueo de consumo de piezas sin presupuesto aceptado, matrículas duplicadas o vacías y años de fabricación inválidos.
+  * **Gestión de Citas Previas:** Detección de fines de semana, festivos oficiales nacionales y cálculo de días hábiles.
+* **Cómo ejecutar las pruebas:**
+  * **Desde IntelliJ IDEA:** Clic derecho sobre `PruebasUnitariasTest.java` y seleccionar *Run 'PruebasUnitariasTest'* (o atajo `Mayús+F10`). Se mostrarán los 33 checks verdes.
+  * **Desde consola (Maven):** Situarse en la carpeta `backend/` y ejecutar:
+    ```powershell
+    .\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest
+    ```
+* **Documentación de pruebas entregable:** En la carpeta `Pruebas_unitarias/` se encuentran disponibles el informe técnico interactivo (`DOCUMENTO_CAMBIOS_Y_PRUEBAS.html`), su versión lista para imprimir (`DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf`) y el código íntegro (`CODIGO_PRUEBAS_UNITARIAS.txt`).
+
+### Nuevos Módulos y Arquitectura Avanzada
+En las últimas iteraciones se han incorporado los siguientes módulos para completar los requisitos del taller:
+1. **Módulo de Citas Previas y Calendario de Capacidad (`CitaPreviaService`):** Sistema de reserva con control de aforo (máximo 8 vehículos diarios y 2 por franja horaria), respetando fines de semana y festivos oficiales.
+2. **Sistema de Presupuestos Formales y Facturación Real:** El cliente cuenta con un presupuesto detallado que debe aceptar antes de que el mecánico consuma piezas; tras finalizar, se genera automáticamente la factura con mano de obra real, materiales, margen de beneficio e impuestos.
+3. **Módulo de Incidencias con Fotos:** El mecánico puede reportar incidencias durante la reparación adjuntando explicaciones y fotografías que el cliente puede visualizar en su seguimiento web.
+4. **Notificaciones Automáticas:** Avisos automáticos al cliente informándole de los cambios de estado de su vehículo (inicio de trabajo, listo para recoger, etc.).
 
 ## Lógica principal del backend:
 
@@ -102,6 +131,51 @@ Esta sección se tiene y se ira rellenando a medida que se vayan desarrollando e
 Si eres una persona que busca probar el software, de momento hay poco que se pueda utilizar, se recomienda leerse la wiki donde esclarecemos el funcionamiento de la aplicación que perseguimos y que tenemos en el momento.
 <br>
 <br>
+
+### Guía Rápida de Uso según tu Perfil
+
+La aplicación cuenta con diferentes interfaces adaptadas a las necesidades de cada tipo de usuario:
+
+#### 1. Si eres Cliente del Taller:
+* **Pedir Cita Previa:** Desde la página de inicio o el formulario de citas puedes seleccionar el día y la hora que prefieras. El sistema te mostrará qué tramos tienen plazas disponibles en tiempo real (máximo 2 coches por hora y 8 al día) y no te permitirá elegir fines de semana o festivos oficiales.
+* **Consultar tu coche sin registrarte (Por Localizador):** Si dejaste el coche en el taller y te dieron tu resguardo con un código localizador de 8 caracteres (ej. `Y6NDCVRP`), puedes entrar en *Consulta de Estado*, introducir el código y ver exactamente en qué estado se encuentra tu vehículo, los días estimados que le quedan y las fotos de las incidencias que suba el mecánico.
+* **Crear una cuenta personal:** En la pestaña *Área Clientes* de la página de inicio de sesión puedes registrarte con tu correo. Una vez dentro de tu panel personal podrás:
+  * Ver todos los coches asociados a tu teléfono.
+  * Vincular nuevas reparaciones pegando su código localizador.
+  * Ver el presupuesto formal desglosado (piezas y mano de obra) y aceptarlo online para autorizar la reparación.
+  * Descargar o consultar tu factura detallada una vez el coche esté listo.
+* **¿Has olvidado tu contraseña?** Dispones de la opción *Recuperar contraseña*, donde introduces tu correo y el sistema te genera un código de verificación seguro de 6 dígitos.
+
+#### 2. Si eres Recepcionista:
+* Inicia sesión con tus credenciales de recepción (ej. `laura@taller.com` / `laura123`).
+* **Registrar entrada de vehículos:** Da de alta el coche indicando matrícula, marca, modelo y los datos del dueño. Si el cliente ya vino antes, el sistema lo reconoce automáticamente por su teléfono.
+* **Abrir orden de reparación:** Describe la avería indicada por el cliente, introduce una estimación orientativa de precio y los días estimados de trabajo. Se generará de inmediato el código localizador único.
+* **Entregar y Cobrar:** Cuando la reparación esté confirmada por el administrador, podrás formalizar la entrega al cliente y cobrar la factura.
+
+#### 3. Si eres Mecánico:
+* Inicia sesión con tu cuenta técnica (ej. `pedro@taller.com` / `pedro123`).
+* **Tus coches asignados:** Verás únicamente la lista de los vehículos que el jefe de taller te ha encomendado.
+* **Consumo de piezas del almacén:** Una vez que el cliente haya aceptado el presupuesto, puedes ir registrando los materiales y piezas que vayas instalando (baterías, aceite, filtros...), descontándose automáticamente del stock.
+* **Incidencias y fotos:** Si encuentras una avería oculta o un imprevisto, puedes registrar una incidencia adjuntando una fotografía y explicando el motivo, permitiendo que el cliente esté siempre informado con total transparencia.
+* **Finalizar trabajo:** Registra las horas reales de mano de obra empleadas y marca el estado como *Finalizada* para que el administrador la revise.
+
+#### 4. Si eres Administrador / Dueño del Taller:
+* Inicia sesión con la cuenta de administración (`admin@taller.com` / `admin123`).
+* **Gestión de Personal:** Alta, consulta y asignación de roles a los empleados del taller.
+* **Asignación de averías:** Asigna cada reparación abierta al mecánico más adecuado.
+* **Control de Inventario y Almacén:** Añade piezas, modifica precios y consulta alertas visuales automáticas en rojo cuando el stock de algún material baje de un umbral mínimo.
+* **Confirmación de Calidad:** Revisa las reparaciones finalizadas por los mecánicos y confírmalas para dar luz verde a su entrega y facturación.
+* **Caja y Configuración del Taller:** Modifica el margen de beneficio comercial (por defecto 15%) y el precio oficial de la hora de mano de obra (por defecto 35 €/h), supervisando los ingresos y gastos reales del negocio.
+
+### Cuentas de Demostración para Pruebas Inmediatas
+Para probar todas las funciones sin necesidad de registrar datos manualmente, puedes utilizar las siguientes cuentas preparadas en el sistema:
+
+| Rol | Correo Electrónico | Contraseña | Uso Principal |
+| :--- | :--- | :--- | :--- |
+| **Administrador** | `admin@taller.com` | `admin123` | Supervisión total, almacén, caja y confirmación de reparaciones |
+| **Recepcionista** | `laura@taller.com` | `laura123` | Recepción de coches, citas previas, apertura de averías y cobro |
+| **Mecánico** | `pedro@taller.com` | `pedro123` | Órdenes asignadas, consumo de piezas, subida de fotos e incidencias |
+| **Cliente** | `juan@email.com` | `juan123` | Seguimiento en tiempo real, aceptación de presupuesto y facturas |
 
 ### Feedback y comentarios
 Para todos aquellos que probeís nuestra aplicación os agradeceriamos que si encontraseis algun "bug" o algun error en el software, nos lo reportaseis. También nos gustaría que nos dieseís vuestra opinicion (siempre que sea una critica constructiva) para mejorar y reforzar las funcionalidades, fortaleciendo el resultado final.
