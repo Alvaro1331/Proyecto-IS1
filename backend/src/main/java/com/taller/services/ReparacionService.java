@@ -2,9 +2,11 @@ package com.taller.services;
 
 import com.taller.dtos.ReparacionRequestDTO;
 import com.taller.dtos.ReparacionResponseDTO;
+import com.taller.events.NotificacionReparacionEvent;
 import com.taller.models.*;
 import com.taller.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -61,6 +63,9 @@ public class ReparacionService {
     @Autowired
     private ConfiguracionTallerService configuracionService;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     /**
      * Crea una nueva reparación en Recepción con una estimación inicial orientativa (no bloqueante)
      * y los días estimados de trabajo.
@@ -103,6 +108,18 @@ public class ReparacionService {
                 diasEstimados
         );
         reparacionRepository.save(reparacion);
+
+        if (vehiculo.getCliente() != null) {
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    vehiculo.getCliente(),
+                    reparacion,
+                    TipoNotificacion.ENTRADA_TALLER,
+                    "Vehículo recepcionado en el taller",
+                    "Hemos recibido tu vehículo " + vehiculo.getMarca() + " " + vehiculo.getModelo()
+                            + " (" + vehiculo.getMatricula() + "). Tu código localizador de seguimiento es: "
+                            + reparacion.getLocalizador()
+            ));
+        }
 
         return convertirAResponseDTO(reparacion,
                 "Reparación creada correctamente con estimación orientativa de "
@@ -226,6 +243,17 @@ public class ReparacionService {
         reparacion.setDiasEstimados(dias);
         reparacionRepository.save(reparacion);
 
+        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    reparacion.getVehiculo().getCliente(),
+                    reparacion,
+                    TipoNotificacion.CAMBIO_FECHA,
+                    "Actualización en la fecha de entrega",
+                    "Se ha actualizado el plazo de tu vehículo " + reparacion.getVehiculo().getMatricula()
+                            + " a " + dias + " día(s). Nueva fecha prevista de entrega: " + reparacion.getFechaEstimadaFin() + "."
+            ));
+        }
+
         return convertirAResponseDTO(reparacion,
                 "Plazo estimado actualizado a " + dias + " día(s) (entrega prevista: "
                         + reparacion.getFechaEstimadaFin() + ").");
@@ -265,6 +293,20 @@ public class ReparacionService {
         double impacto = impactoPrecio != null ? Math.round(impactoPrecio * 100.0) / 100.0 : 0.0;
         IncidenciaReparacion incidencia = new IncidenciaReparacion(reparacion, descripcion.trim(), impacto, rutaFotoPublica);
         incidenciaRepository.save(incidencia);
+
+        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+            String extraImpacto = (impacto > 0)
+                    ? " (Impacto económico estimado: +" + String.format(Locale.US, "%.2f", impacto) + " €)"
+                    : "";
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    reparacion.getVehiculo().getCliente(),
+                    reparacion,
+                    TipoNotificacion.INCIDENCIA,
+                    "Nueva incidencia técnica registrada",
+                    "El mecánico ha registrado un hallazgo en tu vehículo " + reparacion.getVehiculo().getMatricula()
+                            + ": \"" + descripcion.trim() + "\"" + extraImpacto + ". Puedes consultar las fotos y detalles en el seguimiento."
+            ));
+        }
 
         Map<String, Object> respuesta = mapearIncidencia(incidencia);
         respuesta.put("mensaje", "Incidencia registrada correctamente en la línea temporal del cliente.");
@@ -539,6 +581,21 @@ public class ReparacionService {
         dto.put("mensaje", eraAmpliacion
                 ? "Ampliación de presupuesto " + presupuesto.getNumeroPresupuesto() + " enviada al cliente. La reparación queda en pausa hasta su aceptación."
                 : "Presupuesto " + presupuesto.getNumeroPresupuesto() + " guardado y enviado al cliente (PENDIENTE_ACEPTACION).");
+
+        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+            String tituloNotif = eraAmpliacion ? "Ampliación de presupuesto disponible" : "Presupuesto desglosado disponible";
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    reparacion.getVehiculo().getCliente(),
+                    reparacion,
+                    TipoNotificacion.PRESUPUESTO_DISPONIBLE,
+                    tituloNotif,
+                    "Se ha emitido el presupuesto desglosado " + presupuesto.getNumeroPresupuesto()
+                            + " para tu vehículo " + reparacion.getVehiculo().getMatricula()
+                            + " por un total de " + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto())
+                            + " €. Ya puedes revisarlo y autorizarlo desde tu panel de cliente."
+            ));
+        }
+
         return dto;
     }
 
@@ -643,6 +700,16 @@ public class ReparacionService {
                     "✅ Presupuesto " + presupuesto.getNumeroPresupuesto() + " ACEPTADO por el cliente. Vehículo autorizado y listo para reparar.",
                     0.0,
                     null
+            ));
+
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    cliente,
+                    reparacion,
+                    TipoNotificacion.EN_PROCESO,
+                    "Presupuesto aceptado - Reparación en marcha",
+                    "Has autorizado el presupuesto " + presupuesto.getNumeroPresupuesto()
+                            + " (" + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €). Tu vehículo ("
+                            + reparacion.getVehiculo().getMatricula() + ") ya está listo para que el mecánico inicie las reparaciones."
             ));
         } else if ("RECHAZAR".equals(accionNorm) || "RECHAZADO".equals(accionNorm)) {
             presupuesto.setEstado("RECHAZADO");
@@ -908,6 +975,43 @@ public class ReparacionService {
         // Si pasa a ENTREGADA y aún no tenía factura formalizada, generamos su factura automáticamente
         if (nuevoEstado == EstadoReparacion.ENTREGADA && facturaRepository.findByReparacionId(reparacionId).isEmpty()) {
             generarFactura(reparacionId, reparacion.getHorasTrabajoMecanico());
+        }
+
+        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+            Cliente cliente = reparacion.getVehiculo().getCliente();
+            String matricula = reparacion.getVehiculo().getMatricula();
+            switch (nuevoEstado) {
+                case EN_PROCESO:
+                    eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                            cliente, reparacion, TipoNotificacion.EN_PROCESO,
+                            "Reparación en proceso",
+                            "El mecánico ha iniciado los trabajos de reparación en tu vehículo (" + matricula + ")."
+                    ));
+                    break;
+                case FINALIZADA:
+                    eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                            cliente, reparacion, TipoNotificacion.INFO,
+                            "Trabajos finalizados - En revisión",
+                            "El mecánico ha finalizado los trabajos en tu vehículo (" + matricula + "). El taller está verificando la reparación para dar el visto bueno."
+                    ));
+                    break;
+                case CONFIRMADA:
+                    eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                            cliente, reparacion, TipoNotificacion.LISTO_PARA_RECOGER,
+                            "¡Tu vehículo está listo para recoger!",
+                            "La reparación de tu vehículo (" + matricula + ") ha sido revisada y confirmada con éxito. Ya puedes pasar a recogerlo por nuestro taller."
+                    ));
+                    break;
+                case ENTREGADA:
+                    eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                            cliente, reparacion, TipoNotificacion.ENTREGADA,
+                            "Vehículo entregado - Factura disponible",
+                            "Tu vehículo (" + matricula + ") ha sido entregado. Muchas gracias por confiar en MotorFlow. Tu factura ya está disponible para descargar."
+                    ));
+                    break;
+                default:
+                    break;
+            }
         }
 
         return convertirAResponseDTO(reparacion,

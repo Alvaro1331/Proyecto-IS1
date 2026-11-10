@@ -106,6 +106,19 @@
     <script>
         let ultimaReparacionConsultada = null;
 
+        // Si se accede con parámetro en la URL (?localizador=XYZ o ?codigo=XYZ), buscar automáticamente
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const loc = params.get('localizador') || params.get('codigo');
+            if (loc) {
+                const input = document.getElementById('searchInput');
+                if (input) {
+                    input.value = loc.trim().toUpperCase();
+                    handleSearch(new Event('submit'));
+                }
+            }
+        });
+
         async function handleSearch(event) {
             event.preventDefault();
             const btn = document.getElementById('searchBtn');

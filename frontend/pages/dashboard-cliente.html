@@ -83,7 +83,25 @@
             <a href="dashboard-cliente.html" class="active">Mi Cuenta</a>
             <a href="consulta-estado.html">Consulta Pública</a>
         </div>
-        <div class="nav-user">
+        <div class="nav-user" style="display: flex; align-items: center; gap: 0.85rem;">
+            <!-- Notificaciones Campana 🔔 -->
+            <div class="notif-wrapper" style="position: relative;">
+                <button type="button" id="btnNotificaciones" class="btn" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border); padding: 0.45rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text-light);" onclick="toggleNotificacionesDropdown()">
+                    🔔 <span id="notifBadge" class="badge" style="display: none; background: #dc2626; color: #fff; font-size: 0.72rem; font-weight: bold; border-radius: 999px; padding: 0.1rem 0.45rem;">0</span>
+                </button>
+                <div id="notifDropdown" class="notif-dropdown" style="display: none; position: absolute; right: 0; top: 125%; width: 360px; max-width: 90vw; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 12px 30px rgba(0,0,0,0.6); z-index: 1000; overflow: hidden;">
+                    <div style="padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25);">
+                        <strong style="color: var(--primary-light); font-size: 0.92rem;">🔔 Avisos del Taller</strong>
+                        <button type="button" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" onclick="marcarTodasNotificacionesLeidas()">Marcar leídas</button>
+                    </div>
+                    <div id="notifListaDropdown" style="max-height: 380px; overflow-y: auto;">
+                        <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.88rem;">Cargando avisos...</div>
+                    </div>
+                    <div style="padding: 0.6rem; text-align: center; border-top: 1px solid var(--border); background: rgba(0,0,0,0.15);">
+                        <a href="javascript:void(0)" onclick="mostrarSeccionCliente('sec-notificaciones', document.getElementById('btn-cli-notifs')); cerrarNotificacionesDropdown();" style="font-size: 0.82rem; color: var(--primary-light); font-weight: 600;">Ver historial completo de avisos &rarr;</a>
+                    </div>
+                </div>
+            </div>
             <span id="user-info"></span>
             <button onclick="logout()" class="btn btn-danger">Cerrar Sesión</button>
         </div>
@@ -117,6 +135,9 @@
             </button>
             <button type="button" class="tab-btn" id="btn-cli-citas" onclick="mostrarSeccionCliente('sec-citas-previas', this)">
                 📅 Solicitar Cita Previa
+            </button>
+            <button type="button" class="tab-btn" id="btn-cli-notifs" onclick="mostrarSeccionCliente('sec-notificaciones', this)">
+                🔔 Avisos y Notificaciones <span id="badge-notif-tab" class="badge" style="display: none; background: #dc2626; color: #fff; margin-left: 0.35rem; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px;">0</span>
             </button>
         </div>
 
@@ -247,6 +268,28 @@
             </div>
         </div>
 
+        <!-- SECCIÓN 3: HISTORIAL DE NOTIFICACIONES Y AVISOS -->
+        <div id="sec-notificaciones" class="tab-content">
+            <div class="card" style="border-left: 5px solid var(--primary); margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <div>
+                        <h2 style="margin: 0 0 0.35rem 0;">🔔 Avisos y Notificaciones del Taller</h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+                            Sigue en tiempo real los hitos y avances de tus vehículos: entrada, emisión de presupuestos, inicios de reparación, incidencias y avisos de recogida.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" class="btn btn-outline" style="font-size: 0.85rem;" onclick="marcarTodasNotificacionesLeidas()">✓ Marcar todas como leídas</button>
+                        <button type="button" class="btn btn-secondary" style="font-size: 0.85rem;" onclick="cargarNotificacionesCliente()">↻ Actualizar</button>
+                    </div>
+                </div>
+
+                <div id="lista-notificaciones-tab">
+                    <div class="empty-state">Cargando avisos...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Emergente de Confirmación de Presupuesto con Contraseña (Historia de Usuario 3) -->
         <div id="modal-confirmar-presupuesto-cliente" class="modal-overlay">
             <div class="modal card" style="max-width: 480px; width: 95%; border-top: 4px solid var(--primary);">
@@ -281,6 +324,7 @@
     <script src="../js/app.js"></script>
     <script>
         let reparacionesClienteCache = [];
+        let notificacionesClienteCache = [];
         let decisionPresupuestoActiva = { reparacionId: null, accion: null, numeroPresupuesto: '', total: 0 };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -298,6 +342,16 @@
             cargarMisReparaciones();
             cargarVehiculosParaCitaCliente();
             cargarMisCitasCliente();
+            cargarNotificacionesCliente();
+
+            // Cerrar menú desplegable de notificaciones al pulsar fuera
+            document.addEventListener('click', (e) => {
+                const drop = document.getElementById('notifDropdown');
+                const btn = document.getElementById('btnNotificaciones');
+                if (drop && btn && !drop.contains(e.target) && !btn.contains(e.target)) {
+                    drop.style.display = 'none';
+                }
+            });
         });
 
         function mostrarSeccionCliente(secId, btn) {
@@ -309,6 +363,8 @@
                 cargarVehiculosParaCitaCliente();
                 cargarDisponibilidadFechaCliente();
                 cargarMisCitasCliente();
+            } else if (secId === 'sec-notificaciones') {
+                cargarNotificacionesCliente();
             }
         }
 
@@ -810,6 +866,211 @@
                 await cargarDisponibilidadFechaCliente();
             } catch (e) {
                 mostrarAlerta(e.message, 'error', document.getElementById('alerts-container'));
+            }
+        }
+
+        // =====================================================================
+        // GESTIÓN DE NOTIFICACIONES Y AVISOS DEL TALLER
+        // =====================================================================
+        function toggleNotificacionesDropdown() {
+            const drop = document.getElementById('notifDropdown');
+            if (!drop) return;
+            const abierto = drop.style.display === 'block';
+            drop.style.display = abierto ? 'none' : 'block';
+            if (!abierto) {
+                cargarNotificacionesCliente();
+            }
+        }
+
+        function cerrarNotificacionesDropdown() {
+            const drop = document.getElementById('notifDropdown');
+            if (drop) drop.style.display = 'none';
+        }
+
+        function obtenerIconoYColorNotif(tipo) {
+            switch (tipo) {
+                case 'ENTRADA_TALLER':
+                    return { icono: '🚗', color: 'var(--info)' };
+                case 'PRESUPUESTO_DISPONIBLE':
+                    return { icono: '📋', color: 'var(--primary)' };
+                case 'EN_PROCESO':
+                    return { icono: '🔧', color: 'var(--info)' };
+                case 'INCIDENCIA':
+                    return { icono: '⚠️', color: '#eab308' };
+                case 'CAMBIO_FECHA':
+                    return { icono: '⏱️', color: '#a855f7' };
+                case 'LISTO_PARA_RECOGER':
+                    return { icono: '✅', color: 'var(--success)' };
+                case 'ENTREGADA':
+                    return { icono: '🏁', color: '#94a3b8' };
+                default:
+                    return { icono: 'ℹ️', color: 'var(--primary-light)' };
+            }
+        }
+
+        async function cargarNotificacionesCliente() {
+            const user = getUsuarioActual();
+            if (!user) return;
+
+            try {
+                const notifs = await apiFetch(`/notificaciones/cliente/${user.id}`, { silent: true });
+                notificacionesClienteCache = notifs || [];
+
+                const noLeidas = notificacionesClienteCache.filter(n => !n.leida).length;
+
+                // Actualizar badges
+                const badgeNav = document.getElementById('notifBadge');
+                if (badgeNav) {
+                    badgeNav.textContent = noLeidas;
+                    badgeNav.style.display = noLeidas > 0 ? 'inline-block' : 'none';
+                }
+
+                const badgeTab = document.getElementById('badge-notif-tab');
+                if (badgeTab) {
+                    badgeTab.textContent = noLeidas;
+                    badgeTab.style.display = noLeidas > 0 ? 'inline-block' : 'none';
+                }
+
+                renderizarDropdownNotificaciones(notificacionesClienteCache);
+                renderizarTabNotificaciones(notificacionesClienteCache);
+            } catch (err) {
+                console.error('Error al cargar notificaciones:', err);
+            }
+        }
+
+        function renderizarDropdownNotificaciones(notifs) {
+            const container = document.getElementById('notifListaDropdown');
+            if (!container) return;
+
+            if (!notifs || notifs.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 1.75rem; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
+                        No tienes avisos registrados en tu cuenta todavía.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = notifs.slice(0, 6).map(n => {
+                const meta = obtenerIconoYColorNotif(n.tipo);
+                const bg = n.leida ? 'transparent' : 'rgba(232, 93, 4, 0.08)';
+                return `
+                    <div style="padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); background: ${bg}; transition: background 0.2s; position: relative;">
+                        <div style="display: flex; gap: 0.65rem; align-items: flex-start;">
+                            <span style="font-size: 1.25rem; line-height: 1;">${meta.icono}</span>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;">
+                                    <strong style="color: ${meta.color}; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${n.titulo}
+                                    </strong>
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;">
+                                        ${formatearFechaHora(n.fechaCreacion)}
+                                    </span>
+                                </div>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.82rem; color: var(--text-light); line-height: 1.35;">
+                                    ${n.mensaje}
+                                </p>
+                                <div style="margin-top: 0.45rem; display: flex; justify-content: space-between; align-items: center;">
+                                    ${n.localizador ? `
+                                        <a href="consulta-estado.html?localizador=${n.localizador}" target="_blank" style="font-size: 0.76rem; color: var(--primary-light); font-weight: 600;">
+                                            Ver seguimiento ➔
+                                        </a>
+                                    ` : '<span></span>'}
+                                    ${!n.leida ? `
+                                        <button type="button" onclick="marcarNotificacionLeida(${n.id}, event)" style="background: none; border: none; color: var(--text-muted); font-size: 0.74rem; cursor: pointer; text-decoration: underline;">
+                                            Marcar leída
+                                        </button>
+                                    ` : '<span style="font-size: 0.72rem; color: var(--text-muted);">✓ Leída</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderizarTabNotificaciones(notifs) {
+            const container = document.getElementById('lista-notificaciones-tab');
+            if (!container) return;
+
+            if (!notifs || notifs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 2.5rem; text-align: center;">
+                        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📭</div>
+                        <h3>Bandeja de avisos vacía</h3>
+                        <p style="color: var(--text-muted); margin: 0;">No has recibido avisos ni cambios de estado sobre tus vehículos por el momento.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                    ${notifs.map(n => {
+                        const meta = obtenerIconoYColorNotif(n.tipo);
+                        const bgCard = n.leida ? 'var(--color-bg-card)' : 'rgba(232, 93, 4, 0.08)';
+                        const borderLeft = !n.leida ? `4px solid ${meta.color}` : '4px solid var(--border)';
+
+                        return `
+                            <div class="card" style="margin: 0; padding: 1.15rem; background: ${bgCard}; border: 1px solid var(--color-border); border-left: ${borderLeft}; border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 1.35rem;">${meta.icono}</span>
+                                        <h4 style="margin: 0; color: ${meta.color}; font-size: 1.05rem;">${n.titulo}</h4>
+                                        ${!n.leida ? '<span class="badge" style="background: #dc2626; color: #fff; font-size: 0.72rem;">NUEVA</span>' : ''}
+                                    </div>
+                                    <div style="font-size: 0.82rem; color: var(--text-muted);">
+                                        📅 ${formatearFechaHora(n.fechaCreacion)}
+                                    </div>
+                                </div>
+                                <p style="margin: 0.35rem 0 0.85rem 0; color: var(--color-text); font-size: 0.92rem; line-height: 1.5;">
+                                    ${n.mensaje}
+                                </p>
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem; padding-top: 0.65rem; border-top: 1px solid var(--border);">
+                                    <div style="font-size: 0.84rem; color: var(--text-muted);">
+                                        ${n.matriculaVehiculo ? `🚗 Vehículo: <strong style="color: var(--text-light);">${n.matriculaVehiculo}</strong>` : ''}
+                                        ${n.localizador ? ` · Localizador: <strong style="color: var(--primary);">${n.localizador}</strong>` : ''}
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        ${n.localizador ? `
+                                            <a href="consulta-estado.html?localizador=${n.localizador}" target="_blank" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.65rem;">
+                                                🔍 Abrir Seguimiento en Vivo
+                                            </a>
+                                        ` : ''}
+                                        ${!n.leida ? `
+                                            <button type="button" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.65rem;" onclick="marcarNotificacionLeida(${n.id}, event)">
+                                                ✓ Marcar como leída
+                                            </button>
+                                        ` : `
+                                            <span style="font-size: 0.8rem; color: var(--text-muted); align-self: center;">✓ Ya leída</span>
+                                        `}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        async function marcarNotificacionLeida(id, event) {
+            if (event) event.stopPropagation();
+            try {
+                await apiFetch(`/notificaciones/${id}/leer`, { method: 'PUT', silent: true });
+                await cargarNotificacionesCliente();
+            } catch (err) {
+                console.error('Error al marcar notificación:', err);
+            }
+        }
+
+        async function marcarTodasNotificacionesLeidas() {
+            const user = getUsuarioActual();
+            if (!user) return;
+            try {
+                await apiFetch(`/notificaciones/cliente/${user.id}/leer-todas`, { method: 'PUT', silent: true });
+                await cargarNotificacionesCliente();
+            } catch (err) {
+                console.error('Error al marcar todas las notificaciones:', err);
             }
         }
     </script>
