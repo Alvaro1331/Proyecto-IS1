@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Informe de Cambios y Pruebas Unitarias - MotorFlow</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm 13mm 15mm 13mm;
+        }
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.45;
+            font-size: 9.6pt;
+            margin: 0;
+            padding: 0;
+        }
+        .header-cover {
+            text-align: center;
+            border-bottom: 3px solid #E85D04;
+            padding-bottom: 16px;
+            margin-bottom: 18px;
+        }
+        .header-cover h1 {
+            color: #E85D04;
+            font-size: 22pt;
+            margin: 0 0 4px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header-cover h2 {
+            color: #475569;
+            font-size: 12.5pt;
+            font-weight: 500;
+            margin: 0 0 10px 0;
+        }
+        .meta-box {
+            display: inline-block;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 15px;
+            font-size: 8.5pt;
+            color: #64748b;
+        }
+        h2.section-title {
+            color: #0f172a;
+            border-left: 5px solid #E85D04;
+            padding-left: 10px;
+            font-size: 12pt;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+        h3.subsection-title {
+            color: #1e293b;
+            font-size: 10.2pt;
+            margin-top: 12px;
+            margin-bottom: 5px;
+        }
+        p, li {
+            color: #334155;
+            font-size: 9.3pt;
+            margin-bottom: 5px;
+        }
+        ul, ol {
+            padding-left: 18px;
+            margin-top: 3px;
+            margin-bottom: 7px;
+        }
+        .alert {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 9px 0;
+            font-size: 8.6pt;
+        }
+        .alert-success {
+            background-color: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .alert-info {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+        }
+        .alert-security {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 9px 0;
+            font-size: 8.3pt;
+        }
+        table th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+            text-align: left;
+            padding: 5px 7px;
+            border: 1px solid #cbd5e1;
+        }
+        table td {
+            padding: 5px 7px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            vertical-align: top;
+        }
+        table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+        tr.security-row td {
+            background-color: #fff1f2 !important;
+        }
+        .code-block {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 8px 11px;
+            border-radius: 6px;
+            font-size: 8pt;
+            overflow-x: auto;
+            margin: 6px 0;
+            line-height: 1.38;
+        }
+        .concept-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #3b82f6;
+            border-radius: 5px;
+            padding: 7px 11px;
+            margin: 7px 0;
+            font-size: 8.8pt;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-cover">
+        <h1>MOTORFLOW</h1>
+        <h2>Informe Técnico: Configuración, Ejecución y Manual Completo de Pruebas Unitarias</h2>
+        <div class="meta-box">
+            <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
+            <strong>Fecha:</strong> Febrero 2026 &nbsp;|&nbsp; 
+            <strong>Estado:</strong> 100% Operativo y Verificado (22/22 Pruebas Exitosas)
+        </div>
+    </div>
+
+    <div class="alert alert-success">
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>22 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC y Notificaciones al Cliente)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
+    </div>
+
+    <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
+    <p>
+        Al intentar arrancar la aplicación por primera vez pulsando el botón verde de Play en <code>TallerApplication.java</code>, IntelliJ IDEA mostraba el mensaje de error: 
+        <em>"The file in the editor is not runnable (Mayús+F10)"</em>.
+    </p>
+    <h3 class="subsection-title">Causa del problema:</h3>
+    <ul>
+        <li>El proyecto abierto en IntelliJ era la carpeta raíz del repositorio (<code>Proyecto-IS1</code>), la cual contiene dos subcarpetas independientes: <code>backend</code> y <code>frontend</code>.</li>
+        <li>IntelliJ no había detectado automáticamente el archivo <code>backend/pom.xml</code> como raíz de un módulo Maven, tratando los archivos Java como texto simple sin compilar y sin reconocer el método <code>main</code> como ejecutable.</li>
+    </ul>
+    <h3 class="subsection-title">Cambios aplicados y solución:</h3>
+    <ol>
+        <li>Se configuró el archivo <code>.idea/misc.xml</code> vinculando explícitamente <code>backend/pom.xml</code> a través del componente <code>MavenProjectsManager</code> y asignando el JDK 17 correspondiente.</li>
+        <li>Se creó la configuración del compilador en <code>.idea/compiler.xml</code> para el procesamiento de anotaciones de Spring Boot.</li>
+        <li>Se generó la configuración de ejecución en <code>.idea/runConfigurations/TallerApplication.xml</code>, permitiendo a IntelliJ habilitar de forma directa el botón de Play para la clase principal.</li>
+    </ol>
+
+    <h2 class="section-title">2. Verificación de la Base de Datos MySQL</h2>
+    <p>
+        Se revisó la conectividad con la base de datos configurada en <code>backend/src/main/resources/application.properties</code>:
+    </p>
+    <ul>
+        <li><strong>Servicio activo:</strong> El servicio de Windows <code>MySQL80</code> está en estado <em>Running</em>.</li>
+        <li><strong>Base de datos:</strong> La base de datos <code>tallerdb</code> existe en el servidor local (puerto <code>3306</code>).</li>
+        <li><strong>Credenciales:</strong> Usuario <code>root</code> y contraseña <code>admin123</code> autenticados correctamente.</li>
+        <li><strong>Semilla de datos:</strong> El componente <code>DatosPrueba.java</code> inserta de forma automática los usuarios, vehículos, materiales y reparaciones de prueba en el primer arranque.</li>
+    </ul>
+
+    <h2 class="section-title">3. Ejecución del Frontend y Conexión con el Backend</h2>
+    <p>
+        El frontend de MotorFlow está construido con HTML, CSS y JavaScript nativo, lo que permite abrirlo de forma inmediata sin necesidad de instalar dependencias de Node.js o librerías pesadas.
+    </p>
+    <h3 class="subsection-title">Cómo abrir el frontend:</h3>
+    <ul>
+        <li><strong>Opción recomendada:</strong> Abrir el archivo <code>frontend/index.html</code> en IntelliJ y hacer clic en el icono flotante del navegador (Chrome / Edge) en la esquina superior derecha del editor.</li>
+        <li><strong>Alternativa:</strong> Hacer doble clic directamente sobre <code>frontend/index.html</code> en el explorador de archivos de Windows.</li>
+    </ul>
+    <h3 class="subsection-title">Cuentas de usuario disponibles para pruebas:</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Rol</th>
+                <th>Correo electrónico</th>
+                <th>Contraseña</th>
+                <th>Funcionalidad principal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Administrador</strong></td>
+                <td>admin@taller.com</td>
+                <td>admin123</td>
+                <td>Control total: gestión de empleados, inventario de piezas, confirmación final de reparaciones y caja del taller.</td>
+            </tr>
+            <tr>
+                <td><strong>Recepcionista</strong></td>
+                <td>laura@taller.com</td>
+                <td>laura123</td>
+                <td>Recepción de coches, alta de nuevos clientes, apertura de averías y asignación inicial.</td>
+            </tr>
+            <tr>
+                <td><strong>Mecánico</strong></td>
+                <td>pedro@taller.com</td>
+                <td>pedro123</td>
+                <td>Visualización de órdenes asignadas, registro de piezas usadas del almacén y horas de mano de obra.</td>
+            </tr>
+            <tr>
+                <td><strong>Cliente</strong></td>
+                <td>juan@email.com</td>
+                <td>juan123</td>
+                <td>Seguimiento en tiempo real de su vehículo mediante línea temporal interactiva y consulta de facturas.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 class="section-title">4. Guía Didáctica: Pruebas Unitarias y Pruebas de Seguridad en Software</h2>
+    
+    <div class="concept-card">
+        <strong>Definición Clave:</strong> Una <strong>prueba unitaria</strong> es un bloque de código automatizado que evalúa el comportamiento de la unidad lógica más pequeña e indivisible de un sistema (habitualmente una función o método de una clase) de forma <strong>completamente aislada</strong> del resto de la aplicación, de la red y de la base de datos física.
+    </div>
+
+    <h3 class="subsection-title">4.1. ¿Por qué son vitales las Pruebas Unitarias de Seguridad?</h3>
+    <p>
+        En ingeniería de software moderna, la seguridad no se prueba únicamente al final con escaneos de red o penetration testing; se implementa y valida en el código desde el nivel unitario (**Security by Design**). Las pruebas unitarias de seguridad permiten certificar:
+    </p>
+    <ul>
+        <li><strong>Control de Acceso Basado en Roles (RBAC):</strong> Asegurar que un usuario autenticado con un rol técnico (ej. <code>MECANICO</code>) o externo (ej. <code>CLIENTE</code>) no pueda ejecutar operaciones reservadas a la administración o recepción (ej. abrir órdenes o facturar).</li>
+        <li><strong>Protección contra Suplantación y Credenciales Huérfanas:</strong> Bloquear accesos no autorizados a registros incompletos o presenciales sin contraseña.</li>
+        <li><strong>Integridad y Prevención de Fuerza Bruta en Autenticación:</strong> Validar que credenciales inexistentes, códigos no solicitados o contraseñas débiles sean rechazados de inmediato.</li>
+    </ul>
+
+    <h3 class="subsection-title">4.2. El Patrón Universal de Diseño: AAA (Arrange - Act - Assert)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">Fase del Patrón AAA</th>
+                <th style="width: 35%;">¿Qué se hace en esta fase?</th>
+                <th style="width: 40%;">Ejemplo de Seguridad en MotorFlow</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>1. Arrange (Preparar)</strong></td>
+                <td>Se instancian los objetos, se configuran dobles simulados (Mocks) y se preparan las credenciales o roles a auditar.</td>
+                <td><code>Usuario mecanico = new Usuario(..., Rol.MECANICO);<br>when(usuarioRepo.findById(2L)).thenReturn(Optional.of(mecanico));</code></td>
+            </tr>
+            <tr>
+                <td><strong>2. Act (Actuar / Ejecutar)</strong></td>
+                <td>Se invoca el método protegido que se pretende auditar.</td>
+                <td><code>reparacionService.crearReparacion(dto);</code></td>
+            </tr>
+            <tr>
+                <td><strong>3. Assert (Afirmar / Verificar)</strong></td>
+                <td>Se comprueba con aserciones que el sistema detectó la infracción y lanzó la excepción de seguridad esperada.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...);<br>assertTrue(msg.contains("no tiene permisos"));</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 class="subsection-title">4.3. Dobles de Prueba: Aislamiento con Mocks (Mockito)</h3>
+    <p>
+        Para probar la lógica de un servicio (como <code>UsuarioService</code>, <code>ClienteService</code> o <code>ReparacionService</code>) sin necesidad de conectarse a MySQL ni alterar datos reales, se emplean <strong>Mocks</strong>:
+    </p>
+    <ul>
+        <li><code>mock(UsuarioRepository.class)</code>: Crea un repositorio virtual en memoria RAM.</li>
+        <li><code>when(repositorio.findByEmail("atacante@externo.com")).thenReturn(Optional.empty())</code>: Simula con exactitud la respuesta del almacén ante un email inexistente.</li>
+        <li><code>ReflectionTestUtils.setField(...)</code>: Inyecta el mock dentro del servicio privado.</li>
+    </ul>
+
+    <h3 class="subsection-title">4.4. Catálogo de Aserciones Principales en JUnit 5</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Aserción</th>
+                <th>Propósito en Pruebas de Negocio y Seguridad</th>
+                <th>Ejemplo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>assertEquals(esperado, actual)</code></td>
+                <td>Comprueba igualdad matemática exacta o mensajes textuales de error de seguridad.</td>
+                <td><code>assertEquals("Contraseña incorrecta.", ex.getMessage());</code></td>
+            </tr>
+            <tr>
+                <td><code>assertTrue(condicion)</code></td>
+                <td>Verifica que una condición booleana o de contención es estrictamente verdadera.</td>
+                <td><code>assertTrue(cliente.tieneCuenta());</code></td>
+            </tr>
+            <tr>
+                <td><code>assertFalse(condicion)</code></td>
+                <td>Verifica que una condición booleana es estrictamente falsa.</td>
+                <td><code>assertFalse(presupuesto.estaCaducado());</code></td>
+            </tr>
+            <tr>
+                <td><code>assertNotNull(objeto)</code></td>
+                <td>Garantiza que un código o token generado no es nulo.</td>
+                <td><code>assertNotNull(reparacion.getLocalizador());</code></td>
+            </tr>
+            <tr>
+                <td><code>assertThrows(Excepcion.class, lambda)</code></td>
+                <td><strong>Esencial en seguridad:</strong> Verifica que una acción no autorizada detona el corte inmediato de la ejecución con una excepción.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, () -&gt; service.crearReparacion(dto));</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 class="section-title">5. Catálogo Completo de las 22 Pruebas Unitarias Implementadas</h2>
+    <p>
+        La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable y de seguridad del taller:
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 7%;">Nº</th>
+                <th style="width: 22%;">Clase y Método</th>
+                <th style="width: 46%;">Objetivo y Comprobación de Negocio / Seguridad</th>
+                <th style="width: 25%;">Aserciones utilizadas</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>1</strong></td>
+                <td><code>Factura</code><br><code>recalcularImportes()</code></td>
+                <td>Calcula con precisión materiales (100 €) y mano de obra (70 €), aplicando el margen (15% = 25,50 €), IVA (21% = 41,06 €) y total (236,56 €).</td>
+                <td><code>assertEquals(esperado, actual, delta)</code></td>
+            </tr>
+            <tr>
+                <td><strong>2</strong></td>
+                <td><code>Factura</code><br><code>recalcularImportes()</code></td>
+                <td>Comprueba que cuando no hay materiales (coste 0 €), se calcula la factura únicamente sobre la mano de obra sin fallos matemáticos.</td>
+                <td><code>assertEquals(0.0, costeMateriales)</code><br><code>assertEquals(48.70, totalFactura)</code></td>
+            </tr>
+            <tr>
+                <td><strong>3</strong></td>
+                <td><code>PresupuestoReparacion</code><br><code>recalcularTotales()</code></td>
+                <td>Suma correctamente las líneas de presupuesto, discriminando subtotal de piezas respecto a la mano de obra.</td>
+                <td><code>assertEquals(50.0, subtotalPiezas)</code><br><code>assertEquals(60.0, subtotalManoObra)</code></td>
+            </tr>
+            <tr>
+                <td><strong>4</strong></td>
+                <td><code>PresupuestoReparacion</code><br><code>estaCaducado()</code></td>
+                <td>Verifica la lógica temporal: fechas futuras devuelven no caducado y fechas pasadas devuelven caducado.</td>
+                <td><code>assertFalse(estaCaducado())</code><br><code>assertTrue(estaCaducado())</code></td>
+            </tr>
+            <tr>
+                <td><strong>5</strong></td>
+                <td><code>Reparacion</code><br><code>generarLocalizador()</code></td>
+                <td>Comprueba que el localizador de seguimiento no es nulo y tiene una longitud exacta de 8 caracteres alfanuméricos.</td>
+                <td><code>assertNotNull(localizador)</code><br><code>assertEquals(8, length())</code></td>
+            </tr>
+            <tr>
+                <td><strong>6</strong></td>
+                <td><code>Material</code><br><code>Constructor y Getters</code></td>
+                <td>Valida la consistencia de los datos del inventario (nombre, descripción, stock físico y precio unitario).</td>
+                <td><code>assertEquals("Filtro...", nombre)</code><br><code>assertEquals(15, stockDisponible)</code></td>
+            </tr>
+            <tr>
+                <td><strong>7</strong></td>
+                <td><code>UsuarioService</code><br><code>login()</code></td>
+                <td><strong>Login exitoso empleado:</strong> Verifica que un empleado con email y contraseña válidos inicia sesión y recibe su rol correspondiente.</td>
+                <td><code>assertNotNull(response)</code><br><code>assertEquals("MECANICO", rol)</code></td>
+            </tr>
+            <tr>
+                <td><strong>8</strong></td>
+                <td><code>UsuarioService</code><br><code>login()</code></td>
+                <td><strong>Contraseña incorrecta:</strong> Verifica que si la contraseña es errónea, se bloquea el acceso lanzando <code>IllegalArgumentException</code>.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code></td>
+            </tr>
+            <tr>
+                <td><strong>9</strong></td>
+                <td><code>Cliente</code><br><code>tieneCuenta()</code></td>
+                <td>Distingue correctamente si un cliente dispone de cuenta web con credenciales o es solo un cliente presencial de paso.</td>
+                <td><code>assertFalse(sinCuenta)</code><br><code>assertTrue(conCuenta)</code></td>
+            </tr>
+            <tr>
+                <td><strong>10</strong></td>
+                <td><code>CitaPrevia</code><br><code>generarCodigoCita()</code></td>
+                <td>Comprueba que el código identificativo de cita previa se genera con el prefijo oficial <code>CITA-</code> y una longitud exacta de 9 caracteres.</td>
+                <td><code>assertNotNull(codigo)</code><br><code>assertTrue(startsWith("CITA-"))</code><br><code>assertEquals(9, length())</code></td>
+            </tr>
+            <tr>
+                <td><strong>11</strong></td>
+                <td><code>MaterialService</code><br><code>actualizarStock()</code></td>
+                <td><strong>Protección de stock negativo:</strong> Verifica que la lógica de almacén prohíbe stocks negativos lanzando <code>IllegalArgumentException</code> con el mensaje exacto.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("El stock no puede ser negativo.", msg)</code></td>
+            </tr>
+            <tr>
+                <td><strong>12</strong></td>
+                <td><code>ClienteService</code><br><code>registrarCliente()</code></td>
+                <td><strong>Control de duplicados:</strong> Rechaza el registro de un cliente si el correo electrónico ya existe en la base de datos.</td>
+                <td><code>assertThrows(...)</code><br><code>assertTrue(msg.contains("Ya existe..."))</code></td>
+            </tr>
+            <tr>
+                <td><strong>13</strong></td>
+                <td><code>Reparacion</code><br><code>Constructor con estimación</code></td>
+                <td>Verifica que el estado inicial de una orden de trabajo es <code>PENDIENTE</code> y calcula la fecha estimada de fin sumando los días a la fecha de entrada.</td>
+                <td><code>assertEquals(PENDIENTE, estado)</code><br><code>assertEquals(hoy + 5, fechaEstimadaFin)</code></td>
+            </tr>
+            <tr>
+                <td><strong>14</strong></td>
+                <td><code>Vehiculo</code><br><code>Constructor y relación</code></td>
+                <td>Verifica la vinculación bidireccional y la integridad referencial entre un Vehículo (matrícula, marca, modelo, año) y su Cliente propietario.</td>
+                <td><code>assertNotNull(getCliente())</code><br><code>assertEquals("Ana Martínez", ...)</code></td>
+            </tr>
+            <tr>
+                <td><strong>15</strong></td>
+                <td><code>ConfiguracionTaller</code><br><code>Valores por defecto</code></td>
+                <td>Comprueba la consistencia del Singleton de negocio: 15% margen comercial, 35 €/h precio de mano de obra y 2000 € de fondo de tesorería base.</td>
+                <td><code>assertEquals(15.0, margen)</code><br><code>assertEquals(35.0, precioHora)</code><br><code>assertEquals(2000.0, fondoInicial)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>16</strong></td>
+                <td><code>UsuarioService</code><br><code>login()</code></td>
+                <td><strong>SEGURIDAD (Autenticación):</strong> Rechazo fulminante de intento de inicio de sesión con correo inexistente en el sistema, protegiendo contra enumeración y accesos no válidos.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(msg.contains("Usuario no encontrado"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>17</strong></td>
+                <td><code>ReparacionService</code><br><code>crearReparacion()</code></td>
+                <td><strong>SEGURIDAD (Control de Acceso RBAC):</strong> Bloqueo estricto de apertura de órdenes a usuarios sin rol de recepción (ej. un mecánico). Cumplimiento del principio de mínimo privilegio.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(msg.contains("no tiene permisos de recepcionista"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>18</strong></td>
+                <td><code>ReparacionService</code><br><code>asignarMecanico()</code></td>
+                <td><strong>SEGURIDAD (Control de Acceso RBAC):</strong> Bloqueo de asignación técnica de vehículos a usuarios sin rol mecánico (ej. asignar el coche a un recepcionista).</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(msg.contains("no tiene rol de mecánico"))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>19</strong></td>
+                <td><code>ClienteService</code><br><code>loginCliente()</code></td>
+                <td><strong>SEGURIDAD (Protección de Cuentas):</strong> Impide el inicio de sesión web a fichas de clientes creadas presencialmente en taller que aún no cuentan con credenciales autorizadas.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("Este cliente no tiene cuenta...", msg)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>20</strong></td>
+                <td><code>RecuperacionPasswordService</code><br><code>verificarCodigo()</code></td>
+                <td><strong>SEGURIDAD (Flujo Antifraude):</strong> Rechaza la verificación de códigos si no existe una petición previa activa en memoria, mitigando ataques de fuerza bruta y manipulación de tokens.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("No hay ninguna solicitud activa...", msg)</code></td>
+            </tr>
+            <tr>
+                <td><strong>21</strong></td>
+                <td><code>NotificacionCliente</code><br><code>Constructor y setLeida()</code></td>
+                <td>Verifica que una notificación al cliente se crea con el tipo correcto (<code>LISTO_PARA_RECOGER</code>), el título asignado y en estado no leída. Comprueba también que el método <code>setLeida(true)</code> la marca correctamente como leída.</td>
+                <td><code>assertNotNull(notificacion)</code><br><code>assertEquals(tipo)</code><br><code>assertFalse(isLeida())</code><br><code>assertTrue(isLeida())</code></td>
+            </tr>
+            <tr>
+                <td><strong>22</strong></td>
+                <td><code>NotificacionService</code><br><code>crearYProcesarNotificacion()</code></td>
+                <td>Verifica que el servicio de notificaciones persiste correctamente el aviso en el repositorio mediante un mock de Mockito, y que el objeto devuelto contiene el ID, el tipo (<code>EN_PROCESO</code>) y los datos del cliente correctos.</td>
+                <td><code>assertNotNull(resultado)</code><br><code>assertEquals(101L, getId())</code><br><code>assertEquals(EN_PROCESO, tipo)</code><br><code>verify(repoMock, times(1))</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2 class="section-title">6. Guía de Ejecución y Validación de las Pruebas</h2>
+    
+    <h3 class="subsection-title">A. Ejecución desde IntelliJ IDEA:</h3>
+    <ol>
+        <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
+        <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
+        <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>22 tests con el check verde de aprobación</strong>.</li>
+    </ol>
+
+    <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
+    <p>Desde una terminal de PowerShell en la carpeta <code>backend</code>, ejecuta el comando de pruebas:</p>
+    <div class="code-block">.\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest</div>
+
+    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 1.45 s):</h3>
+    <div class="code-block">[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.taller.PruebasUnitariasTest
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.454 s -- in com.taller.PruebasUnitariasTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.931 s
+[INFO] Finished at: 2026-11-10T10:45:42+01:00
+[INFO] ------------------------------------------------------------------------</div>
+
+    <h2 class="section-title">7. Pasos para Crear una Nueva Prueba Unitaria de Seguridad (Checklist Rápido)</h2>
+    <ol>
+        <li><strong>Identificar el vector o regla de seguridad:</strong> Determinar qué condición de autorización o validación (rol, contraseña, token) debe proteger la operación.</li>
+        <li><strong>Configurar el escenario malicioso o no autorizado (Arrange):</strong> Simular mediante Mocks al actor no permitido (ej. un usuario con rol inadecuado o credenciales inválidas).</li>
+        <li><strong>Ejecutar y atrapar el fallo (Act &amp; Assert):</strong> Utilizar <code>assertThrows(IllegalArgumentException.class, ...)</code> comprobando que el método detiene la acción sin efectos colaterales.</li>
+        <li><strong>Validar el mensaje de seguridad:</strong> Comprobar con <code>assertTrue</code> o <code>assertEquals</code> que el mensaje de error es explícito y coherente con las políticas del taller.</li>
+    </ol>
+
+    <div class="alert alert-info">
+        <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
+        <ul>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 22 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 22 pruebas unitarias listo para copiar.</li>
+        </ul>
+    </div>
+
+</body>
+</html>

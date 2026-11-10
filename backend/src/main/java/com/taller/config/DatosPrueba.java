@@ -32,6 +32,7 @@ public class DatosPrueba implements CommandLineRunner {
     @Autowired private FacturaRepository facturaRepository;
     @Autowired private PresupuestoReparacionRepository presupuestoRepository;
     @Autowired private CitaPreviaRepository citaRepository;
+    @Autowired private NotificacionClienteRepository notificacionRepository;
     @Autowired private ConfiguracionTallerService configuracionService;
     @Autowired private ReparacionService reparacionService;
     @Autowired private CitaPreviaService citaService;
@@ -269,6 +270,35 @@ public class DatosPrueba implements CommandLineRunner {
                         ));
                     }
                 }
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            if (notificacionRepository.count() == 0) {
+                clienteRepository.findByEmail("juan@email.com").ifPresent(cliente -> {
+                    List<Reparacion> reps = reparacionRepository.findAll();
+                    Reparacion repJuan = reps.stream()
+                            .filter(r -> r.getVehiculo() != null && r.getVehiculo().getCliente() != null
+                                    && cliente.getId().equals(r.getVehiculo().getCliente().getId()))
+                            .findFirst().orElse(null);
+
+                    notificacionRepository.save(new NotificacionCliente(
+                            cliente,
+                            repJuan,
+                            TipoNotificacion.ENTRADA_TALLER,
+                            "Vehículo recepcionado en el taller",
+                            "Tu vehículo ha sido recibido en el taller. Código localizador de seguimiento: "
+                                    + (repJuan != null ? repJuan.getLocalizador() : "Y6NDCVRP")
+                    ));
+
+                    notificacionRepository.save(new NotificacionCliente(
+                            cliente,
+                            repJuan,
+                            TipoNotificacion.PRESUPUESTO_DISPONIBLE,
+                            "Nuevo presupuesto disponible para revisión",
+                            "El equipo técnico ha completado el diagnóstico. Tienes un presupuesto detallado pendiente de aprobación en tu panel."
+                    ));
+                });
             }
         } catch (Exception ignored) {}
     }
