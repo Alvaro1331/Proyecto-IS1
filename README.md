@@ -53,7 +53,7 @@ Para garantizar la compatibilidad entre todos los integrantes del equipo y evita
 ### Suite Completa de Pruebas Unitarias y Seguridad (JUnit 5 + Mockito)
 El sistema dispone de una suite integral de **33 pruebas unitarias automatizadas** que garantizan el correcto funcionamiento y la seguridad del taller:
 * **Ubicación del código de pruebas:** `backend/src/test/java/com/taller/PruebasUnitariasTest.java`
-* **Módulos auditados:**
+* **Módulos probados:**
   * **Cálculos y Contabilidad:** Comprobación matemática de facturas, desglose de mano de obra, márgenes comerciales del taller, IVA (21%) y presupuestos con líneas de piezas.
   * **Ciberseguridad y Control de Acceso (RBAC):** Bloqueo a mecánicos para crear órdenes de recepción, bloqueo a recepcionistas para asignaciones técnicas, rechazo de credenciales incorrectas, bloqueo de usuarios inexistentes y protección antifraude en recuperación de contraseñas.
   * **Máquina de Estados de Reparación:** Validación estricta del ciclo de vida (`PENDIENTE` ➔ `EN_PROCESO` ➔ `FINALIZADA` ➔ `CONFIRMADA` ➔ `ENTREGADA`), prohibiendo saltos ilegales, retrocesos o ediciones sobre reparaciones ya entregadas.
@@ -128,7 +128,6 @@ La web tiene un diseño negro y naranja y está dividida en varias pantallas seg
 
 ## Información para usuarios:
 Esta sección se tiene y se ira rellenando a medida que se vayan desarrollando el software. 
-Si eres una persona que busca probar el software, de momento hay poco que se pueda utilizar, se recomienda leerse la wiki donde esclarecemos el funcionamiento de la aplicación que perseguimos y que tenemos en el momento.
 <br>
 <br>
 
