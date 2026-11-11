@@ -650,9 +650,9 @@
                 <div style="display: flex; flex-wrap: wrap; gap: 1rem; color: var(--text-muted);">
                     <span>Materiales: <strong style="color: var(--text-light);">${formatearEuros(matEjemplo)}</strong></span>
                     <span>Mano de Obra (2h): <strong style="color: var(--text-light);">${formatearEuros(manoObra)}</strong></span>
-                    <span>Margen Taller (${margenPct}%): <strong style="color: var(--primary-light);">${formatearEuros(margen)}</strong></span>
+                    <span>Margen Taller (${margenPct}%): <strong style="color: var(--text-light);">${formatearEuros(margen)}</strong></span>
                     <span>IVA (21%): <strong style="color: var(--text-light);">${formatearEuros(iva)}</strong></span>
-                    <span>Total Factura: <strong style="color: var(--success);">${formatearEuros(total)}</strong></span>
+                    <span>Total Factura: <strong style="color: var(--primary);">${formatearEuros(total)}</strong></span>
                 </div>
             `;
         }
@@ -1392,9 +1392,9 @@
                     const stockActual = m.stockDisponible ?? m.stock ?? 0;
                     const precioUnit = Number(m.precioUnitario || 0);
                     const isBajo = stockActual < 5;
-                    const rowStyle = isBajo ? 'background: rgba(245, 158, 11, 0.1);' : '';
+                    const rowStyle = isBajo ? 'background: rgba(220, 38, 38, 0.1);' : '';
                     const stockBadge = isBajo
-                        ? `<span style="color: var(--warning); font-weight: bold;">${stockActual} uds.</span> <span class="badge badge-pending" style="margin-left: 0.4rem;">Stock bajo</span>`
+                        ? `<span style="color: #dc2626; font-weight: bold;">${stockActual} uds.</span> <span class="badge badge-pending" style="margin-left: 0.4rem; background: rgba(220, 38, 38, 0.2); color: #dc2626; border: 1px solid #dc2626;">Stock bajo</span>`
                         : `<strong>${stockActual} uds.</strong>`;
 
                     tbody.innerHTML += `
