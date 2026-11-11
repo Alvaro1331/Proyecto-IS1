@@ -4,75 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consulta de Estado - MotorFlow</title>
+    <script src="../js/theme.js"></script>
     <link rel="stylesheet" href="../css/styles.css">
-    <style>
-        .search-container {
-            max-width: 650px;
-            margin: 2rem auto;
-            text-align: center;
-        }
-        .search-input-group {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .search-input-group input {
-            flex: 1;
-            padding: 0.75rem;
-            border-radius: 4px;
-            border: 1px solid var(--color-border);
-            background-color: var(--color-bg-dark);
-            color: var(--color-text);
-        }
-        .results-container {
-            margin-top: 2.5rem;
-            margin-bottom: 3rem;
-        }
-        .vehicle-info {
-            background-color: var(--color-bg-card);
-            border: 1px solid var(--color-border);
-            border-top: 4px solid var(--primary);
-            border-radius: 8px;
-            padding: 1.75rem;
-            margin-bottom: 1.5rem;
-        }
-        .vehicle-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--color-border);
-        }
-        .vehicle-title {
-            font-size: 1.35rem;
-            font-weight: bold;
-            color: var(--color-primary);
-        }
-        .vehicle-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            color: var(--color-text-muted);
-            background: rgba(0, 0, 0, 0.22);
-            padding: 1rem;
-            border-radius: 6px;
-        }
-        .vehicle-details span {
-            color: var(--color-text);
-        }
-    </style>
 </head>
 <body>
     <nav class="navbar">
-        <div class="container">
-            <h1 style="color: var(--color-primary); margin: 0;">MotorFlow</h1>
-            <div class="nav-links">
-                <a href="../index.html" class="btn" style="background: transparent; border: 1px solid var(--color-primary);">Inicio</a>
-                <a href="login.html" class="btn btn-primary">Iniciar Sesión</a>
-            </div>
+        <div class="container flex justify-between items-center">
+            <div class="nav-brand">MotorFlow</div>
+            <ul class="nav-links flex items-center">
+                <li><a href="../index.html">Inicio</a></li>
+                <li><a href="consulta-estado.html" class="active">Consultar Estado de mi Coche</a></li>
+                <li><a href="login.html" class="btn btn-primary">Iniciar Sesión</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -92,7 +35,7 @@
 
             <div id="alertContainer"></div>
 
-            <div class="card mt-4" style="text-align: center; padding: 1.25rem; background: rgba(232, 93, 4, 0.07); border: 1px dashed var(--color-primary); margin-top: 1.5rem;">
+            <div class="card mt-4" style="text-align: center; padding: 1.25rem; background: color-mix(in srgb, var(--brand) 7%, transparent); border: 1px dashed var(--color-primary); margin-top: 1.5rem;">
                 <p style="margin: 0 0 0.75rem 0; color: var(--color-text);"><strong>¿Tienes cuenta de cliente?</strong></p>
                 <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0 0 1rem 0;">Inicia sesión para guardar tus localizadores y consultar tus vehículos y facturas en cualquier momento.</p>
                 <a href="login.html" class="btn btn-primary btn-sm">Iniciar Sesión / Crear Cuenta</a>
@@ -153,76 +96,87 @@
             const incidenciasHtml = renderizarIncidenciasHTML(rep.incidencias || []);
 
             const piezasUsadasHtml = (rep.materialesDetalle && rep.materialesDetalle.length > 0)
-                ? `<div style="margin-top: 0.75rem; font-size: 0.88rem; color: var(--info);">🔩 <strong>Piezas sustituidas / empleadas:</strong> ${rep.materialesDetalle.join(' · ')}</div>`
+                ? `<div style="margin-top: 0.75rem; font-size: 0.88rem; color: var(--info);"><strong>Piezas sustituidas / empleadas:</strong> ${rep.materialesDetalle.join(' · ')}</div>`
                 : '';
 
             let presupuestoHtml = '';
             if (rep.presupuestoFormal) {
                 presupuestoHtml = `
-                    <div style="margin-top: 1.25rem; border-top: 1px solid var(--color-border); padding-top: 1.25rem;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem;">
-                            <h3 style="margin:0; color: var(--info);">📋 Presupuesto Desglosado (${rep.presupuestoFormal.numeroPresupuesto})</h3>
-                            <button type="button" class="btn btn-secondary" onclick="abrirModalPresupuestoObjeto(ultimaReparacionConsultada.presupuestoFormal)">
-                                🖨️ Ver / Imprimir Presupuesto PDF
-                            </button>
+                    <details class="disclosure-box">
+                        <summary>
+                            <span>Presupuesto Desglosado (${rep.presupuestoFormal.numeroPresupuesto})</span>
+                            <strong>${formatearEuros(rep.presupuestoFormal.totalPresupuesto)}</strong>
+                        </summary>
+                        <div class="disclosure-body">
+                            <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+                                <button type="button" class="btn btn-secondary" onclick="abrirModalPresupuestoObjeto(ultimaReparacionConsultada.presupuestoFormal)">
+                                    Ver / Imprimir Presupuesto PDF
+                                </button>
+                            </div>
+                            ${renderizarPresupuestoDesglosadoHTML(rep.presupuestoFormal)}
                         </div>
-                        ${renderizarPresupuestoDesglosadoHTML(rep.presupuestoFormal)}
-                    </div>
+                    </details>
                 `;
             }
 
             let facturaHtml = '';
             if (rep.factura) {
                 facturaHtml = `
-                    <div style="margin-top: 1.5rem; border-top: 1px solid var(--color-border); padding-top: 1.25rem;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.85rem;">
-                            <h3 style="margin:0; color: var(--success);">🧾 Factura Oficial Disponible (${rep.factura.numeroFactura})</h3>
-                            <button type="button" class="btn btn-primary" onclick="abrirModalFacturaObjeto(ultimaReparacionConsultada.factura)">
-                                🖨️ Abrir Vista de Impresión
-                            </button>
+                    <details class="disclosure-box">
+                        <summary>
+                            <span>Factura Oficial Disponible (${rep.factura.numeroFactura})</span>
+                            <strong style="color: var(--ok);">${formatearEuros(rep.factura.totalFactura)}</strong>
+                        </summary>
+                        <div class="disclosure-body">
+                            <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+                                <button type="button" class="btn btn-primary" onclick="abrirModalFacturaObjeto(ultimaReparacionConsultada.factura)">
+                                    Abrir Vista de Impresión
+                                </button>
+                            </div>
+                            ${renderizarFacturaDesglosadaHTML(rep.factura)}
                         </div>
-                        ${renderizarFacturaDesglosadaHTML(rep.factura)}
-                    </div>
+                    </details>
                 `;
             } else {
                 facturaHtml = `
-                    <div style="margin-top: 1.25rem; padding: 1rem; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                        <div>
-                            <div style="font-size: 0.82rem; color: var(--text-muted);">Estimación inicial orientativa en Recepción</div>
-                            <div style="font-size: 1.15rem; font-weight: 700;">${formatearEuros(rep.estimacionInicial)}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.82rem; color: var(--text-muted);">Importe acumulado previsto (con IVA 21%)</div>
-                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary-light);">${formatearEuros(rep.totalCalculadoPrevisto)}</div>
-                        </div>
-                        <div style="font-size: 0.82rem; color: var(--text-muted);">
-                            <em>La factura definitiva se emitirá al finalizar la reparación.</em>
-                        </div>
+                    <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.88rem;">
+                        <span>Estimación inicial: <strong>${formatearEuros(rep.estimacionInicial)}</strong></span>
+                        <span>Importe acumulado previsto (c/IVA): <strong style="color: var(--brand-text);">${formatearEuros(rep.totalCalculadoPrevisto)}</strong></span>
                     </div>
                 `;
             }
 
+            const numIncPub = (rep.incidencias || []).length;
+            const incColapsable = `
+                <details class="disclosure-box">
+                    <summary>
+                        <span>Incidencias y fotos del mecánico (${numIncPub})</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${numIncPub > 0 ? 'Ver detalle' : 'Sin novedades'}</span>
+                    </summary>
+                    <div class="disclosure-body">
+                        ${incidenciasHtml}
+                        ${piezasUsadasHtml}
+                    </div>
+                </details>
+            `;
+
             wrapper.innerHTML = `
                 <div class="vehicle-info">
                     <div class="vehicle-header">
-                        <div class="vehicle-title">🚗 ${rep.marcaVehiculo} ${rep.modeloVehiculo} (${rep.matriculaVehiculo})</div>
+                        <div class="vehicle-title">${rep.marcaVehiculo} ${rep.modeloVehiculo} (${rep.matriculaVehiculo})</div>
                         <div>${crearBadgeEstado(rep.estado)}</div>
                     </div>
-                    <div class="vehicle-details" style="margin-bottom: 1rem;">
-                        <div><strong>Código Localizador:</strong> <span style="font-family: monospace; font-size: 1.15rem; color: var(--color-primary);">${rep.localizador}</span></div>
-                        <div><strong>Fecha de Entrada:</strong> <span>${rep.fechaEntrada ? formatearFecha(rep.fechaEntrada) : 'N/A'}</span></div>
-                        <div><strong>Entrega Estimada:</strong> <span>${rep.fechaEstimadaFin ? formatearFecha(rep.fechaEstimadaFin) : 'En taller'} (${rep.diasEstimados || 3} días)</span></div>
-                        <div><strong>Mecánico Asignado:</strong> <span>🔧 ${rep.nombreMecanico || 'Pendiente de asignar'}</span></div>
-                    </div>
-                    <div style="border-top: 1px solid var(--color-border); padding-top: 1rem;">
-                        <strong>Descripción de la avería:</strong>
-                        <p style="margin: 0.4rem 0 0 0; color: var(--color-text-muted);">${rep.descripcionAveria || 'Sin descripción'}</p>
-                        ${piezasUsadasHtml}
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        <span>Localizador: <strong style="font-family: monospace; color: var(--color-primary);">${rep.localizador}</strong></span>
+                        <span>Entrada: <strong style="color: var(--text);">${rep.fechaEntrada ? formatearFecha(rep.fechaEntrada) : 'N/A'}</strong></span>
+                        <span>Entrega estimada: <strong style="color: var(--text);">${rep.fechaEstimadaFin ? formatearFecha(rep.fechaEstimadaFin) : 'En taller'} (${rep.diasEstimados || 3}d)</strong></span>
+                        <span>Mecánico: <strong style="color: var(--text);">${rep.nombreMecanico || 'Pendiente de asignar'}</strong></span>
+                        <span>Avería: <strong style="color: var(--text);">${rep.descripcionAveria || 'Sin descripción'}</strong></span>
                     </div>
 
                     ${timelineHtml}
                     ${presupuestoHtml}
-                    ${incidenciasHtml}
+                    ${incColapsable}
                     ${facturaHtml}
                 </div>
             `;

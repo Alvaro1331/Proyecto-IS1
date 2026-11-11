@@ -4,65 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Recepcionista - MotorFlow</title>
+    <script src="../js/theme.js"></script>
     <link rel="stylesheet" href="../css/styles.css">
-    <style>
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stat-card {
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin-top: 0.5rem;
-        }
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .tab-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            font-size: 1rem;
-            border-radius: 4px;
-        }
-        .tab-btn:hover {
-            color: var(--text-light);
-            background-color: var(--card-bg);
-        }
-        .tab-btn.active {
-            color: var(--primary);
-            font-weight: bold;
-            background-color: var(--card-bg);
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .mt-4 { margin-top: 1.5rem; }
-        .historial-panel {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid var(--info);
-            border-radius: 8px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.25rem;
-        }
-    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -73,7 +16,7 @@
         </div>
         <div class="navbar-user">
             <span id="user-info"></span>
-            <button onclick="logout()" class="btn btn-danger">Cerrar Sesión</button>
+            <button onclick="logout()" class="btn btn-secondary">Cerrar Sesión</button>
         </div>
     </nav>
 
@@ -114,8 +57,8 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="openTab('tab-registrar', event)">Registrar Vehículo</button>
             <button class="tab-btn" id="btn-tab-reparaciones" onclick="openTab('tab-crear-reparacion', event)">Reparaciones y Facturación</button>
-            <button class="tab-btn" id="btn-tab-calendario" onclick="openTab('tab-calendario-taller', event)">📅 Calendario de Taller</button>
-            <button class="tab-btn" id="btn-tab-facturas" onclick="openTab('tab-archivo-facturas', event)">📁 Archivo de Facturas</button>
+            <button class="tab-btn" id="btn-tab-calendario" onclick="openTab('tab-calendario-taller', event)">Calendario de Taller</button>
+            <button class="tab-btn" id="btn-tab-facturas" onclick="openTab('tab-archivo-facturas', event)">Archivo de Facturas</button>
             <button class="tab-btn" onclick="openTab('tab-clientes-vehiculos', event)">Clientes y Vehículos</button>
         </div>
 
@@ -157,7 +100,12 @@
 
         <!-- Tab 2: Crear Reparación y Gestionar Reparaciones -->
         <section id="tab-crear-reparacion" class="tab-content">
-            <div class="card">
+            <details class="disclosure-box" style="margin-top: 0; margin-bottom: 1.25rem;">
+                <summary>
+                    <strong>+ Abrir nueva orden de reparación</strong>
+                    <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 400;">Seleccionar vehículo, avería y estimación inicial</span>
+                </summary>
+                <div class="disclosure-body">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <h2 style="margin: 0;">Crear Nueva Reparación (Estimación Inicial)</h2>
@@ -166,14 +114,14 @@
                         </p>
                     </div>
                     <button type="button" class="btn btn-secondary" onclick="toggleBuscadorHistorial()">
-                        🔍 Consultar Precios de Reparaciones Pasadas
+                        Consultar Precios de Reparaciones Pasadas
                     </button>
                 </div>
 
                 <!-- Buscador de Historial de Precios Pasados -->
                 <div id="panel-historial-precios" class="historial-panel" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <h4 style="margin: 0; color: #93C5FD;">📚 Consulta de Historial de Precios y Reparaciones Similares</h4>
+                        <h4 style="margin: 0; color: var(--info);">Consulta de Historial de Precios y Reparaciones Similares</h4>
                         <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="toggleBuscadorHistorial()">Cerrar ✕</button>
                     </div>
                     <div style="display: flex; gap: 0.75rem; margin-bottom: 0.85rem;">
@@ -227,9 +175,11 @@
                     </div>
                     <button type="submit" class="btn btn-primary" id="btn-submit-reparacion">Crear Reparación y Generar Localizador</button>
                 </form>
-            </div>
+            
+                </div>
+            </details>
 
-            <div class="card mt-4">
+            <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
                     <h2 style="margin: 0;">Reparaciones en Taller y Formalización de Facturas</h2>
                     <button class="btn btn-secondary" onclick="loadReparaciones()">↻ Actualizar</button>
@@ -238,13 +188,11 @@
                     <table class="table" id="tabla-reparaciones">
                         <thead>
                             <tr>
-                                <th>ID / Loc.</th>
-                                <th>Vehículo / Cliente</th>
+                                <th>Orden / Vehículo</th>
                                 <th>Mecánico</th>
-                                <th>Estado / Plazo</th>
-                                <th>Avería, Piezas e Incidencias</th>
-                                <th>Desglose Económico (Real vs Estimado)</th>
-                                <th>Acciones y Facturación</th>
+                                <th>Estado</th>
+                                <th>Importe</th>
+                                <th style="text-align: right;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -258,7 +206,7 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
                     <div>
-                        <h2 style="margin: 0;">📁 Archivo Histórico de Facturas</h2>
+                        <h2 style="margin: 0;">Archivo Histórico de Facturas</h2>
                         <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--text-muted);">
                             Registro oficial de todas las facturas emitidas en el taller con desglose de materiales, mano de obra, margen comercial e IVA (21%).
                         </p>
@@ -269,15 +217,10 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Nº Factura</th>
-                                <th>Fecha</th>
+                                <th>Nº Factura / Fecha</th>
                                 <th>Vehículo / Cliente</th>
-                                <th>Materiales</th>
-                                <th>Mano de Obra</th>
-                                <th>Margen Taller</th>
-                                <th>IVA (21%)</th>
                                 <th>Total Factura</th>
-                                <th>Detalle</th>
+                                <th style="text-align: right;">Detalle</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-archivo-facturas"></tbody>
@@ -331,10 +274,10 @@
 
         <!-- Tab 5: Calendario de Taller y Citas Programadas (Historia de Usuario 5) -->
         <section id="tab-calendario-taller" class="tab-content">
-            <div class="card" style="border-left: 5px solid var(--info);">
+            <div class="card" style="">
                 <div class="calendar-toolbar">
                     <div>
-                        <h2 style="margin: 0;">📅 Calendario de Taller y Capacidad Diaria</h2>
+                        <h2 style="margin: 0;">Calendario de Taller y Capacidad Diaria</h2>
                         <p style="margin: 0.2rem 0 0 0; font-size: 0.86rem; color: var(--text-muted);">
                             Planifica las entradas de vehículos controlando el aforo máximo diario (8 vehículos/día · 2 por franja horaria).
                         </p>
@@ -364,9 +307,9 @@
                         <h3 id="cal-titulo-periodo" style="margin: 0 0 0 0.5rem; font-size: 1.15rem; color: var(--primary-light);"></h3>
                     </div>
                     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.78rem;">
-                        <span class="cap-indicator cap-verde" style="width: auto; padding: 0.2rem 0.6rem;">🟢 Disponible (&lt;60%)</span>
-                        <span class="cap-indicator cap-amarillo" style="width: auto; padding: 0.2rem 0.6rem;">🟡 Ocupación Alta (60-99%)</span>
-                        <span class="cap-indicator cap-rojo" style="width: auto; padding: 0.2rem 0.6rem;">🔴 Aforo Completo (8/8)</span>
+                        <span class="cap-indicator cap-verde" style="width: auto; padding: 0.2rem 0.6rem;">Disponible (&lt;60%)</span>
+                        <span class="cap-indicator cap-amarillo" style="width: auto; padding: 0.2rem 0.6rem;">Ocupación Alta (60-99%)</span>
+                        <span class="cap-indicator cap-rojo" style="width: auto; padding: 0.2rem 0.6rem;">Aforo Completo (8/8)</span>
                     </div>
                 </div>
 
@@ -380,10 +323,10 @@
 
         <!-- Modal de Emisión de Factura Fiscal Automática (Historia de Usuario 2) -->
         <div id="modal-emitir-factura-fiscal" class="modal-overlay">
-            <div class="modal card" style="max-width: 720px; width: 96%; border-top: 4px solid var(--primary);">
+            <div class="modal card" style="max-width: 720px; width: 96%;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
                     <div>
-                        <h3 style="margin: 0; color: var(--primary);">🧾 Generar Factura Fiscal Automática</h3>
+                        <h3 style="margin: 0; color: var(--primary);">Generar Factura Fiscal Automática</h3>
                         <p id="fact-fiscal-subtitulo" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);"></p>
                     </div>
                     <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalFacturaFiscal()">✕</button>
@@ -392,7 +335,7 @@
                 <div id="fact-fiscal-alert"></div>
 
                 <!-- Datos fiscales obligatorios del cliente -->
-                <div style="background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem;">
+                <div style="background: color-mix(in srgb, var(--text) 9.8%, transparent); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem;">
                     <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 0.65rem; color: var(--text-light);">
                         1. Datos Fiscales del Cliente (Obligatorios para emitir factura)
                     </div>
@@ -413,12 +356,12 @@
                 </div>
 
                 <!-- Desglose precargado automáticamente -->
-                <div id="fact-fiscal-resumen-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem; font-size: 0.88rem;"></div>
+                <div id="fact-fiscal-resumen-box" style="background: color-mix(in srgb, var(--text) 8.8%, transparent); border: 1px solid var(--border); border-radius: 6px; padding: 0.9rem; margin-bottom: 1rem; font-size: 0.88rem;"></div>
 
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="cerrarModalFacturaFiscal()">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="btn-confirmar-emision-factura" onclick="confirmarEmisionFacturaFiscal(this)">
-                        ✅ Confirmar Emisión y Generar PDF
+                        Confirmar Emisión y Generar PDF
                     </button>
                 </div>
             </div>
@@ -710,7 +653,7 @@
                     <span><strong>Margen Operativo Taller:</strong> (${pctMargen.toFixed(1)}%)</span>
                     <strong>${formatearEuros(impMargen)}</strong>
                 </div>
-                <div class="factura-row" style="font-weight: 700; background: rgba(255,255,255,0.03); padding: 0.45rem 0.35rem;">
+                <div class="factura-row" style="font-weight: 700; background: color-mix(in srgb, var(--text) 3%, transparent); padding: 0.45rem 0.35rem;">
                     <span>Base Imponible</span>
                     <span>${formatearEuros(baseImp)}</span>
                 </div>
@@ -813,103 +756,47 @@
                 const tbody = document.querySelector('#tabla-reparaciones tbody');
                 tbody.innerHTML = '';
                 if (activas.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No hay reparaciones activas en el taller</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay reparaciones activas en el taller</td></tr>';
                     return;
                 }
                 activas.forEach(r => {
                     const tr = document.createElement('tr');
                     const matricula = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
+                    const marcaMod = `${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''}`.trim();
                     const clienteNom = r.nombreCliente || r.vehiculo?.cliente?.nombre || '-';
                     const mecanicoNom = r.nombreMecanico || r.mecanico?.nombre || 'Sin asignar';
-
-                    const piezasHtml = (r.materialesDetalle && r.materialesDetalle.length > 0)
-                        ? `<div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--info);">🔩 ${r.materialesDetalle.join(' · ')}</div>`
-                        : `<div style="margin-top: 0.3rem; font-size: 0.8rem; color: var(--text-muted);">Sin materiales usados aún</div>`;
-
-                    const numInc = Array.isArray(r.incidencias) ? r.incidencias.length : 0;
-                    const incHtml = numInc > 0
-                        ? `<div style="margin-top: 0.25rem; font-size: 0.78rem; color: var(--primary-light);">📸 ${numInc} incidencia(s) del mecánico</div>`
-                        : '';
-
                     const tieneFactura = !!r.factura;
-                    const tienePresupuesto = !!r.presupuestoFormal;
-                    const finanzasHtml = `
-                        <div style="font-size: 0.82rem; line-height: 1.45;">
-                            <div style="margin-bottom: 0.25rem;">${renderizarBadgePresupuesto(r.estadoPresupuesto)}</div>
-                            <div style="color: var(--text-muted);">Presupuesto ref.: <strong>${formatearEuros(r.estimacionInicial)}</strong></div>
-                            <div>Piezas: <strong style="color: var(--warning);">${formatearEuros(r.costeMateriales)}</strong> · M.O. (${Number(r.horasTrabajoMecanico || 0).toFixed(1)}h): <strong>${formatearEuros(r.subtotalManoObra)}</strong></div>
-                            ${tieneFactura
-                                ? `<div style="color: var(--success); font-weight: 700; margin-top: 0.2rem;">🧾 Factura ${r.factura.numeroFactura}: ${formatearEuros(r.factura.totalFactura)} (IVA incl.)</div>`
-                                : `<div style="color: var(--info); font-weight: 600; margin-top: 0.2rem;">Total previsto (c/IVA): ${formatearEuros(r.totalCalculadoPrevisto)}</div>`
-                            }
-                        </div>
-                    `;
-
+                    const importeHtml = tieneFactura
+                        ? `<strong style="color: var(--ok);">${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
+                        : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`;
                     const botones = [];
-                    if (tienePresupuesto) {
-                        botones.push(`
-                            <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.76rem;" onclick="verPresupuestoRecepcion(${r.id})">
-                                📋 Ver Presupuesto
-                            </button>
-                        `);
-                    }
-                    if (r.estado === 'FINALIZADA' || r.estado === 'CONFIRMADA') {
-                        botones.push(`
-                            <button type="button" class="btn btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onclick="abrirModalFacturaFiscalRecepcion(${r.id})">
-                                🧾 ${tieneFactura ? 'Actualizar / Ver Factura' : 'Generar Factura'}
-                            </button>
-                        `);
-                        if (tieneFactura) {
-                            botones.push(`
-                                <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.55rem; font-size: 0.76rem;" onclick="verFacturaReparacion(${r.id})">
-                                    🖨️ Descargar PDF
-                                </button>
-                            `);
-                        }
-                    } else {
-                        botones.push(`
-                            <button type="button" class="btn btn-secondary" disabled title="La reparación debe estar FINALIZADA para poder generar la factura" style="padding: 0.32rem 0.55rem; font-size: 0.75rem;">
-                                🔒 Generar Factura (Req. FINALIZADA)
-                            </button>
-                        `);
-                    }
-
                     if (r.estado === 'CONFIRMADA') {
-                        botones.push(`
-                            <button type="button" class="btn btn-success" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onclick="entregarVehiculo(${r.id})">
-                                🚗 Entregar y Cobrar
-                            </button>
-                        `);
+                        botones.push(`<button type="button" class="btn btn-success" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="entregarVehiculo(${r.id})">Entregar y Cobrar</button>`);
                     } else if (r.estado === 'FINALIZADA') {
-                        botones.push(`<div style="color: #C084FC; font-size: 0.76rem; font-weight: 600;">⏳ Pendiente confirmación Admin para entrega</div>`);
+                        botones.push(`<button type="button" class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="abrirModalFacturaFiscalRecepcion(${r.id})">${tieneFactura ? 'Factura' : 'Generar Factura'}</button>`);
                     }
-
+                    botones.push(`<button type="button" class="btn btn-secondary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="verDetalleReparacionRecep(${r.id})">Ver detalle</button>`);
                     tr.innerHTML = `
                         <td>
-                            <strong>#${r.id}</strong>
-                            <div style="color:var(--primary); font-family:monospace; font-weight:bold;">${r.localizador || '-'}</div>
-                        </td>
-                        <td>
-                            <strong>${matricula}</strong>
-                            <div style="font-size: 0.82rem; color: var(--text-muted);">${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''}</div>
-                            <div style="font-size: 0.8rem;">👤 ${clienteNom}</div>
-                        </td>
-                        <td>${mecanicoNom}</td>
-                        <td>
-                            ${crearBadgeEstado(r.estado)}
-                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem;">
-                                Entrada: ${formatearFecha(r.fechaEntrada)}<br>
-                                Plazo: <strong>${r.diasEstimados || 3} día(s)</strong> (Fin: ${formatearFecha(r.fechaEstimadaFin)})
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <strong>${matricula}</strong>
+                                ${marcaMod ? `<span style="color: var(--text-muted); font-size: 0.86rem;">${marcaMod}</span>` : ''}
+                                <span style="font-family: monospace; font-size: 0.76rem; color: var(--brand-text); background: var(--brand-soft); padding: 0.1rem 0.45rem; border-radius: 4px;">#${r.id} · ${r.localizador || '-'}</span>
+                            </div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                ${clienteNom} · <span style="color: var(--text);">${r.descripcionAveria || '-'}</span>
                             </div>
                         </td>
+                        <td style="white-space: nowrap;">${mecanicoNom}</td>
                         <td>
-                            <div>${r.descripcionAveria || '-'}</div>
-                            ${piezasHtml}
-                            ${incHtml}
+                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                                ${crearBadgeEstado(r.estado)}
+                                ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
+                            </div>
                         </td>
-                        <td>${finanzasHtml}</td>
-                        <td>
-                            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                        <td style="white-space: nowrap;">${importeHtml}</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.4rem; flex-wrap: wrap;">
                                 ${botones.join('')}
                             </div>
                         </td>
@@ -919,6 +806,11 @@
             } catch (error) {
                 console.error("Error loading reparaciones", error);
             }
+        }
+
+        function verDetalleReparacionRecep(repId) {
+            const rep = reparacionesRecepCache.find(item => item.id === repId);
+            if (rep) abrirModalDetalleReparacion(rep, { rol: 'RECEPCIONISTA' });
         }
 
         async function loadFacturasArchivo() {
@@ -947,25 +839,23 @@
         function renderTablaFacturasRecepcion(lista) {
             const tbody = document.getElementById('tabla-archivo-facturas');
             if (!lista || lista.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay facturas emitidas todavía.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay facturas emitidas todavía.</td></tr>';
                 return;
             }
-            tbody.innerHTML = lista.map((f, idx) => `
+            tbody.innerHTML = lista.map((f) => `
                 <tr>
-                    <td><strong style="color: var(--primary); font-family: monospace;">${f.numeroFactura}</strong></td>
-                    <td>${formatearFecha(f.fechaEmision)}</td>
-                    <td>
-                        <strong>${f.matriculaVehiculo}</strong> (${f.marcaVehiculo} ${f.modeloVehiculo})
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">👤 ${f.nombreCliente}</div>
+                    <td style="white-space: nowrap;">
+                        <strong style="color: var(--brand-text); font-family: monospace;">${f.numeroFactura}</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">${formatearFecha(f.fechaEmision)}</div>
                     </td>
-                    <td>${formatearEuros(f.costeMateriales)}</td>
-                    <td>${formatearEuros(f.subtotalManoObra)} <small style="color: var(--text-muted);">(${Number(f.horasManoObra || 0).toFixed(1)}h)</small></td>
-                    <td>${formatearEuros(f.importeMargen)} <small style="color: var(--text-muted);">(${f.porcentajeMargen}%)</small></td>
-                    <td>${formatearEuros(f.importeIva)}</td>
-                    <td><strong style="color: var(--primary); font-size: 1.02rem;">${formatearEuros(f.totalFactura)}</strong></td>
                     <td>
-                        <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.8rem;" onclick="abrirFacturaDesdeCacheRecep(${f.id})">
-                            🔍 Ver Desglose
+                        <strong>${f.matriculaVehiculo}</strong> <span style="color: var(--text-muted); font-size: 0.86rem;">(${f.marcaVehiculo} ${f.modeloVehiculo})</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">${f.nombreCliente}</div>
+                    </td>
+                    <td style="white-space: nowrap;"><strong>${formatearEuros(f.totalFactura)}</strong></td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;" onclick="abrirFacturaDesdeCacheRecep(${f.id})">
+                            Ver desglose
                         </button>
                     </td>
                 </tr>
@@ -1034,7 +924,7 @@
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
 
                     let mecanicoHtml = '<span class="text-muted">Sin reparación</span>';
-                    let estadoHtml = '<span class="badge" style="background: rgba(160,160,160,0.15); color: var(--text-muted); border: 1px solid var(--border);">Sin reparación</span>';
+                    let estadoHtml = '<span class="badge" style="background: color-mix(in srgb, var(--text-muted) 15%, transparent); color: var(--text-muted); border: 1px solid var(--border);">Sin reparación</span>';
 
                     if (rep) {
                         const nomMec = rep.nombreMecanico || rep.mecanico?.nombre;
@@ -1223,7 +1113,7 @@
                             return `
                                 <div class="calendar-day-cell" onclick="seleccionarDiaYFranjaRecepcion('${fechaIso}', '${hora}')">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
-                                        <strong style="font-size: 1rem; color: var(--primary-light);">🕒 ${hora}</strong>
+                                        <strong style="font-size: 1rem; color: var(--primary-light);">${hora}</strong>
                                         <span class="cap-indicator ${claseSemaforoCapacidad(nivelF)}" style="width: auto; margin: 0;">
                                             ${ocupFranja}/${capFranja} plazas
                                         </span>
@@ -1270,7 +1160,7 @@
 
                 const badgeCap = info.esLaborable
                     ? `<div class="cap-indicator ${claseSemaforoCapacidad(info.nivelColor)}">${info.ocupadas}/${info.capacidadMaxima} vehículos</div>`
-                    : `<div class="cap-indicator" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">Cerrado</div>`;
+                    : `<div class="cap-indicator" style="background: color-mix(in srgb, var(--text) 6%, transparent); color: var(--text-muted);">Cerrado</div>`;
 
                 const previewCitas = citasDia.slice(0, 2).map(c =>
                     `<div style="font-size: 0.72rem; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">• ${c.franjaHoraria} ${c.matriculaVehiculo}</div>`
@@ -1342,8 +1232,8 @@
                     ? `<tr><td colspan="6" class="empty-state" style="padding: 1.2rem;">No hay citas registradas para el día ${formatearFecha(fechaIso)} con el filtro seleccionado.</td></tr>`
                     : citasDia.map(c => `
                         <tr>
-                            <td><strong style="color: var(--primary-light); font-size: 0.95rem;">🕒 ${c.franjaHoraria}</strong><div style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">${c.codigoCita}</div></td>
-                            <td><strong>${c.nombreCliente}</strong><div style="font-size:0.78rem; color:var(--text-muted);">📞 ${c.telefonoCliente}</div></td>
+                            <td><strong style="color: var(--primary-light); font-size: 0.95rem;">${c.franjaHoraria}</strong><div style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">${c.codigoCita}</div></td>
+                            <td><strong>${c.nombreCliente}</strong><div style="font-size:0.78rem; color:var(--text-muted);">${c.telefonoCliente}</div></td>
                             <td><strong>${c.matriculaVehiculo}</strong><div style="font-size:0.78rem; color:var(--text-muted);">${c.marcaVehiculo} ${c.modeloVehiculo}</div></td>
                             <td><strong>${c.motivo}</strong>${c.observaciones ? `<div style="font-size:0.78rem; color:var(--text-muted);">${c.observaciones}</div>` : ''}</td>
                             <td>
@@ -1371,24 +1261,24 @@
 
                 const alertaCapacidad = completo
                     ? `<div class="alert alert-error" style="margin-bottom: 0.85rem;">
-                           <span>⚠️ <strong>Capacidad máxima superada (${ocupadas}/${capMax} vehículos aceptados):</strong> el sistema bloquea la creación de nuevas citas manuales en este horario/día.</span>
+                           <span><strong>Capacidad máxima superada (${ocupadas}/${capMax} vehículos aceptados):</strong> el sistema bloquea la creación de nuevas citas manuales en este horario/día.</span>
                        </div>`
                     : (!habilitado && disp.motivoBloqueo
-                        ? `<div class="alert alert-warning" style="margin-bottom: 0.85rem;"><span>⚠️ ${disp.motivoBloqueo}</span></div>`
+                        ? `<div class="alert alert-warning" style="margin-bottom: 0.85rem;"><span>${disp.motivoBloqueo}</span></div>`
                         : '');
 
                 const todasGlobales = (estadoCalendarioRecep.datos && estadoCalendarioRecep.datos.todasLasCitas) || [];
                 const filasGlobales = todasGlobales.length === 0
                     ? `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1rem;">No hay citas registradas en el taller con el filtro actual.</td></tr>`
                     : todasGlobales.map(c => `
-                        <tr style="${c.fechaCita === fechaIso ? 'background: rgba(59,130,246,0.1);' : ''}">
+                        <tr style="${c.fechaCita === fechaIso ? 'background: color-mix(in srgb, var(--info) 10%, transparent);' : ''}">
                             <td>
                                 <strong>${formatearFecha(c.fechaCita)}</strong> a las <span style="color: var(--primary-light); font-weight: 700;">${c.franjaHoraria}</span>
                                 <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${c.codigoCita || ('#' + c.id)}</div>
                             </td>
                             <td>
                                 <strong>${c.nombreCliente || '—'}</strong>
-                                <div style="font-size: 0.76rem; color: var(--text-muted);">📞 ${c.telefonoCliente || 'Sin tlf.'}</div>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">${c.telefonoCliente || 'Sin tlf.'}</div>
                             </td>
                             <td>
                                 <span style="font-family: monospace; font-weight: 700;">${c.matriculaVehiculo || '—'}</span>
@@ -1405,7 +1295,7 @@
                             </td>
                             <td>
                                 <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.76rem;" onclick="irADiaCalendarioRecepcion('${c.fechaCita}')">
-                                    📅 Ver Día (${formatearFecha(c.fechaCita)})
+                                    Ver Día (${formatearFecha(c.fechaCita)})
                                 </button>
                             </td>
                         </tr>
@@ -1414,7 +1304,7 @@
                 box.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
                         <div>
-                            <h3 style="margin: 0; font-size: 1.15rem;">📋 Desglose de Citas del Día: <span style="color: var(--primary-light);">${formatearFecha(fechaIso)}</span></h3>
+                            <h3 style="margin: 0; font-size: 1.15rem;">Desglose de Citas del Día: <span style="color: var(--primary-light);">${formatearFecha(fechaIso)}</span></h3>
                             <p style="margin: 0.2rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);">
                                 Ocupación actual del día: <strong>${ocupadas}/${capMax} vehículos aceptados</strong> (${disp.plazasLibresDia} plaza(s) disponible(s)).
                             </p>
@@ -1441,8 +1331,8 @@
                     </div>
 
                     <!-- Creación de Cita Manual desde Recepción con bloqueo al 100% -->
-                    <div style="background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                        <h4 style="margin: 0 0 0.65rem 0; color: var(--primary-light);">➕ Registrar Nueva Cita Manual en Recepción (${formatearFecha(fechaIso)})</h4>
+                    <div style="background: color-mix(in srgb, var(--text) 9.8%, transparent); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <h4 style="margin: 0 0 0.65rem 0; color: var(--primary-light);">Registrar Nueva Cita Manual en Recepción (${formatearFecha(fechaIso)})</h4>
                         <div id="alerta-cita-manual-recep">${alertaCapacidad}</div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 0.75rem; align-items: end;">
                             <div class="form-group" style="margin-bottom: 0;">
@@ -1474,15 +1364,15 @@
                             </div>
                             <div>
                                 <button type="button" class="btn btn-primary" style="width: 100%;" ${!habilitado ? 'disabled' : ''} onclick="crearCitaManualRecepcion('${fechaIso}', this)">
-                                    📅 Agendar Cita
+                                    Agendar Cita
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Listado General de Todas las Citas Programadas en el Taller -->
-                    <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 1rem;">
-                        <h4 style="margin: 0 0 0.65rem 0; color: var(--primary-light);">📌 Listado General de Todas las Citas Programadas en el Taller (${todasGlobales.length})</h4>
+                    <div style="background: color-mix(in srgb, var(--info) 6%, transparent); border: 1px solid color-mix(in srgb, var(--info) 25%, transparent); border-radius: 8px; padding: 1rem;">
+                        <h4 style="margin: 0 0 0.65rem 0; color: var(--primary-light);">Listado General de Todas las Citas Programadas en el Taller (${todasGlobales.length})</h4>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>

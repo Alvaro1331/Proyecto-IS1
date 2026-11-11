@@ -78,7 +78,7 @@ function mostrarAlerta(mensaje, tipo, contenedorOrId = 'alert-container') {
 
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${tipo}`;
-    const icono = tipo === 'error' ? '⚠️' : (tipo === 'success' ? '✅' : 'ℹ️');
+    const icono = tipo === 'error' ? '' : (tipo === 'success' ? '' : '');
     alertDiv.innerHTML = `
         <span class="alert-text"><strong class="alert-icon">${icono}</strong> ${mensaje}</span>
         <button type="button" class="close-alert" onclick="cerrarAlerta(this.parentElement)">&times;</button>
@@ -124,23 +124,23 @@ function crearBadgeEstado(estado) {
     switch (estado) {
         case 'PENDIENTE':
             clase += ' badge-pending';
-            texto = 'PENDIENTE';
+            texto = 'Pendiente';
             break;
         case 'EN_PROCESO':
             clase += ' badge-process';
-            texto = 'EN PROCESO';
+            texto = 'En reparación';
             break;
         case 'FINALIZADA':
             clase += ' badge-finished';
-            texto = 'FINALIZADA · PEND. ADMIN';
+            texto = 'Por validar';
             break;
         case 'CONFIRMADA':
             clase += ' badge-confirmed';
-            texto = 'CONFIRMADA ✓';
+            texto = 'Confirmada';
             break;
         case 'ENTREGADA':
             clase += ' badge-delivered';
-            texto = 'ENTREGADA';
+            texto = 'Entregada';
             break;
     }
     return `<span class="${clase}">${texto}</span>`;
@@ -357,11 +357,11 @@ function formatearEuros(valor) {
 // COMPONENTES VISUALES: LÍNEA TEMPORAL, INCIDENCIAS Y MODAL DE FACTURA
 // =====================================================
 const PASOS_REPARACION = [
-    { codigo: 'PENDIENTE',   icono: '📋', titulo: 'Recibido en Recepción' },
-    { codigo: 'EN_PROCESO',  icono: '🔧', titulo: 'En Reparación (Taller)' },
-    { codigo: 'FINALIZADA',  icono: '🏁', titulo: 'Trabajo Terminado' },
-    { codigo: 'CONFIRMADA',  icono: '✅', titulo: 'Verificado por Taller' },
-    { codigo: 'ENTREGADA',   icono: '🚗', titulo: 'Vehículo Entregado' }
+    { codigo: 'PENDIENTE',   icono: '', titulo: 'Recibido en Recepción' },
+    { codigo: 'EN_PROCESO',  icono: '', titulo: 'En Reparación (Taller)' },
+    { codigo: 'FINALIZADA',  icono: '', titulo: 'Trabajo Terminado' },
+    { codigo: 'CONFIRMADA',  icono: '', titulo: 'Verificado por Taller' },
+    { codigo: 'ENTREGADA',   icono: '', titulo: 'Vehículo Entregado' }
 ];
 
 function renderizarLineaTemporalHTML(rep) {
@@ -373,13 +373,13 @@ function renderizarLineaTemporalHTML(rep) {
 
     let badgePlazo = '';
     if (estadoActual === 'ENTREGADA') {
-        badgePlazo = `<span class="badge badge-confirmed">🎉 Vehículo ya entregado al cliente</span>`;
+        badgePlazo = `<span class="badge badge-confirmed">Vehículo ya entregado al cliente</span>`;
     } else if (estadoActual === 'CONFIRMADA' || estadoActual === 'FINALIZADA') {
-        badgePlazo = `<span class="badge badge-confirmed">✨ Reparación finalizada · Listo para entrega</span>`;
+        badgePlazo = `<span class="badge badge-confirmed">Reparación finalizada · Listo para entrega</span>`;
     } else if (diasRestantes === 0) {
-        badgePlazo = `<span class="badge badge-pending">⏰ Entrega prevista para hoy (${fechaEstimada})</span>`;
+        badgePlazo = `<span class="badge badge-pending">Entrega prevista para hoy (${fechaEstimada})</span>`;
     } else {
-        badgePlazo = `<span class="badge badge-process">⏳ Tiempo estimado: ${diasEstimados} día(s) · Faltan ~${diasRestantes} día(s) (Previsto: ${fechaEstimada})</span>`;
+        badgePlazo = `<span class="badge badge-process">Tiempo estimado: ${diasEstimados} día(s) · Faltan ~${diasRestantes} día(s) (Previsto: ${fechaEstimada})</span>`;
     }
 
     const pasosHtml = PASOS_REPARACION.map((paso, index) => {
@@ -389,7 +389,7 @@ function renderizarLineaTemporalHTML(rep) {
         } else if (index === idxActual) {
             estadoClase = 'active';
         }
-        const iconoMostrar = (index < idxActual || estadoActual === 'ENTREGADA') ? '✓' : paso.icono;
+        const iconoMostrar = (index < idxActual || estadoActual === 'ENTREGADA') ? '✓' : (index + 1);
         return `
             <div class="timeline-step ${estadoClase}">
                 <div class="timeline-step-circle">${iconoMostrar}</div>
@@ -402,7 +402,7 @@ function renderizarLineaTemporalHTML(rep) {
         <div class="timeline-wrapper">
             <div class="timeline-header-meta">
                 <div style="font-weight: 600; font-size: 0.92rem; color: var(--text-light);">
-                    📍 Seguimiento en Tiempo Real
+                    Seguimiento en Tiempo Real
                 </div>
                 <div>${badgePlazo}</div>
             </div>
@@ -418,7 +418,7 @@ function renderizarIncidenciasHTML(incidencias = []) {
         return `
             <div class="incidencias-section">
                 <div style="font-size: 0.88rem; color: var(--text-muted);">
-                    📝 <em>El mecánico no ha registrado incidencias ni variaciones adicionales por el momento.</em>
+                    <em>El mecánico no ha registrado incidencias ni variaciones adicionales por el momento.</em>
                 </div>
             </div>
         `;
@@ -429,7 +429,7 @@ function renderizarIncidenciasHTML(incidencias = []) {
         const impacto = Number(inc.impactoPrecio || 0);
         const badgeImpacto = impacto > 0
             ? `<span class="badge badge-pending" style="margin-left: 0.5rem;">Impacto orientativo: +${formatearEuros(impacto)}</span>`
-            : `<span class="badge" style="background: rgba(255,255,255,0.08); color: var(--text-muted); margin-left: 0.5rem;">Nota informativa (0,00 €)</span>`;
+            : `<span class="badge" style="background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-muted); margin-left: 0.5rem;">Nota informativa (0,00 €)</span>`;
 
         const fotoHtml = urlFoto
             ? `<a href="${urlFoto}" target="_blank" title="Pulsa para ampliar imagen">
@@ -442,7 +442,7 @@ function renderizarIncidenciasHTML(incidencias = []) {
                 ${fotoHtml}
                 <div style="flex: 1; min-width: 200px;">
                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.35rem;">
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">🕒 ${formatearFechaHora(inc.fecha)}</span>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">${formatearFechaHora(inc.fecha)}</span>
                         ${badgeImpacto}
                     </div>
                     <div style="font-size: 0.92rem; color: var(--text-light);">${inc.descripcion || ''}</div>
@@ -454,7 +454,7 @@ function renderizarIncidenciasHTML(incidencias = []) {
     return `
         <div class="incidencias-section">
             <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--primary-light);">
-                📸 Historial de Incidencias y Fotos del Mecánico (${incidencias.length})
+                Historial de Incidencias y Fotos del Mecánico (${incidencias.length})
             </h4>
             ${itemsHtml}
         </div>
@@ -514,7 +514,7 @@ function renderizarFacturaDesglosadaHTML(f) {
                 <strong>${formatearEuros(f.importeMargen)}</strong>
             </div>
 
-            <div class="factura-row" style="background: rgba(255,255,255,0.03); padding: 0.5rem 0.4rem; font-weight: 600;">
+            <div class="factura-row" style="background: color-mix(in srgb, var(--text) 3%, transparent); padding: 0.5rem 0.4rem; font-weight: 600;">
                 <span>Base Imponible</span>
                 <span>${formatearEuros(f.baseImponible)}</span>
             </div>
@@ -545,7 +545,7 @@ function abrirModalFacturaObjeto(factura) {
             <div class="modal card" style="max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto;">
                 <div id="modal-factura-body"></div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="exportarFacturaActualPDF()">🖨️ Descargar / Imprimir PDF</button>
+                    <button type="button" class="btn btn-secondary" onclick="exportarFacturaActualPDF()">Descargar / Imprimir PDF</button>
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('modal-factura-overlay').style.display='none'">Cerrar</button>
                 </div>
             </div>
@@ -639,16 +639,16 @@ function exportarFacturaActualPDF() {
 // =====================================================
 function renderizarBadgePresupuesto(estadoPresupuesto) {
     if (!estadoPresupuesto || estadoPresupuesto === 'SIN_PRESUPUESTO') {
-        return `<span class="badge" style="background: rgba(255,255,255,0.08); color: var(--text-muted);">Sin presupuesto formal</span>`;
+        return `<span class="badge badge-delivered">Sin presupuesto</span>`;
     }
     if (estadoPresupuesto === 'PENDIENTE_ACEPTACION') {
-        return `<span class="badge badge-pending">📋 Presupuesto Pendiente Cliente</span>`;
+        return `<span class="badge badge-pending">Presupuesto pendiente</span>`;
     }
     if (estadoPresupuesto === 'ACEPTADO') {
-        return `<span class="badge badge-confirmed">✅ Presupuesto Aceptado</span>`;
+        return `<span class="badge badge-confirmed">Presupuesto aceptado</span>`;
     }
     if (estadoPresupuesto === 'RECHAZADO') {
-        return `<span class="badge" style="background: rgba(220,38,38,0.2); color: #FCA5A5; border: 1px solid var(--accent);">❌ Presupuesto Rechazado</span>`;
+        return `<span class="badge" style="background: color-mix(in srgb, var(--err) 12%, transparent); color: var(--err); border-color: color-mix(in srgb, var(--err) 25%, transparent);">Presupuesto rechazado</span>`;
     }
     return `<span class="badge">${estadoPresupuesto}</span>`;
 }
@@ -697,7 +697,7 @@ function renderizarPresupuestoDesglosadoHTML(p) {
                 </div>
             </div>
 
-            <div style="margin-bottom: 0.9rem; padding: 0.65rem 0.85rem; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid var(--border); font-size: 0.88rem;">
+            <div style="margin-bottom: 0.9rem; padding: 0.65rem 0.85rem; background: color-mix(in srgb, var(--text) 3%, transparent); border-radius: 6px; border: 1px solid var(--border); font-size: 0.88rem;">
                 <strong>Diagnóstico Técnico Previo:</strong>
                 <div style="color: var(--text-muted); margin-top: 0.2rem;">${p.diagnosticoPrevio || '-'}</div>
             </div>
@@ -732,7 +732,7 @@ function renderizarPresupuestoDesglosadoHTML(p) {
                 <span>Margen Operativo Taller (${Number(p.porcentajeMargen || 0).toFixed(1)}%)</span>
                 <strong>${formatearEuros(p.importeMargen)}</strong>
             </div>
-            <div class="factura-row" style="background: rgba(255,255,255,0.03); padding: 0.45rem 0.4rem; font-weight: 600;">
+            <div class="factura-row" style="background: color-mix(in srgb, var(--text) 3%, transparent); padding: 0.45rem 0.4rem; font-weight: 600;">
                 <span>Base Imponible</span>
                 <span>${formatearEuros(p.baseImponible)}</span>
             </div>
@@ -740,7 +740,7 @@ function renderizarPresupuestoDesglosadoHTML(p) {
                 <span>IVA Aplicado (${Number(p.porcentajeIva || 21).toFixed(0)}%)</span>
                 <strong>${formatearEuros(p.importeIva)}</strong>
             </div>
-            <div class="factura-row-total" style="border-top-color: var(--info); color: #93C5FD;">
+            <div class="factura-row-total" style="border-top-color: var(--info); color: var(--info);">
                 <span>TOTAL PRESUPUESTO (CON IMPUESTOS)</span>
                 <span>${formatearEuros(p.totalPresupuesto)}</span>
             </div>
@@ -762,7 +762,7 @@ function abrirModalPresupuestoObjeto(presupuesto) {
             <div class="modal card" style="max-width: 720px; width: 95%; max-height: 90vh; overflow-y: auto;">
                 <div id="modal-presupuesto-vista-body"></div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="exportarPresupuestoActualPDF()">🖨️ Exportar / Imprimir PDF</button>
+                    <button type="button" class="btn btn-secondary" onclick="exportarPresupuestoActualPDF()">Exportar / Imprimir PDF</button>
                     <button type="button" class="btn btn-primary" onclick="document.getElementById('modal-presupuesto-vista-overlay').style.display='none'">Cerrar</button>
                 </div>
             </div>
@@ -872,10 +872,10 @@ function asegurarModalEditorPresupuestoDOM() {
     overlay.id = 'modal-editor-presupuesto-overlay';
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
-        <div class="modal card" style="max-width: 820px; width: 96%; max-height: 92vh; overflow-y: auto; border-top: 4px solid var(--info);">
+        <div class="modal card" style="max-width: 820px; width: 96%; max-height: 92vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
                 <div>
-                    <h3 id="editor-pres-titulo" style="margin: 0; color: var(--primary-light);">📋 Generar Presupuesto Desglosado tras Diagnóstico</h3>
+                    <h3 id="editor-pres-titulo" style="margin: 0; color: var(--primary-light);">Generar Presupuesto Desglosado tras Diagnóstico</h3>
                     <p id="editor-pres-subtitulo" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);"></p>
                 </div>
                 <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditorPresupuesto()">✕</button>
@@ -895,16 +895,16 @@ function asegurarModalEditorPresupuestoDOM() {
             </div>
 
             <!-- Formulario para añadir nueva línea de coste -->
-            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem; margin-bottom: 1rem;">
+            <div style="background: color-mix(in srgb, var(--text) 10.5%, transparent); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem; margin-bottom: 1rem;">
                 <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 0.65rem; color: var(--text-light);">
-                    ➕ Añadir Línea de Coste al Presupuesto
+                    Añadir Línea de Coste al Presupuesto
                 </div>
                 <div style="display: grid; grid-template-columns: 1.2fr 1.6fr 2fr 0.9fr 1fr auto; gap: 0.55rem; align-items: end;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label style="font-size: 0.76rem;">Tipo de Línea</label>
                         <select id="linea-pres-tipo" onchange="onCambioTipoLineaPresupuesto()">
-                            <option value="PIEZA">🔧 Pieza / Repuesto</option>
-                            <option value="MANO_OBRA">⏱️ Mano de obra</option>
+                            <option value="PIEZA">Pieza / Repuesto</option>
+                            <option value="MANO_OBRA">Mano de obra</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;" id="wrap-linea-catalogo">
@@ -951,7 +951,7 @@ function asegurarModalEditorPresupuestoDOM() {
             </div>
 
             <!-- Resumen automático de importes -->
-            <div style="background: rgba(0,0,0,0.28); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem;">
+            <div style="background: color-mix(in srgb, var(--text) 9.8%, transparent); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.75rem; font-size: 0.86rem;">
                     <div>
                         <div style="color: var(--text-muted); font-size: 0.76rem;">Subtotal Piezas</div>
@@ -970,7 +970,7 @@ function asegurarModalEditorPresupuestoDOM() {
                         <strong id="res-pres-iva" style="font-size: 0.95rem;">0,00 € + 0,00 €</strong>
                     </div>
                     <div style="border-left: 2px solid var(--info); padding-left: 0.75rem;">
-                        <div style="color: #93C5FD; font-size: 0.76rem; font-weight: 700;">TOTAL CON IMPUESTOS</div>
+                        <div style="color: var(--info); font-size: 0.76rem; font-weight: 700;">TOTAL CON IMPUESTOS</div>
                         <strong id="res-pres-total" style="font-size: 1.25rem; color: var(--success);">0,00 €</strong>
                     </div>
                 </div>
@@ -979,10 +979,10 @@ function asegurarModalEditorPresupuestoDOM() {
             <div class="modal-actions" style="margin-top: 1.1rem; flex-wrap: wrap;">
                 <button type="button" class="btn btn-secondary" onclick="cerrarModalEditorPresupuesto()">Cancelar</button>
                 <button type="button" class="btn btn-secondary" id="btn-previsualizar-presupuesto" style="display: none;" onclick="previsualizarPresupuestoGuardado()">
-                    🖨️ Previsualizar / Exportar PDF
+                    Previsualizar / Exportar PDF
                 </button>
                 <button type="button" class="btn btn-primary" id="btn-confirmar-guardar-presupuesto" onclick="confirmarYGuardarPresupuesto(this)">
-                    💾 Confirmar y Enviar al Cliente (PENDIENTE_ACEPTACION)
+                    Confirmar y Enviar al Cliente (PENDIENTE_ACEPTACION)
                 </button>
             </div>
         </div>
@@ -1010,7 +1010,7 @@ async function abrirModalGenerarPresupuesto(rep, callbackRecargar) {
         estadoEditorPresupuesto.catalogoMateriales = mats || [];
     } catch (e) {}
 
-    document.getElementById('editor-pres-titulo').textContent = `📋 Presupuesto Desglosado · Reparación #${rep.id} (${rep.localizador || ''})`;
+    document.getElementById('editor-pres-titulo').textContent = `Presupuesto Desglosado · Reparación #${rep.id} (${rep.localizador || ''})`;
     document.getElementById('editor-pres-subtitulo').textContent = `Vehículo: ${rep.marcaVehiculo || ''} ${rep.modeloVehiculo || ''} (${rep.matriculaVehiculo || ''}) · Cliente: ${rep.nombreCliente || '-'}`;
     document.getElementById('res-pres-margen-pct').textContent = estadoEditorPresupuesto.porcentajeMargenTaller;
 
@@ -1168,7 +1168,7 @@ function renderizarTablaEditorPresupuesto() {
                     </td>
                     <td style="text-align: right; font-weight: 700;">${formatearEuros(sub)}</td>
                     <td style="text-align: center;">
-                        <button type="button" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="eliminarLineaEditorPresupuesto(${idx})">🗑️</button>
+                        <button type="button" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="eliminarLineaEditorPresupuesto(${idx})">✕</button>
                     </td>
                 </tr>
             `;
@@ -1243,3 +1243,157 @@ function previsualizarPresupuestoGuardado() {
         abrirModalPresupuestoObjeto(ultimoPresupuestoModal);
     }
 }
+
+// =====================================================
+// MODAL DE FICHA DE DETALLE DE REPARACIÓN (PROGRESIVE DISCLOSURE)
+// =====================================================
+let reparacionDetalleModalActiva = null;
+let opcionesDetalleModalActiva = {};
+
+function asegurarModalDetalleReparacionDOM() {
+    if (document.getElementById('modal-detalle-reparacion-global')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'modal-detalle-reparacion-global';
+    overlay.className = 'modal-overlay';
+    overlay.onclick = (e) => {
+        if (e.target === overlay) cerrarModalDetalleReparacion();
+    };
+    overlay.innerHTML = `
+        <div class="modal card" style="max-width: 760px; width: 96%;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                <div>
+                    <div id="det-rep-subtitulo" style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;"></div>
+                    <h3 id="det-rep-titulo" style="margin: 0.2rem 0 0; font-size: 1.25rem;"></h3>
+                </div>
+                <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.82rem;" onclick="cerrarModalDetalleReparacion()">✕ Cerrar</button>
+            </div>
+            <div id="det-rep-body" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+            <div id="det-rep-footer" class="modal-actions" style="border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1.25rem; flex-wrap: wrap;"></div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function cerrarModalDetalleReparacion() {
+    const m = document.getElementById('modal-detalle-reparacion-global');
+    if (m) m.style.display = 'none';
+}
+
+function abrirModalDetalleReparacion(rep, opciones = {}) {
+    if (!rep) return;
+    asegurarModalDetalleReparacionDOM();
+    const r = enriquecerReparacionFinanzas(rep);
+    reparacionDetalleModalActiva = r;
+    opcionesDetalleModalActiva = opciones;
+    const rol = opciones.rol || 'RECEPCIONISTA';
+
+    const mat = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
+    const marca = r.marcaVehiculo || r.vehiculo?.marca || '';
+    const modelo = r.modeloVehiculo || r.vehiculo?.modelo || '';
+    const cliente = r.nombreCliente || r.vehiculo?.cliente?.nombre || '-';
+    const tel = r.telefonoCliente || r.vehiculo?.cliente?.telefono || '';
+    const mecanico = r.nombreMecanico || r.mecanico?.nombre || 'Sin asignar';
+    const fEnt = r.fechaEntrada ? formatearFecha(r.fechaEntrada) : 'N/A';
+    const fFin = r.fechaEstimadaFin ? formatearFecha(r.fechaEstimadaFin) : 'Por determinar';
+    const dias = r.diasEstimados ?? 3;
+
+    document.getElementById('det-rep-subtitulo').textContent = `Orden #${r.id} · Localizador: ${r.localizador || '-'}`;
+    document.getElementById('det-rep-titulo').textContent = `${mat} · ${marca} ${modelo}`.trim();
+
+    const listaPiezas = (r.materialesDetalle && r.materialesDetalle.length > 0)
+        ? `<ul style="margin: 0.35rem 0 0 1.1rem; font-size: 0.86rem; color: var(--text);">${r.materialesDetalle.map(p => `<li>${p}</li>`).join('')}</ul>`
+        : `<div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Sin piezas imputadas todavía.</div>`;
+
+    const numInc = Array.isArray(r.incidencias) ? r.incidencias.length : 0;
+    let incHtml = `<div style="font-size: 0.85rem; color: var(--text-muted);">Sin incidencias ni fotos registradas.</div>`;
+    if (numInc > 0) {
+        incHtml = `<div style="display: flex; flex-direction: column; gap: 0.5rem;">` + r.incidencias.map(i => {
+            const urlFoto = resolverUrlFoto(i.rutaFoto);
+            const accAdmin = (rol === 'ADMIN') ? `
+                <span style="display: inline-flex; gap: 0.35rem; margin-left: auto;">
+                    ${i.rutaFoto ? `<button type="button" class="btn btn-danger" style="padding: 0.2rem 0.5rem; font-size: 0.74rem;" onclick="cerrarModalDetalleReparacion(); eliminarFotoAdmin(${r.id}, ${i.id})">Borrar foto</button>` : ''}
+                    <button type="button" class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.74rem;" onclick="cerrarModalDetalleReparacion(); eliminarIncidenciaAdmin(${r.id}, ${i.id})">Eliminar</button>
+                </span>
+            ` : '';
+            return `
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.6rem 0.8rem; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: 0.85rem;">
+                    <span>${i.descripcion || ''}</span>
+                    ${urlFoto ? `<a href="${urlFoto}" target="_blank" style="font-weight: 500;">Ver foto</a>` : ''}
+                    ${accAdmin}
+                </div>
+            `;
+        }).join('') + `</div>`;
+    }
+
+    const tieneFactura = !!r.factura;
+    const tienePresupuesto = !!r.presupuestoFormal;
+
+    document.getElementById('det-rep-body').innerHTML = `
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            ${crearBadgeEstado(r.estado)}
+            ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
+        </div>
+
+        <div class="detail-kv-grid">
+            <div><span>Cliente</span><strong>${cliente} ${tel ? `(${tel})` : ''}</strong></div>
+            <div><span>Mecánico asignado</span><strong>${mecanico}</strong></div>
+            <div><span>Entrada y plazo</span><strong>${fEnt} · ${dias}d (prev. ${fFin})</strong></div>
+        </div>
+
+        <div style="padding: 0.85rem 1rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border);">
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 0.25rem;">Avería declarada</div>
+            <div style="font-size: 0.92rem; color: var(--text);">${r.descripcionAveria || 'Sin descripción'}</div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-top: 0.75rem;">Piezas empleadas</div>
+            ${listaPiezas}
+        </div>
+
+        <div class="detail-kv-grid">
+            <div><span>Estimación inicial</span><strong>${formatearEuros(r.estimacionInicial)}</strong></div>
+            <div><span>Coste piezas</span><strong>${formatearEuros(r.costeMateriales)}</strong></div>
+            <div><span>Mano de obra (${Number(r.horasTrabajoMecanico || 0).toFixed(1)}h)</span><strong>${formatearEuros(r.subtotalManoObra)}</strong></div>
+            <div><span>${tieneFactura ? `Factura ${r.factura.numeroFactura}` : 'Total previsto (c/IVA)'}</span><strong style="color: var(--brand-text);">${tieneFactura ? formatearEuros(r.factura.totalFactura) : formatearEuros(r.totalCalculadoPrevisto)}</strong></div>
+            ${rol === 'ADMIN' ? `<div><span>Beneficio neto taller</span><strong style="color: var(--ok);">+${formatearEuros(r.beneficio)}</strong></div>` : ''}
+        </div>
+
+        <div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">Incidencias y notas (${numInc})</div>
+            ${incHtml}
+        </div>
+    `;
+
+    const botones = [];
+    if (rol === 'ADMIN') {
+        if (r.estado !== 'ENTREGADA') {
+            botones.push(`<button type="button" class="btn btn-secondary" onclick="cerrarModalDetalleReparacion(); abrirPresupuestoDesdeAdmin(${r.id})">${tienePresupuesto ? 'Editar presupuesto' : 'Crear presupuesto'}</button>`);
+        }
+        if (tienePresupuesto) {
+            botones.push(`<button type="button" class="btn btn-secondary" onclick="verPresupuestoDesdeAdmin(${r.id})">Ver presupuesto PDF</button>`);
+        }
+        if (tieneFactura) {
+            botones.push(`<button type="button" class="btn btn-secondary" onclick="verFacturaReparacionAdmin(${r.id})">Ver factura PDF</button>`);
+        } else if (r.estado === 'CONFIRMADA') {
+            botones.push(`<button type="button" class="btn btn-primary" onclick="cerrarModalDetalleReparacion(); emitirFacturaDesdeAdmin(${r.id})">Emitir factura</button>`);
+        }
+        if (r.estado === 'FINALIZADA') {
+            botones.push(`<button type="button" class="btn btn-success" onclick="cerrarModalDetalleReparacion(); confirmarReparacionAdmin(${r.id})">Confirmar reparación</button>`);
+        }
+    } else {
+        if (tienePresupuesto) {
+            botones.push(`<button type="button" class="btn btn-secondary" onclick="verPresupuestoRecepcion(${r.id})">Ver presupuesto PDF</button>`);
+        }
+        if (tieneFactura) {
+            botones.push(`<button type="button" class="btn btn-secondary" onclick="verFacturaReparacion(${r.id})">Ver factura PDF</button>`);
+        }
+        if (r.estado === 'FINALIZADA' || r.estado === 'CONFIRMADA') {
+            botones.push(`<button type="button" class="btn btn-primary" onclick="cerrarModalDetalleReparacion(); abrirModalFacturaFiscalRecepcion(${r.id})">${tieneFactura ? 'Datos fiscales / Factura' : 'Generar factura'}</button>`);
+        }
+        if (r.estado === 'CONFIRMADA') {
+            botones.push(`<button type="button" class="btn btn-success" onclick="cerrarModalDetalleReparacion(); entregarVehiculo(${r.id})">Entregar y cobrar</button>`);
+        }
+    }
+    botones.push(`<button type="button" class="btn btn-secondary" onclick="cerrarModalDetalleReparacion()">Cerrar</button>`);
+    document.getElementById('det-rep-footer').innerHTML = botones.join('');
+
+    document.getElementById('modal-detalle-reparacion-global').style.display = 'flex';
+}
+
