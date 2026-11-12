@@ -25,14 +25,63 @@ public class ReparacionService {
 
     public static final double FONDO_INICIAL_TALLER = 2000.00;
     private double gastosComprasStock = 0.0;
+    private final List<GastoTesoreria> gastosComprasMemoria = new ArrayList<>();
+    private long secuenciaGastoMemoria = 1L;
+
+    @Autowired(required = false)
+    private GastoTesoreriaRepository gastoTesoreriaRepository;
+
+    @Autowired(required = false)
+    private MaterialRepository materialRepository;
 
     public synchronized void registrarGastoCompraStock(double importe) {
         if (importe > 0) {
-            this.gastosComprasStock += importe;
+            registrarGastoCompraStock(null, "Compra de stock de materiales", 1, importe, 0, "COMPRA_STOCK");
         }
     }
 
+    public synchronized GastoTesoreria registrarGastoCompraStock(Long materialId, String nombreMaterial,
+                                                                 int cantidad, double precioUnitario,
+                                                                 Integer stockPrevio, String tipo) {
+        double importe = Math.round((cantidad * precioUnitario) * 100.0) / 100.0;
+        if (importe <= 0 || cantidad <= 0) {
+            return null;
+        }
+        String tipoNorm = (tipo != null && !tipo.isBlank()) ? tipo.trim().toUpperCase() : "COMPRA_STOCK";
+        String nomMat = (nombreMaterial != null && !nombreMaterial.isBlank()) ? nombreMaterial.trim() : "Material";
+        String concepto = "ALTA_MATERIAL".equals(tipoNorm)
+                ? String.format("Alta de nuevo material: %s (%d uds × %.2f €)", nomMat, cantidad, precioUnitario)
+                : String.format("Compra / reposición de stock: %s (+%d uds × %.2f €)", nomMat, cantidad, precioUnitario);
+
+        GastoTesoreria gasto = new GastoTesoreria(
+                materialId, nomMat, concepto, tipoNorm, cantidad, precioUnitario, importe, stockPrevio
+        );
+
+        if (gastoTesoreriaRepository != null) {
+            gasto = gastoTesoreriaRepository.save(gasto);
+        } else {
+            gasto.setId(secuenciaGastoMemoria++);
+            gastosComprasMemoria.add(0, gasto);
+        }
+        recalcularGastosComprasStockTotal();
+        return gasto;
+    }
+
+    private List<GastoTesoreria> obtenerEntidadesGastosCompras() {
+        if (gastoTesoreriaRepository != null) {
+            return gastoTesoreriaRepository.findAllByOrderByFechaDescIdDesc();
+        }
+        return new ArrayList<>(gastosComprasMemoria);
+    }
+
+    private void recalcularGastosComprasStockTotal() {
+        this.gastosComprasStock = Math.round(obtenerEntidadesGastosCompras().stream()
+                .mapToDouble(g -> g.getImporte() != null ? g.getImporte() : 0.0)
+                .sum() * 100.0) / 100.0;
+    }
+
     public double getGastosComprasStock() {
+        recalcularGastosComprasStockTotal();
         return gastosComprasStock;
     }
 
@@ -1030,10 +1079,16 @@ public class ReparacionService {
         List<ReparacionMaterial> todosUsos = reparacionMaterialRepository.findAll();
         List<Factura> facturas = facturaRepository.findAll();
 
-        double gastosPiezasUsadas = todosUsos.stream()
+        List<GastoTesoreria> comprasStock = obtenerEntidadesGastosCompras();
+        double totalComprasStock = Math.round(comprasStock.stream()
+                .mapToDouble(g -> g.getImporte() != null ? g.getImporte() : 0.0)
+                .sum() * 100.0) / 100.0;
+        this.gastosComprasStock = totalComprasStock;
+
+        double gastosPiezasUsadas = Math.round(todosUsos.stream()
                 .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
-                .sum();
-        double gastosMateriales = Math.round((gastosPiezasUsadas + gastosComprasStock) * 100.0) / 100.0;
+                .sum() * 100.0) / 100.0;
+        double gastosMateriales = Math.round((gastosPiezasUsadas + totalComprasStock) * 100.0) / 100.0;
 
         // Ingresos cobrados: suma del totalFactura de reparaciones entregadas o facturadas
         double ingresosCobrados = facturas.stream()
@@ -1069,9 +1124,14 @@ public class ReparacionService {
         double beneficioTotal = Math.round((beneficioManoObra + beneficioMargen) * 100.0) / 100.0;
         double saldoActual = Math.round((fondoInicial - gastosMateriales + ingresosCobrados) * 100.0) / 100.0;
 
+        List<Map<String, Object>> historialGastos = construirListaHistorialGastos(comprasStock, todosUsos);
+
         Map<String, Object> cuenta = new LinkedHashMap<>();
         cuenta.put("fondoInicial", fondoInicial);
         cuenta.put("gastosMateriales", gastosMateriales);
+        cuenta.put("gastosComprasStock", totalComprasStock);
+        cuenta.put("gastosPiezasUsadas", gastosPiezasUsadas);
+        cuenta.put("historialGastos", historialGastos);
         cuenta.put("ingresosCobrados", Math.round(ingresosCobrados * 100.0) / 100.0);
         cuenta.put("ingresosEnCurso", Math.round(ingresosEnCurso * 100.0) / 100.0);
         cuenta.put("totalFacturado", Math.round(totalFacturado * 100.0) / 100.0);
@@ -1084,6 +1144,199 @@ public class ReparacionService {
         cuenta.put("margenBeneficioPorcentaje", config.getMargenBeneficioPorcentaje());
         cuenta.put("precioHoraManoObra", config.getPrecioHoraManoObra());
         return cuenta;
+    }
+
+    /**
+     * Devuelve el historial completo de gastos registrados en la Tesorería (compras de stock y piezas empleadas).
+     */
+    public List<Map<String, Object>> obtenerHistorialGastos() {
+        List<GastoTesoreria> comprasStock = obtenerEntidadesGastosCompras();
+        List<ReparacionMaterial> todosUsos = reparacionMaterialRepository != null
+                ? reparacionMaterialRepository.findAll()
+                : Collections.emptyList();
+        return construirListaHistorialGastos(comprasStock, todosUsos);
+    }
+
+    private List<Map<String, Object>> construirListaHistorialGastos(List<GastoTesoreria> comprasStock,
+                                                                    List<ReparacionMaterial> todosUsos) {
+        List<Map<String, Object>> resultado = new ArrayList<>();
+
+        for (GastoTesoreria g : comprasStock) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", "COMPRA-" + g.getId());
+            item.put("registroId", g.getId());
+            item.put("origen", "COMPRA");
+            item.put("tipo", g.getTipo());
+            item.put("fecha", g.getFecha() != null ? g.getFecha().toString() : LocalDate.now().atStartOfDay().toString());
+            item.put("materialId", g.getMaterialId());
+            item.put("nombreMaterial", g.getNombreMaterial());
+            item.put("concepto", g.getConcepto());
+            item.put("cantidad", g.getCantidad());
+            item.put("precioUnitario", g.getPrecioUnitario());
+            item.put("importe", Math.round((g.getImporte() != null ? g.getImporte() : 0.0) * 100.0) / 100.0);
+            item.put("eliminable", true);
+            resultado.add(item);
+        }
+
+        List<ReparacionMaterial> usosOrdenados = new ArrayList<>(todosUsos);
+        usosOrdenados.sort(Comparator.comparing(ReparacionMaterial::getId, Comparator.nullsLast(Comparator.reverseOrder())));
+        for (ReparacionMaterial u : usosOrdenados) {
+            double precioUnit = (u.getMaterial() != null && u.getMaterial().getPrecioUnitario() != null)
+                    ? u.getMaterial().getPrecioUnitario() : 0.0;
+            double imp = Math.round((u.getCantidad() * precioUnit) * 100.0) / 100.0;
+            String nomMat = (u.getMaterial() != null && u.getMaterial().getNombre() != null)
+                    ? u.getMaterial().getNombre() : "Material";
+            Reparacion rep = u.getReparacion();
+            String matVeh = (rep != null && rep.getVehiculo() != null && rep.getVehiculo().getMatricula() != null)
+                    ? rep.getVehiculo().getMatricula() : "";
+            String concepto = rep != null
+                    ? String.format("Material empleado en Reparación #%d%s: %s (%d uds × %.2f €)",
+                            rep.getId(), matVeh.isEmpty() ? "" : " (" + matVeh + ")", nomMat, u.getCantidad(), precioUnit)
+                    : String.format("Material empleado: %s (%d uds × %.2f €)", nomMat, u.getCantidad(), precioUnit);
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", "USO-" + u.getId());
+            item.put("registroId", u.getId());
+            item.put("origen", "USO_REPARACION");
+            item.put("tipo", "USO_REPARACION");
+            item.put("fecha", (rep != null && rep.getFechaEntrada() != null)
+                    ? rep.getFechaEntrada().atStartOfDay().toString()
+                    : LocalDate.now().atStartOfDay().toString());
+            item.put("materialId", u.getMaterial() != null ? u.getMaterial().getId() : null);
+            item.put("reparacionId", rep != null ? rep.getId() : null);
+            item.put("nombreMaterial", nomMat);
+            item.put("concepto", concepto);
+            item.put("cantidad", u.getCantidad());
+            item.put("precioUnitario", precioUnit);
+            item.put("importe", imp);
+            item.put("eliminable", true);
+            resultado.add(item);
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Elimina un gasto del historial de Tesorería (compra de stock por error o consumo en reparación),
+     * reembolsando su importe al saldo de Tesorería y ajustando el stock del inventario en consecuencia.
+     */
+    public synchronized Map<String, Object> eliminarGastoTesoreria(String gastoKey) {
+        if (gastoKey == null || gastoKey.isBlank()) {
+            throw new IllegalArgumentException("El identificador del gasto es obligatorio.");
+        }
+        String cleanKey = gastoKey.trim().toUpperCase();
+
+        if (cleanKey.startsWith("USO-")) {
+            Long usoId;
+            try {
+                usoId = Long.parseLong(cleanKey.substring(4).trim());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Identificador de gasto no válido: " + gastoKey);
+            }
+            ReparacionMaterial uso = reparacionMaterialRepository.findById(usoId)
+                    .orElseThrow(() -> new IllegalArgumentException("No se encontró el gasto con ID: " + gastoKey));
+
+            double precioUnit = (uso.getMaterial() != null && uso.getMaterial().getPrecioUnitario() != null)
+                    ? uso.getMaterial().getPrecioUnitario() : 0.0;
+            double importe = Math.round((uso.getCantidad() * precioUnit) * 100.0) / 100.0;
+            String nomMat = uso.getMaterial() != null ? uso.getMaterial().getNombre() : "Material";
+            int cantidad = uso.getCantidad() != null ? uso.getCantidad() : 0;
+
+            if (materialRepository != null && uso.getMaterial() != null && uso.getMaterial().getId() != null) {
+                materialRepository.findById(uso.getMaterial().getId()).ifPresent(mat -> {
+                    int stockActual = mat.getStockDisponible() != null ? mat.getStockDisponible() : 0;
+                    mat.setStockDisponible(stockActual + cantidad);
+                    materialRepository.save(mat);
+                });
+            }
+
+            Long repId = uso.getReparacion() != null ? uso.getReparacion().getId() : null;
+            reparacionMaterialRepository.delete(uso);
+
+            if (repId != null && facturaRepository != null && configuracionService != null) {
+                facturaRepository.findByReparacionId(repId).ifPresent(factura -> {
+                    ConfiguracionTaller cfg = configuracionService.obtenerConfiguracion();
+                    double nuevoCosteMat = calcularCosteMateriales(repId);
+                    double horas = factura.getHorasManoObra() != null ? factura.getHorasManoObra() : 1.5;
+                    factura.recalcularImportes(nuevoCosteMat, horas, cfg.getPrecioHoraManoObra(),
+                            cfg.getMargenBeneficioPorcentaje(), 21.0);
+                    facturaRepository.save(factura);
+                });
+            }
+
+            Map<String, Object> res = new LinkedHashMap<>();
+            res.put("id", "USO-" + usoId);
+            res.put("importeEliminado", importe);
+            res.put("unidadesRevertidas", cantidad);
+            res.put("nombreMaterial", nomMat);
+            res.put("mensaje", String.format("Gasto de %.2f € (%dx %s) eliminado de la Tesorería y unidades devueltas al almacén.",
+                    importe, cantidad, nomMat));
+            return res;
+        }
+
+        String numericPart = cleanKey.startsWith("COMPRA-") ? cleanKey.substring(7).trim() : cleanKey;
+        Long compraId;
+        try {
+            compraId = Long.parseLong(numericPart);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Identificador de compra no válido: " + gastoKey);
+        }
+
+        GastoTesoreria gasto = null;
+        if (gastoTesoreriaRepository != null) {
+            gasto = gastoTesoreriaRepository.findById(compraId).orElse(null);
+        } else {
+            for (GastoTesoreria item : gastosComprasMemoria) {
+                if (compraId.equals(item.getId())) {
+                    gasto = item;
+                    break;
+                }
+            }
+        }
+
+        if (gasto == null) {
+            throw new IllegalArgumentException("No se encontró el registro de compra con ID: " + gastoKey);
+        }
+
+        double importe = gasto.getImporte() != null ? gasto.getImporte() : 0.0;
+        int cantidadComprada = gasto.getCantidad() != null ? gasto.getCantidad() : 0;
+        String nomMat = gasto.getNombreMaterial();
+        int unidadesDescontadas = 0;
+
+        if (materialRepository != null && gasto.getMaterialId() != null && cantidadComprada > 0) {
+            Optional<Material> optMat = materialRepository.findById(gasto.getMaterialId());
+            if (optMat.isPresent()) {
+                Material mat = optMat.get();
+                int stockActual = mat.getStockDisponible() != null ? mat.getStockDisponible() : 0;
+                int stockPrevio = gasto.getStockPrevio() != null ? Math.max(0, gasto.getStockPrevio()) : 0;
+                if (stockActual > stockPrevio) {
+                    int nuevoStock = Math.max(stockPrevio, stockActual - cantidadComprada);
+                    unidadesDescontadas = stockActual - nuevoStock;
+                    mat.setStockDisponible(nuevoStock);
+                    materialRepository.save(mat);
+                }
+            }
+        }
+
+        if (gastoTesoreriaRepository != null) {
+            gastoTesoreriaRepository.delete(gasto);
+        } else {
+            gastosComprasMemoria.removeIf(item -> compraId.equals(item.getId()));
+        }
+        recalcularGastosComprasStockTotal();
+
+        String detalleStock = unidadesDescontadas > 0
+                ? String.format(" y se han revertido %d ud(s) del stock de \"%s\"", unidadesDescontadas, nomMat)
+                : "";
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("id", "COMPRA-" + compraId);
+        res.put("importeEliminado", importe);
+        res.put("unidadesRevertidas", unidadesDescontadas);
+        res.put("nombreMaterial", nomMat);
+        res.put("mensaje", String.format("Compra anulada correctamente: se han reembolsado %.2f € a la Tesorería%s.",
+                importe, detalleStock));
+        return res;
     }
 
     public double calcularCosteMateriales(Long reparacionId) {

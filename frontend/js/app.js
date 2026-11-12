@@ -313,6 +313,12 @@ function registrarCompraStockLocal(importeCompra) {
     guardarEstadoFinanzasLocal(est);
 }
 
+function descontarCompraStockLocal(importeCompra) {
+    const est = obtenerEstadoFinanzasLocal();
+    est.gastosComprasStock = Math.max(0, Number(est.gastosComprasStock || 0) - Number(importeCompra || 0));
+    guardarEstadoFinanzasLocal(est);
+}
+
 function enriquecerReparacionFinanzas(r) {
     if (!r) return r;
     const estimacionInicial = Number(r.estimacionInicial ?? r.presupuesto ?? 150.0);

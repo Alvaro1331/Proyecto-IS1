@@ -45,7 +45,14 @@ public class MaterialService {
         materialRepository.save(material);
 
         if (costeCompra > 0 && reparacionService != null) {
-            reparacionService.registrarGastoCompraStock(costeCompra);
+            reparacionService.registrarGastoCompraStock(
+                    material.getId(),
+                    material.getNombre(),
+                    stockInicial,
+                    precioUnit,
+                    0,
+                    "ALTA_MATERIAL"
+            );
         }
 
         return convertirAResponseDTO(material, "Material creado correctamente.");
@@ -99,7 +106,14 @@ public class MaterialService {
         materialRepository.save(material);
 
         if (diferencia > 0 && reparacionService != null) {
-            reparacionService.registrarGastoCompraStock(diferencia * precioUnit);
+            reparacionService.registrarGastoCompraStock(
+                    material.getId(),
+                    material.getNombre(),
+                    diferencia,
+                    precioUnit,
+                    stockAnterior,
+                    "COMPRA_STOCK"
+            );
         }
 
         return convertirAResponseDTO(material, "Stock actualizado correctamente.");

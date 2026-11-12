@@ -379,9 +379,12 @@ public class CitaPreviaService {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", c.getId());
         m.put("codigoCita", c.getCodigoCita());
-        m.put("fecha", c.getFecha().toString());
+        String fechaStr = c.getFecha() != null ? c.getFecha().toString() : LocalDate.now().toString();
+        m.put("fecha", fechaStr);
+        m.put("fechaCita", fechaStr);
         m.put("franjaHoraria", c.getFranjaHoraria());
         m.put("motivo", c.getMotivo());
+        m.put("motivoServicio", c.getMotivo());
         m.put("observaciones", c.getObservaciones() != null ? c.getObservaciones() : "");
         m.put("estado", c.getEstado());
         m.put("reparacionId", c.getReparacionId());
@@ -390,8 +393,11 @@ public class CitaPreviaService {
         m.put("telefonoCliente", c.getCliente() != null ? c.getCliente().getTelefono() : "-");
         m.put("vehiculoId", c.getVehiculo() != null ? c.getVehiculo().getId() : null);
         m.put("matriculaVehiculo", c.getVehiculo() != null ? c.getVehiculo().getMatricula() : "-");
-        m.put("marcaVehiculo", c.getVehiculo() != null ? c.getVehiculo().getMarca() : "");
-        m.put("modeloVehiculo", c.getVehiculo() != null ? c.getVehiculo().getModelo() : "");
+        String marca = c.getVehiculo() != null && c.getVehiculo().getMarca() != null ? c.getVehiculo().getMarca() : "";
+        String modelo = c.getVehiculo() != null && c.getVehiculo().getModelo() != null ? c.getVehiculo().getModelo() : "";
+        m.put("marcaVehiculo", marca);
+        m.put("modeloVehiculo", modelo);
+        m.put("marcaModeloVehiculo", (marca + " " + modelo).trim());
         return m;
     }
 }

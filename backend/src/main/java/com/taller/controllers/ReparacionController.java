@@ -51,6 +51,29 @@ public class ReparacionController {
     }
 
     /**
+     * Devuelve el historial detallado de gastos de Tesorería (compras de stock y uso de materiales).
+     * GET /api/reparaciones/gastos
+     */
+    @GetMapping("/gastos")
+    public ResponseEntity<List<Map<String, Object>>> obtenerHistorialGastos() {
+        return ResponseEntity.ok(reparacionService.obtenerHistorialGastos());
+    }
+
+    /**
+     * Elimina un gasto registrado en la Tesorería (por ejemplo, una compra de material añadida por error),
+     * reembolsando el importe a la caja del taller y revirtiendo las unidades de stock.
+     * DELETE /api/reparaciones/gastos/{gastoId}
+     */
+    @DeleteMapping("/gastos/{gastoId}")
+    public ResponseEntity<?> eliminarGastoTesoreria(@PathVariable String gastoId) {
+        try {
+            return ResponseEntity.ok(reparacionService.eliminarGastoTesoreria(gastoId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Buscador de historial de precios de reparaciones pasadas similares para orientar a Recepción.
      * GET /api/reparaciones/historial-precios?query=...
      */

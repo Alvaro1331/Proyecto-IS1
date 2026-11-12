@@ -972,22 +972,43 @@
             inicializado: false
         };
 
+        function parsearFechaLocalISO(fechaIso) {
+            if (!fechaIso || typeof fechaIso !== 'string') return new Date();
+            const partes = fechaIso.trim().split('-').map(Number);
+            if (partes.length !== 3 || partes.some(isNaN)) return new Date();
+            const d = new Date(partes[0], partes[1] - 1, partes[2]);
+            return isNaN(d.getTime()) ? new Date() : d;
+        }
+
         function formatoFechaISO(d) {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
+            const fechaValida = (d instanceof Date && !isNaN(d.getTime())) ? d : new Date();
+            const y = fechaValida.getFullYear();
+            const m = String(fechaValida.getMonth() + 1).padStart(2, '0');
+            const day = String(fechaValida.getDate()).padStart(2, '0');
             return `${y}-${m}-${day}`;
         }
 
-        function irADiaCalendarioRecepcion(fechaIso) {
-            const partes = fechaIso.split('-').map(Number);
-            estadoCalendarioRecep.fechaCursor = new Date(partes[0], partes[1] - 1, partes[2]);
-            estadoCalendarioRecep.diaSeleccionado = fechaIso;
-            cargarCalendarioRecepcion();
+        async function irADiaCalendarioRecepcion(fechaIso, hacerScroll = true) {
+            const fechaDate = parsearFechaLocalISO(fechaIso);
+            const fechaLimpia = formatoFechaISO(fechaDate);
+            estadoCalendarioRecep.fechaCursor = fechaDate;
+            estadoCalendarioRecep.diaSeleccionado = fechaLimpia;
+            await cargarCalendarioRecepcion();
+            if (hacerScroll) {
+                const detalleEl = document.getElementById('calendario-detalle-dia');
+                if (detalleEl) {
+                    detalleEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
         }
 
         function cambiarVistaCalendario(nuevaVista) {
             estadoCalendarioRecep.vista = nuevaVista;
+            if (!(estadoCalendarioRecep.fechaCursor instanceof Date) || isNaN(estadoCalendarioRecep.fechaCursor.getTime())) {
+                estadoCalendarioRecep.fechaCursor = parsearFechaLocalISO(estadoCalendarioRecep.diaSeleccionado);
+            } else if (nuevaVista === 'DIARIA' && estadoCalendarioRecep.diaSeleccionado) {
+                estadoCalendarioRecep.fechaCursor = parsearFechaLocalISO(estadoCalendarioRecep.diaSeleccionado);
+            }
             ['MENSUAL', 'SEMANAL', 'DIARIA'].forEach(v => {
                 const btn = document.getElementById(`btn-vista-${v.toLowerCase()}`);
                 if (btn) {
@@ -998,6 +1019,9 @@
         }
 
         function navegarCalendario(direccion) {
+            if (!(estadoCalendarioRecep.fechaCursor instanceof Date) || isNaN(estadoCalendarioRecep.fechaCursor.getTime())) {
+                estadoCalendarioRecep.fechaCursor = new Date();
+            }
             const cur = new Date(estadoCalendarioRecep.fechaCursor);
             if (direccion === 0) {
                 const hoy = new Date();
@@ -1018,6 +1042,9 @@
         }
 
         async function cargarCalendarioRecepcion() {
+            if (!(estadoCalendarioRecep.fechaCursor instanceof Date) || isNaN(estadoCalendarioRecep.fechaCursor.getTime())) {
+                estadoCalendarioRecep.fechaCursor = new Date();
+            }
             const cur = new Date(estadoCalendarioRecep.fechaCursor);
             const filtro = document.getElementById('cal-filtro-estado')?.value || 'TODOS';
 
@@ -1055,7 +1082,7 @@
                     estadoCalendarioRecep.inicializado = true;
                     const todas = data.todasLasCitas || [];
                     if ((data.citas || []).length === 0 && todas.length > 0) {
-                        irADiaCalendarioRecepcion(todas[0].fecha);
+                        await irADiaCalendarioRecepcion(todas[0].fecha || todas[0].fechaCita, false);
                         return;
                     }
                     if ((data.citas || []).length > 0) {
@@ -1184,7 +1211,9 @@
         }
 
         async function seleccionarDiaCalendarioRecepcion(fechaIso) {
-            estadoCalendarioRecep.diaSeleccionado = fechaIso;
+            const fechaDate = parsearFechaLocalISO(fechaIso);
+            const fechaLimpia = formatoFechaISO(fechaDate);
+            estadoCalendarioRecep.diaSeleccionado = fechaLimpia;
             if (estadoCalendarioRecep.datos) {
                 const cur = new Date(estadoCalendarioRecep.fechaCursor);
                 let desdeDate, hastaDate;
@@ -1198,12 +1227,12 @@
                     hastaDate = new Date(desdeDate);
                     hastaDate.setDate(desdeDate.getDate() + 6);
                 } else {
-                    desdeDate = new Date(fechaIso);
-                    hastaDate = new Date(fechaIso);
+                    desdeDate = fechaDate;
+                    hastaDate = fechaDate;
                 }
                 renderizarGridCalendarioRecep(desdeDate, hastaDate, estadoCalendarioRecep.datos);
             }
-            await renderizarDetalleDiaRecepcion(fechaIso);
+            await renderizarDetalleDiaRecepcion(fechaLimpia);
         }
 
         async function seleccionarDiaYFranjaRecepcion(fechaIso, hora) {
@@ -1270,10 +1299,14 @@
                 const todasGlobales = (estadoCalendarioRecep.datos && estadoCalendarioRecep.datos.todasLasCitas) || [];
                 const filasGlobales = todasGlobales.length === 0
                     ? `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1rem;">No hay citas registradas en el taller con el filtro actual.</td></tr>`
-                    : todasGlobales.map(c => `
-                        <tr style="${c.fechaCita === fechaIso ? 'background: color-mix(in srgb, var(--info) 10%, transparent);' : ''}">
+                    : todasGlobales.map(c => {
+                        const fechaCitaVal = c.fecha || c.fechaCita || '';
+                        const marcaModeloVal = c.marcaModeloVehiculo || [c.marcaVehiculo, c.modeloVehiculo].filter(Boolean).join(' ');
+                        const motivoVal = c.motivo || c.motivoServicio || '—';
+                        return `
+                        <tr style="${fechaCitaVal === fechaIso ? 'background: color-mix(in srgb, var(--info) 10%, transparent);' : ''}">
                             <td>
-                                <strong>${formatearFecha(c.fechaCita)}</strong> a las <span style="color: var(--primary-light); font-weight: 700;">${c.franjaHoraria}</span>
+                                <strong>${formatearFecha(fechaCitaVal)}</strong> a las <span style="color: var(--primary-light); font-weight: 700;">${c.franjaHoraria}</span>
                                 <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">${c.codigoCita || ('#' + c.id)}</div>
                             </td>
                             <td>
@@ -1282,10 +1315,10 @@
                             </td>
                             <td>
                                 <span style="font-family: monospace; font-weight: 700;">${c.matriculaVehiculo || '—'}</span>
-                                <div style="font-size: 0.76rem; color: var(--text-muted);">${c.marcaModeloVehiculo || ''}</div>
+                                <div style="font-size: 0.76rem; color: var(--text-muted);">${marcaModeloVal}</div>
                             </td>
                             <td>
-                                <strong>${c.motivoServicio || '—'}</strong>
+                                <strong>${motivoVal}</strong>
                                 ${c.observaciones ? `<div style="font-size: 0.76rem; color: var(--text-muted);">${c.observaciones}</div>` : ''}
                             </td>
                             <td>
@@ -1294,12 +1327,12 @@
                                 </span>
                             </td>
                             <td>
-                                <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.76rem;" onclick="irADiaCalendarioRecepcion('${c.fechaCita}')">
-                                    Ver Día (${formatearFecha(c.fechaCita)})
+                                <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.76rem;" onclick="irADiaCalendarioRecepcion('${fechaCitaVal}')">
+                                    Ver Día (${formatearFecha(fechaCitaVal)})
                                 </button>
                             </td>
                         </tr>
-                    `).join('');
+                    `;}).join('');
 
                 box.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
