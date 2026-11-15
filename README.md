@@ -2,6 +2,14 @@
 
 ## NOMBRE DEL SOFTWARE: MOTORFLOW
 
+### 🌐 Aplicación en Vivo (Despliegue en Microsoft Azure)
+
+[![MotorFlow Live](https://img.shields.io/badge/MotorFlow-Online%20en%20Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://motorflow-app-haagege7guh4fva4.swedencentral-01.azurewebsites.net)
+
+👉 **Acceder a la aplicación web:** **[https://motorflow-app-haagege7guh4fva4.swedencentral-01.azurewebsites.net](https://motorflow-app-haagege7guh4fva4.swedencentral-01.azurewebsites.net)**
+
+> *Desplegada en **Azure App Service (Java 17)** y conectada a **Azure Database for MySQL**, con actualización automática mediante **GitHub Actions** en cada `push` a `main`.*
+
 Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión de un taller mecánico. Con el fin de automatizar los procesos que existen en un taller hemos desarrollado un software que permite: a los clientes del taller ver el estado de su coche en tiempo real según sus datos; a los recepcionistas registrar a los clientes, sus coches coches y abrir nuevas órdenes de reparación; a los mecánicos ver qué coches tienen asignados, actualizar el avance de la reparación y anotar los materiales usados; y al mecánico jefe/administrador/dueño poder gestionarlo todo (crear empleados, supervisar el inventario, controlar el dinero del taller y dar el visto bueno final antes de entregar los coches).
 <br>
 <br>
