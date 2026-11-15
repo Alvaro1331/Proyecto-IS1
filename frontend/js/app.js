@@ -1,5 +1,10 @@
-const API_BASE = 'http://localhost:8080/api';
-const BACKEND_ORIGIN = 'http://localhost:8080';
+const API_BASE_URL = window.location.origin.includes('localhost')
+    ? 'http://localhost:8080/api'
+    : '/api';
+const API_BASE = API_BASE_URL;
+const BACKEND_ORIGIN = window.location.origin.includes('localhost')
+    ? 'http://localhost:8080'
+    : '';
 
 function getUsuarioActual() {
     const userStr = sessionStorage.getItem('usuario');
@@ -34,7 +39,7 @@ async function apiFetch(endpoint, options = {}) {
     try {
         const isFormData = fetchOptions.body instanceof FormData;
         const defaultHeaders = isFormData ? {} : { 'Content-Type': 'application/json' };
-        const res = await fetch(`${API_BASE}${endpoint}`, {
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...fetchOptions,
             headers: {
                 ...defaultHeaders,

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Estado - MotorFlow</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container flex justify-between items-center">
+            <div class="nav-brand">MotorFlow</div>
+            <ul class="nav-links flex items-center">
+                <li><a href="../index.html">Inicio</a></li>
+                <li><a href="consulta-estado.html" class="active">Consultar Estado de mi Coche</a></li>
+                <li><a href="login.html" class="btn btn-primary">Iniciar Sesión</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="search-container">
+            <h2>Consulta en Vivo el Estado de tu Vehículo</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.75rem;">
+                Introduce el <strong>código localizador</strong> que te facilitó Recepción para ver la línea temporal interactiva, los días estimados, las fotos subidas por el mecánico y tu factura desglosada.
+            </p>
+
+            <form id="searchForm" onsubmit="handleSearch(event)">
+                <div class="search-input-group">
+                    <input type="text" id="searchInput" placeholder="Ej. A3F7K9X2" maxlength="12" style="text-transform: uppercase; letter-spacing: 2px; font-weight: bold; font-size: 1.1rem; text-align: center;" required>
+                    <button type="submit" class="btn btn-primary" id="searchBtn">Consultar Estado</button>
+                </div>
+            </form>
+
+            <div id="alertContainer"></div>
+
+            <div class="card mt-4" style="text-align: center; padding: 1.25rem; background: color-mix(in srgb, var(--brand) 7%, transparent); border: 1px dashed var(--color-primary); margin-top: 1.5rem;">
+                <p style="margin: 0 0 0.75rem 0; color: var(--color-text);"><strong>¿Tienes cuenta de cliente?</strong></p>
+                <p style="color: var(--color-text-muted); font-size: 0.9rem; margin: 0 0 1rem 0;">Inicia sesión para guardar tus localizadores y consultar tus vehículos y facturas en cualquier momento.</p>
+                <a href="login.html" class="btn btn-primary btn-sm">Iniciar Sesión / Crear Cuenta</a>
+            </div>
+        </div>
+
+        <div id="resultsContainer" class="results-container"></div>
+    </main>
+
+    <script src="../js/app.js"></script>
+    <script>
+        let ultimaReparacionConsultada = null;
+
+        // Si se accede con parámetro en la URL (?localizador=XYZ o ?codigo=XYZ), buscar automáticamente
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const loc = params.get('localizador') || params.get('codigo');
+            if (loc) {
+                const input = document.getElementById('searchInput');
+                if (input) {
+                    input.value = loc.trim().toUpperCase();
+                    handleSearch(new Event('submit'));
+                }
+            }
+        });
+
+        async function handleSearch(event) {
+            event.preventDefault();
+            const btn = document.getElementById('searchBtn');
+            const codigo = document.getElementById('searchInput').value.trim().toUpperCase();
+            const resultsContainer = document.getElementById('resultsContainer');
+            const alertContainer = document.getElementById('alertContainer');
+
+            resultsContainer.innerHTML = '';
+            alertContainer.innerHTML = '';
+
+            if (!codigo) return;
+
+            toggleLoading(btn, true);
+
+            try {
+                const rep = await apiFetch(`/reparaciones/localizador/${codigo}`);
+                if (!rep) throw new Error('No se encontró ninguna reparación con ese código localizador.');
+                ultimaReparacionConsultada = enriquecerReparacionFinanzas(rep);
+                renderReparacion(ultimaReparacionConsultada, resultsContainer);
+            } catch (error) {
+                mostrarAlerta(error.message || 'Código localizador no válido o no encontrado.', 'error', alertContainer);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        function renderReparacion(rep, container) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'vehicle-result';
+
+            const timelineHtml = renderizarLineaTemporalHTML(rep);
+            const incidenciasHtml = renderizarIncidenciasHTML(rep.incidencias || []);
+
+            const piezasUsadasHtml = (rep.materialesDetalle && rep.materialesDetalle.length > 0)
+                ? `<div style="margin-top: 0.75rem; font-size: 0.88rem; color: var(--info);"><strong>Piezas sustituidas / empleadas:</strong> ${rep.materialesDetalle.join(' · ')}</div>`
+                : '';
+
+            let presupuestoHtml = '';
+            if (rep.presupuestoFormal) {
+                presupuestoHtml = `
+                    <details class="disclosure-box">
+                        <summary>
+                            <span>Presupuesto Desglosado (${rep.presupuestoFormal.numeroPresupuesto})</span>
+                            <strong>${formatearEuros(rep.presupuestoFormal.totalPresupuesto)}</strong>
+                        </summary>
+                        <div class="disclosure-body">
+                            <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+                                <button type="button" class="btn btn-secondary" onclick="abrirModalPresupuestoObjeto(ultimaReparacionConsultada.presupuestoFormal)">
+                                    Ver / Imprimir Presupuesto PDF
+                                </button>
+                            </div>
+                            ${renderizarPresupuestoDesglosadoHTML(rep.presupuestoFormal)}
+                        </div>
+                    </details>
+                `;
+            }
+
+            let facturaHtml = '';
+            if (rep.factura) {
+                facturaHtml = `
+                    <details class="disclosure-box">
+                        <summary>
+                            <span>Factura Oficial Disponible (${rep.factura.numeroFactura})</span>
+                            <strong style="color: var(--ok);">${formatearEuros(rep.factura.totalFactura)}</strong>
+                        </summary>
+                        <div class="disclosure-body">
+                            <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+                                <button type="button" class="btn btn-primary" onclick="abrirModalFacturaObjeto(ultimaReparacionConsultada.factura)">
+                                    Abrir Vista de Impresión
+                                </button>
+                            </div>
+                            ${renderizarFacturaDesglosadaHTML(rep.factura)}
+                        </div>
+                    </details>
+                `;
+            } else {
+                facturaHtml = `
+                    <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; font-size: 0.88rem;">
+                        <span>Estimación inicial: <strong>${formatearEuros(rep.estimacionInicial)}</strong></span>
+                        <span>Importe acumulado previsto (c/IVA): <strong style="color: var(--brand-text);">${formatearEuros(rep.totalCalculadoPrevisto)}</strong></span>
+                    </div>
+                `;
+            }
+
+            const numIncPub = (rep.incidencias || []).length;
+            const incColapsable = `
+                <details class="disclosure-box">
+                    <summary>
+                        <span>Incidencias y fotos del mecánico (${numIncPub})</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">${numIncPub > 0 ? 'Ver detalle' : 'Sin novedades'}</span>
+                    </summary>
+                    <div class="disclosure-body">
+                        ${incidenciasHtml}
+                        ${piezasUsadasHtml}
+                    </div>
+                </details>
+            `;
+
+            wrapper.innerHTML = `
+                <div class="vehicle-info">
+                    <div class="vehicle-header">
+                        <div class="vehicle-title">${rep.marcaVehiculo} ${rep.modeloVehiculo} (${rep.matriculaVehiculo})</div>
+                        <div>${crearBadgeEstado(rep.estado)}</div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        <span>Localizador: <strong style="font-family: monospace; color: var(--color-primary);">${rep.localizador}</strong></span>
+                        <span>Entrada: <strong style="color: var(--text);">${rep.fechaEntrada ? formatearFecha(rep.fechaEntrada) : 'N/A'}</strong></span>
+                        <span>Entrega estimada: <strong style="color: var(--text);">${rep.fechaEstimadaFin ? formatearFecha(rep.fechaEstimadaFin) : 'En taller'} (${rep.diasEstimados || 3}d)</strong></span>
+                        <span>Mecánico: <strong style="color: var(--text);">${rep.nombreMecanico || 'Pendiente de asignar'}</strong></span>
+                        <span>Avería: <strong style="color: var(--text);">${rep.descripcionAveria || 'Sin descripción'}</strong></span>
+                    </div>
+
+                    ${timelineHtml}
+                    ${presupuestoHtml}
+                    ${incColapsable}
+                    ${facturaHtml}
+                </div>
+            `;
+
+            container.appendChild(wrapper);
+        }
+    </script>
+</body>
+</html>
