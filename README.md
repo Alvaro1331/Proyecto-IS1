@@ -15,11 +15,11 @@ Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión d
 <br>
 
 ## Equipo de desarrollo:
-  ·Marta Barbero Fuentes<br>
-  ·Nicolás Rodríguez Torrevejano<br>
-  ·Marcos Arévalo Garrido<br>
-  ·Marcos Martín Clemente<br>
-  ·Álvaro Sánchez Camacho<br>
+  - Marta Barbero Fuentes<br>
+  - Nicolás Rodríguez Torrevejano<br>
+  - Marcos Arévalo Garrido<br>
+  - Marcos Martín Clemente<br>
+  - Álvaro Sánchez Camacho<br>
 <br>
 
 ## Información para nuevos desarrolladores:
