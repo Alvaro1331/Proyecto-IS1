@@ -23,7 +23,7 @@ Bienvenido al ReadMe de nuestro proyecto: un software encargado de la gestión d
 <br>
 
 ## Información para nuevos desarrolladores:
-Esta sección se tiene y se ira rellenando a medida que se vaya desarrollando el software. 
+Esta sección se tiene y se irá rellenando a medida que se vaya desarrollando el software. 
 En la wiki está documentado el proceso de desarrollo, es muy útil para saber los hitos completados y los objetivos próximos. Además en el apartado de projects hay una sección que permite visionar las historias de usuario relacionadas con el proyecto, y su estado de desarrollo actual.
 
 ### ¿Qué tecnologías hemos elegido y por qué?
