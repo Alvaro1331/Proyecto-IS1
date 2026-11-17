@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo de Historias de Usuario (INVEST) - MotorFlow</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 14mm 13mm 15mm 13mm;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.45;
+            font-size: 9.4pt;
+            margin: 0;
+            padding: 0;
+        }
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 8.6pt;
+        }
+        .header-cover {
+            text-align: center;
+            border-bottom: 3px solid #E85D04;
+            padding-bottom: 14px;
+            margin-bottom: 16px;
+        }
+        .header-cover h1 {
+            color: #E85D04;
+            font-size: 24pt;
+            margin: 0 0 4px 0;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .header-cover h2 {
+            color: #334155;
+            font-size: 12.5pt;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+        }
+        .meta-box {
+            display: inline-block;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 8.4pt;
+            color: #475569;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 12px 0 14px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #E85D04;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .stat-card .stat-num {
+            font-size: 15pt;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.15;
+        }
+        .stat-card .stat-lbl {
+            font-size: 7.8pt;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .alert {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 8.7pt;
+        }
+        .alert-info {
+            background-color: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+        }
+        .alert-success {
+            background-color: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        h2.section-title {
+            color: #0f172a;
+            border-left: 5px solid #E85D04;
+            padding-left: 10px;
+            font-size: 12.5pt;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
+        h3.subsection-title {
+            color: #1e293b;
+            font-size: 10.2pt;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        p, li {
+            color: #334155;
+            font-size: 9pt;
+            margin-top: 0;
+            margin-bottom: 4px;
+        }
+        ul, ol {
+            padding-left: 18px;
+            margin-top: 3px;
+            margin-bottom: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0 12px 0;
+            font-size: 8.1pt;
+        }
+        table th {
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: 600;
+            text-align: left;
+            padding: 5px 6px;
+            border: 1px solid #0f172a;
+        }
+        table td {
+            padding: 4.5px 6px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+            vertical-align: middle;
+        }
+        table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+        .invest-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px 10px;
+            margin: 8px 0 12px 0;
+        }
+        .invest-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #E85D04;
+            border-radius: 5px;
+            padding: 6px 9px;
+            font-size: 8.4pt;
+        }
+        .badge {
+            display: inline-block;
+            padding: 1.5px 6px;
+            border-radius: 999px;
+            font-size: 7.4pt;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .badge-done { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .badge-todo { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .badge-alta { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .badge-media { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+        .badge-baja { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }
+        .badge-grande { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+        .badge-tmedia { background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1; }
+        .badge-pequeno { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .badge-epica { background: #0f172a; color: #ffffff; border: 1px solid #0f172a; }
+
+        .hu-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        .hu-header {
+            background: #f8fafc;
+            border-bottom: 2px solid #E85D04;
+            padding: 7px 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            page-break-after: avoid;
+        }
+        .hu-title-wrap {
+            font-size: 10.4pt;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .hu-id {
+            color: #E85D04;
+            margin-right: 4px;
+        }
+        .hu-badges {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .hu-body {
+            padding: 9px 11px;
+        }
+        .hu-enunciado {
+            background: #fff7ed;
+            border-left: 4px solid #E85D04;
+            padding: 6px 10px;
+            border-radius: 0 5px 5px 0;
+            font-size: 9.2pt;
+            color: #0f172a;
+            margin-bottom: 8px;
+            page-break-inside: avoid;
+        }
+        .hu-section-label {
+            font-size: 8.6pt;
+            font-weight: 700;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin: 7px 0 3px 0;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 2px;
+            page-break-after: avoid;
+        }
+        .hu-block {
+            page-break-inside: avoid;
+            margin-bottom: 6px;
+        }
+        .hu-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 7px;
+            page-break-inside: avoid;
+        }
+        .hu-meta-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 6px 9px;
+        }
+        .hu-meta-box-title {
+            font-size: 8.4pt;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 3px;
+        }
+        .hu-meta-box p {
+            font-size: 8.3pt;
+            margin-bottom: 0;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .team-list {
+            font-size: 8.4pt;
+            color: #475569;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-cover">
+        <h1>MOTORFLOW</h1>
+        <h2>Catálogo Completo de Historias de Usuario (INVEST, Criterios de Aceptación, Tamaño y Prioridad)</h2>
+        <div class="meta-box">
+            <strong>Asignatura:</strong> Ingeniería del Software I (Proyecto-IS1) &nbsp;|&nbsp;
+            <strong>Documento para:</strong> Revisiones Técnicas Formales (RRTTFF) &nbsp;|&nbsp;
+            <strong>Total HU:</strong> 31 historias
+        </div>
+        <div class="team-list">
+            <strong>Equipo de desarrollo:</strong> Marta Barbero Fuentes · Nicolás Rodríguez Torrevejano · Marcos Arévalo Garrido · Marcos Martín Clemente · Álvaro Sánchez Camacho
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-num">31</div>
+            <div class="stat-lbl">Historias de Usuario Totales<br>(30 HU + 1 Épica #14)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num" style="color: #166534;">26 / 5</div>
+            <div class="stat-lbl">Estado en el Proyecto<br>(26 Done · 5 Sin iniciar)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num" style="color: #9a3412;">9 / 17 / 5</div>
+            <div class="stat-lbl">Prioridad<br>(9 Alta · 17 Media · 5 Baja)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num" style="color: #6b21a8;">6 / 15 / 10</div>
+            <div class="stat-lbl">Tamaño<br>(6 Grande · 15 Media · 10 Pequeño)</div>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Propósito de este documento (RRTTFF):</strong> Recopila en un único documento de consulta rápida las <strong>31 Historias de Usuario</strong> del proyecto <strong>MotorFlow</strong> registradas en el tablero <em>HISTORIAS DE USUARIO</em> de GitHub, incluyendo para cada una su enunciado, la justificación detallada bajo los seis criterios <strong>INVEST</strong>, sus <strong>Criterios de Aceptación</strong> verificables, su <strong>Prioridad</strong>, su <strong>Tamaño</strong> estimado y su <strong>estado real verificado</strong> frente al código fuente actual.
+    </div>
+
+    <h2 class="section-title">1. Marco Metodológico y Criterios de Evaluación</h2>
+    <p>
+        Todas las Historias de Usuario de MotorFlow siguen el formato estándar <em>«Como [rol], quiero [funcionalidad], para [beneficio de negocio]»</em> y han sido redactadas y justificadas de acuerdo con el acrónimo <strong>INVEST</strong>:
+    </p>
+    <div class="invest-grid">
+        <div class="invest-item"><strong>I — Independiente (Independent):</strong> Cada historia puede desarrollarse y probarse de forma autónoma respecto a las demás, reduciendo dependencias y bloqueos en el sprint.</div>
+        <div class="invest-item"><strong>N — Negociable (Negotiable):</strong> Su enunciado define el objetivo funcional, dejando margen al equipo para acordar detalles de diseño o interfaz durante el sprint.</div>
+        <div class="invest-item"><strong>V — Valiosa (Valuable):</strong> Aporta un valor claro y directo a los usuarios reales del taller (cliente, recepcionista, mecánico o administrador).</div>
+        <div class="invest-item"><strong>E — Estimable (Estimable):</strong> Su alcance técnico en backend y frontend permite dimensionar el esfuerzo necesario con precisión antes de planificar el sprint.</div>
+        <div class="invest-item"><strong>S — Pequeña (Small):</strong> Está acotada para completarse dentro de un único Sprint de 2 semanas (cuando una historia fue demasiado grande, como la Épica <code>HU #14</code>, se aplicó <em>Splitting</em> en <code>HU #29</code> y <code>HU #30</code>).</div>
+        <div class="invest-item"><strong>T — Testeable (Testable):</strong> Dispone de criterios de aceptación concretos en formato condicional (<em>Si... entonces...</em>) comprobables mediante pruebas manuales y unitarias.</div>
+    </div>
+
+    <h3 class="subsection-title">Escalas de Prioridad, Tamaño y Estados del Tablero</h3>
+    <ul>
+        <li><strong>Prioridad:</strong> <strong>Alta</strong> (imprescindible para el núcleo operativo y seguridad del taller), <strong>Media</strong> (importante para la gestión diaria y experiencia de usuario, no bloqueante al arranque) y <strong>Baja</strong> (mejora operativa o visual complementaria).</li>
+        <li><strong>Tamaño:</strong> <strong>Pequeño</strong> (~1 día de desarrollo), <strong>Medio</strong> (2–3 días) y <strong>Grande</strong> (+3 días dentro de un mismo sprint).</li>
+        <li><strong>Estado Verificado:</strong> <strong>Done (26 historias)</strong> implementadas y verificadas en el repositorio; <strong>Sin iniciar (5 historias: HU #7, #8, #19, #20 y #21)</strong> pendientes en el Product Backlog.</li>
+    </ul>
+
+    <h2 class="section-title">2. Índice Rápido de Historias de Usuario (Resumen RRTTFF)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 7%;">ID</th>
+                <th style="width: 38%;">Título de la Historia de Usuario</th>
+                <th style="width: 19%;">Rol Principal</th>
+                <th style="width: 11%;">Prioridad</th>
+                <th style="width: 12%;">Tamaño</th>
+                <th style="width: 13%;">Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>HU #2</strong></td>
+                <td><a href="#hu-2" style="color:#0f172a; text-decoration:none; font-weight:600;">Vista del cliente</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #3</strong></td>
+                <td><a href="#hu-3" style="color:#0f172a; text-decoration:none; font-weight:600;">Notificaciones a clientes</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #4</strong></td>
+                <td><a href="#hu-4" style="color:#0f172a; text-decoration:none; font-weight:600;">Inicio de sesi&#243;n de clientes</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #5</strong></td>
+                <td><a href="#hu-5" style="color:#0f172a; text-decoration:none; font-weight:600;">Registro de veh&#237;culos</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #6</strong></td>
+                <td><a href="#hu-6" style="color:#0f172a; text-decoration:none; font-weight:600;">Informe de los veh&#237;culos</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #7</strong></td>
+                <td><a href="#hu-7" style="color:#0f172a; text-decoration:none; font-weight:600;">Ordenaci&#243;n de prioridad de veh&#237;culos seg&#250;n categor&#237;as</a></td>
+                <td>Administrador</td>
+                <td><span class="badge badge-baja">BAJA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-todo">Sin iniciar</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #8</strong></td>
+                <td><a href="#hu-8" style="color:#0f172a; text-decoration:none; font-weight:600;">Registro cronol&#243;gico</a></td>
+                <td>Mec&#225;nico Jefe</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-todo">Sin iniciar</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #9</strong></td>
+                <td><a href="#hu-9" style="color:#0f172a; text-decoration:none; font-weight:600;">Informar cuando se termina una fase de reparaci&#243;n</a></td>
+                <td>Mec&#225;nico</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #10</strong></td>
+                <td><a href="#hu-10" style="color:#0f172a; text-decoration:none; font-weight:600;">Orden seg&#250;n estado de reparaci&#243;n</a></td>
+                <td>Mec&#225;nico Jefe</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #12</strong></td>
+                <td><a href="#hu-12" style="color:#0f172a; text-decoration:none; font-weight:600;">Visualizar gasto de piezas diario</a></td>
+                <td>Mec&#225;nico Jefe</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #13</strong></td>
+                <td><a href="#hu-13" style="color:#0f172a; text-decoration:none; font-weight:600;">Registro de clientes</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #14</strong></td>
+                <td><a href="#hu-14" style="color:#0f172a; text-decoration:none; font-weight:600;">Actualizaciones en tiempo real</a> <span class="badge badge-epica">ÉPICA</span></td>
+                <td>Sistema (&#201;pica)</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #15</strong></td>
+                <td><a href="#hu-15" style="color:#0f172a; text-decoration:none; font-weight:600;">Acceder a datos de clientes</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #16</strong></td>
+                <td><a href="#hu-16" style="color:#0f172a; text-decoration:none; font-weight:600;">Elaboraci&#243;n de presupuestos</a></td>
+                <td>Administrador</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #17</strong></td>
+                <td><a href="#hu-17" style="color:#0f172a; text-decoration:none; font-weight:600;">Aceptar o rechazar presupuestos</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-baja">BAJA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #18</strong></td>
+                <td><a href="#hu-18" style="color:#0f172a; text-decoration:none; font-weight:600;">A&#241;adir pruebas gr&#225;ficas</a></td>
+                <td>Mec&#225;nico</td>
+                <td><span class="badge badge-baja">BAJA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #19</strong></td>
+                <td><a href="#hu-19" style="color:#0f172a; text-decoration:none; font-weight:600;">Tiempo invertido en mano de obra</a></td>
+                <td>Mec&#225;nico</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-todo">Sin iniciar</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #20</strong></td>
+                <td><a href="#hu-20" style="color:#0f172a; text-decoration:none; font-weight:600;">Supervisi&#243;n del trabajo de los mec&#225;nicos</a></td>
+                <td>Administrador</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-todo">Sin iniciar</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #21</strong></td>
+                <td><a href="#hu-21" style="color:#0f172a; text-decoration:none; font-weight:600;">Historial de reparaciones para mec&#225;nicos</a></td>
+                <td>Mec&#225;nico</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-todo">Sin iniciar</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #22</strong></td>
+                <td><a href="#hu-22" style="color:#0f172a; text-decoration:none; font-weight:600;">Historial de reparaciones para clientes</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #23</strong></td>
+                <td><a href="#hu-23" style="color:#0f172a; text-decoration:none; font-weight:600;">Solicitudes de cita</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #24</strong></td>
+                <td><a href="#hu-24" style="color:#0f172a; text-decoration:none; font-weight:600;">Calendario organizado</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #25</strong></td>
+                <td><a href="#hu-25" style="color:#0f172a; text-decoration:none; font-weight:600;">Generar facturas</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-baja">BAJA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #26</strong></td>
+                <td><a href="#hu-26" style="color:#0f172a; text-decoration:none; font-weight:600;">Terminar y archivar</a></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #27</strong></td>
+                <td><a href="#hu-27" style="color:#0f172a; text-decoration:none; font-weight:600;">Alertas por stock bajo</a></td>
+                <td>Administrador</td>
+                <td><span class="badge badge-baja">BAJA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #29</strong></td>
+                <td><a href="#hu-29" style="color:#0f172a; text-decoration:none; font-weight:600;">Registro de datos y actividad</a></td>
+                <td>Personal del Taller</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #30</strong></td>
+                <td><a href="#hu-30" style="color:#0f172a; text-decoration:none; font-weight:600;">Muestra de datos y actividad</a></td>
+                <td>Cliente</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #32</strong></td>
+                <td><a href="#hu-32" style="color:#0f172a; text-decoration:none; font-weight:600;">Registro de piezas</a></td>
+                <td>Mec&#225;nico / Admin</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #34</strong></td>
+                <td><a href="#hu-34" style="color:#0f172a; text-decoration:none; font-weight:600;">Informar de piezas utilizadas</a></td>
+                <td>Mec&#225;nico</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #35</strong></td>
+                <td><a href="#hu-35" style="color:#0f172a; text-decoration:none; font-weight:600;">Asignaci&#243;n de mec&#225;nicos</a></td>
+                <td>Administrador</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #36</strong></td>
+                <td><a href="#hu-36" style="color:#0f172a; text-decoration:none; font-weight:600;">Log-In</a></td>
+                <td>Todos los Roles</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="alert alert-success">
+        <strong>Verificación frente al código:</strong> Las <strong>26 historias en estado Done</strong> corresponden a funcionalidades verificadas en <code>backend/</code> y <code>frontend/</code> (incluyendo acceso por roles, clientes, vehículos, órdenes, presupuestos desglosados, aceptación/rechazo con contraseña, incidencias con fotos, almacén y alertas de stock bajo, citas, calendario, facturas en PDF y notificaciones). Las <strong>5 historias en Sin iniciar</strong> (<code>#7</code>, <code>#8</code>, <code>#19</code>, <code>#20</code>, <code>#21</code>) permanecen en el backlog para futuros sprints.
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2 class="section-title">3. Catálogo Detallado de las 31 Historias de Usuario</h2>
+    <div class="hu-card" id="hu-2">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #2</span> Vista del cliente
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente del taller, quiero consultar en tiempo real el estado actual del servicio de mi(s) veh&#237;culo(s) desde mi panel personal y vincular nuevos c&#243;digos localizadores, para tener visibilidad completa del progreso y planificarme sin necesidad de llamar por tel&#233;fono.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Solo requiere consultar los datos de las &#243;rdenes de reparaci&#243;n asociadas al cliente sin bloquear otros desarrollos internos del taller.</li>
+<li><strong>Negociable (N):</strong> Permite acordar una interfaz clara con etiquetas de estado por colores, l&#237;nea temporal de avance y vinculaci&#243;n de localizadores sin sobrecomplicar la entrega.</li>
+<li><strong>Valiosa (V):</strong> Elimina gran parte de las llamadas de seguimiento a recepci&#243;n, dando tranquilidad y transparencia directa al cliente.</li>
+<li><strong>Estimable (E):</strong> Tiene un flujo de lectura y vinculaci&#243;n claro, f&#225;cil de dimensionar entre backend y frontend.</li>
+<li><strong>Peque&#241;a (S):</strong> Est&#225; acotada a la vista de seguimiento del cliente para completarse, probarse y desplegarse dentro de un &#250;nico Sprint de 2 semanas.</li>
+<li><strong>Testeable (T):</strong> Es directamente verificable mediante pruebas de interfaz e integraci&#243;n comprobando la carga de veh&#237;culos y estados por cliente.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n e introduzco mis datos teniendo uno o varios veh&#237;culos en el taller, entonces veo el listado de mis veh&#237;culos con su c&#243;digo localizador, descripci&#243;n de la aver&#237;a y su estado de reparaci&#243;n actualizado (&quot;PENDIENTE&quot;, &quot;EN_PROCESO&quot;, &quot;FINALIZADA&quot;, &quot;CONFIRMADA&quot; o &quot;ENTREGADA&quot;).</li>
+<li>Si inicio sesi&#243;n y todav&#237;a no tengo ning&#250;n veh&#237;culo en reparaci&#243;n, entonces el sistema me muestra un mensaje indicando que no tengo reparaciones activas en este momento.</li>
+<li>Si introduzco un c&#243;digo localizador v&#225;lido de 8 caracteres en el apartado de vinculaci&#243;n de mi panel, entonces el veh&#237;culo queda asociado a mi cuenta personal para futuras consultas.</li>
+<li>Si introduzco un c&#243;digo localizador inexistente o incorrecto, entonces el sistema me muestra un mensaje de error claro indicando que no se ha encontrado ninguna reparaci&#243;n con ese localizador.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es esencial para descongestionar la atenci&#243;n telef&#243;nica en la recepci&#243;n del taller y mejorar inmediatamente la transparencia y experiencia del cliente.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande</div>
+                    <p>Aunque est&#225; perfectamente acotada para completarse dentro de un &#250;nico Sprint (cumpliendo el criterio S), dentro de las tareas del sprint supone un esfuerzo alto (3-4 d&#237;as) al abarcar el dise&#241;o del panel del cliente, la visualizaci&#243;n de estados con l&#237;nea temporal y la vinculaci&#243;n de reparaciones por localizador.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-3">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #3</span> Notificaciones a clientes
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente del taller, quiero recibir notificaciones autom&#225;ticas en mi panel de usuario y por correo electr&#243;nico cuando cambie el estado de mi(s) veh&#237;culo(s), para estar informado al instante sobre el avance del servicio sin tener que consultar la aplicaci&#243;n manualmente.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Aunque reacciona a los cambios de estado de la reparaci&#243;n, se ejecuta como un servicio desacoplado de eventos y notificaciones (<code>NotificacionReparacionEvent</code>).</li>
+<li><strong>Negociable (N):</strong> Permite acordar los canales de aviso al cliente (bandeja de notificaciones dentro de la aplicaci&#243;n web y/o env&#237;o de correo electr&#243;nico) seg&#250;n el alcance t&#233;cnico del sprint.</li>
+<li><strong>Valiosa (V):</strong> Mantiene informado proactivamente al cliente ante cada avance importante (presupuesto listo, inicio de reparaci&#243;n, veh&#237;culo listo para recoger o entregado), reduciendo la incertidumbre.</li>
+<li><strong>Estimable (E) y Testeable (T):</strong> El disparo de eventos ante cambios de estado y la creaci&#243;n de notificaciones son f&#225;cilmente automatizables y verificables mediante pruebas unitarias y de integraci&#243;n.</li>
+<li><strong>Peque&#241;a (S):</strong> Est&#225; acotada a la generaci&#243;n, consulta y marcado de lectura de alertas sin alterar la l&#243;gica mec&#225;nica ni contable del taller, involucrando &#250;nicamente el flujo de aviso al cliente.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si el taller cambia el estado de reparaci&#243;n de mi veh&#237;culo en el sistema, entonces se genera autom&#225;ticamente una notificaci&#243;n inmediata en mi buz&#243;n del panel de cliente (y/o aviso por correo electr&#243;nico) indicando la matr&#237;cula del veh&#237;culo y el nuevo estado alcanzado.</li>
+<li>Si el cambio de estado corresponde a &quot;CONFIRMADA&quot; (veh&#237;culo listo para recoger), entonces la notificaci&#243;n informa de manera destacada de que la reparaci&#243;n ha finalizado con &#233;xito y que ya puedo pasar por el taller a recoger el veh&#237;culo.</li>
+<li>Si consulto mis notificaciones en el panel del cliente, entonces veo el contador de avisos pendientes de leer y puedo marcarlos como le&#237;dos individualmente o todos a la vez.</li>
+<li>Si ocurre alg&#250;n fallo puntual en el servidor de correo externo al enviar un aviso por email, entonces el sistema captura el error, registra la notificaci&#243;n igualmente en el panel web del cliente y contin&#250;a sin interrumpir el flujo normal de la aplicaci&#243;n.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es un complemento de alto valor para la experiencia del cliente, aunque la funcionalidad principal de consulta manual del estado no depende de esta automatizaci&#243;n para operar.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Requiere la implementaci&#243;n del sistema de eventos ante cambios de estado en el backend, el almacenamiento de notificaciones en base de datos, el env&#237;o de correo y el buz&#243;n desplegable de avisos en el panel del cliente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-4">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #4</span> Inicio de sesi&#243;n de clientes
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente del taller, quiero poder registrar una cuenta personal protegida, iniciar sesi&#243;n y recuperar mi contrase&#241;a en caso de olvido, para garantizar que solo yo pueda acceder de forma privada a la informaci&#243;n de mis veh&#237;culos en reparaci&#243;n y a su historial.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Sienta las bases de identidad y gesti&#243;n de cuenta del cliente sin bloquear el modelado interno de las &#243;rdenes de reparaci&#243;n en el taller.</li>
+<li><strong>Negociable (N):</strong> Permite acordar los campos de registro del cliente y el mecanismo de recuperaci&#243;n de contrase&#241;a (mediante c&#243;digo de verificaci&#243;n de 6 d&#237;gitos enviado al correo electr&#243;nico).</li>
+<li><strong>Valiosa (V):</strong> Garantiza la privacidad de datos sensibles del cliente (matr&#237;culas, presupuestos y facturas) y le permite gestionar su acceso de forma aut&#243;noma sin llamar al taller si olvida su clave.</li>
+<li><strong>Estimable (E) y Testeable (T):</strong> Es verificable mediante pruebas de registro, autenticaci&#243;n, recuperaci&#243;n de clave y aislamiento estricto de datos por identificador de cliente.</li>
+<li><strong>Peque&#241;a (S):</strong> Est&#225; acotada a la gesti&#243;n de cuenta y acceso privado del cliente dentro de un &#250;nico Sprint.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si me registro como nuevo cliente o introduzco mis credenciales v&#225;lidas (correo electr&#243;nico y contrase&#241;a) en la pesta&#241;a de &#193;rea Clientes, entonces el sistema me autentica correctamente y me redirige a mi panel privado.</li>
+<li>Si estoy autenticado en la plataforma, entonces el sistema solo me muestra los veh&#237;culos y reparaciones asociados a mi identificador de cliente, impidiendo estrictamente el acceso a datos de otros usuarios.</li>
+<li>Si olvido mi contrase&#241;a y solicito recuperarla introduciendo mi correo electr&#243;nico, entonces el sistema genera un c&#243;digo temporal de 6 d&#237;gitos con caducidad que me permite restablecer una nueva contrase&#241;a de forma segura.</li>
+<li>Si intento acceder mediante una URL directa al panel privado de clientes sin haber iniciado sesi&#243;n previamente, entonces el sistema bloquea el acceso y me redirige a la pantalla de login.</li>
+<li>Si introduzco un correo o contrase&#241;a incorrectos, entonces el sistema me muestra un mensaje de error claro indicando que las credenciales no son v&#225;lidas.</li>
+<li>Si decido cerrar sesi&#243;n de forma voluntaria, entonces la sesi&#243;n activa se elimina de inmediato y se me redirige a la pantalla de inicio de sesi&#243;n.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es un pilar fundamental para la seguridad y privacidad del cliente, adem&#225;s de ser imprescindible para asociar de manera &#250;nica a cada propietario con sus veh&#237;culos, citas, presupuestos y facturas.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande</div>
+                    <p>Dentro del Sprint supone una tarea de envergadura alta (3-4 d&#237;as) porque abarca el alta de cuenta de cliente, el inicio de sesi&#243;n, el flujo de recuperaci&#243;n de contrase&#241;a por correo con c&#243;digo temporal y la protecci&#243;n de acceso a sus datos privados.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-5">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #5</span> Registro de veh&#237;culos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero registrar la entrada de los veh&#237;culos que ingresan al taller asociando sus datos y los del cliente, para dar de alta la orden de trabajo y comenzar la gesti&#243;n del servicio.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST:</p>
+<ul>
+<li><strong>Independiente (I):</strong> No depende del m&#243;dulo de consulta p&#250;blica del cliente ni de la facturaci&#243;n final para ser funcional a nivel administrativo en recepci&#243;n.</li>
+<li><strong>Negociable (N):</strong> Permite acordar los campos m&#237;nimos obligatorios requeridos en el formulario de recepci&#243;n (matr&#237;cula, marca, modelo, propietario y descripci&#243;n de la aver&#237;a) para una primera entrega.</li>
+<li><strong>Valiosa (V):</strong> Es el punto de partida operativo de todo el proceso en el taller, permitiendo la trazabilidad t&#233;cnica y organizativa del trabajo desde el primer minuto y generando el c&#243;digo localizador &#250;nico de 8 caracteres.</li>
+<li><strong>Estimable (E) y Testeable (T):</strong> Es f&#225;cilmente verificable comprobando la validaci&#243;n del formato de matr&#237;cula, la creaci&#243;n y persistencia de los registros en la base de datos y la generaci&#243;n del localizador.</li>
+<li><strong>Peque&#241;a (S):</strong> Se limita al flujo de registro inicial del veh&#237;culo y su orden de entrada sin incluir la edici&#243;n avanzada de presupuestos desglosados ni el cobro final.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si introduzco los datos obligatorios del veh&#237;culo (matr&#237;cula v&#225;lida, marca y modelo), lo asocio a un cliente existente y registro el motivo de entrada, entonces el sistema crea la orden de reparaci&#243;n con el estado inicial &quot;PENDIENTE&quot;, genera su c&#243;digo localizador &#250;nico de 8 caracteres y me devuelve una confirmaci&#243;n de registro exitoso.</li>
+<li>Si intento registrar un veh&#237;culo con una matr&#237;cula que ya est&#225; dada de alta en el sistema o con un formato de matr&#237;cula no v&#225;lido, entonces el sistema bloquea el duplicado o formato err&#243;neo y me muestra un aviso claro en pantalla.</li>
+<li>Si intento registrar un veh&#237;culo dejando campos obligatorios en blanco (ej. matr&#237;cula, marca o cliente sin seleccionar), entonces el sistema bloquea el guardado y me se&#241;ala claramente los campos pendientes por completar.</li>
+<li>Si el cliente que entrega el coche es nuevo en el taller, entonces el panel de recepci&#243;n me permite darlo de alta previamente de forma r&#225;pida para asociarlo inmediatamente a su veh&#237;culo.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es un proceso imprescindible de la operativa diaria; sin el registro inicial en recepci&#243;n no existe informaci&#243;n para que los mec&#225;nicos trabajen ni para que el cliente pueda consultar el estado de su veh&#237;culo.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Involucra la creaci&#243;n de formularios con validaci&#243;n en frontend y backend (formato de matr&#237;cula y control de duplicados), la integraci&#243;n con las entidades de cliente y veh&#237;culo en base de datos, y la l&#243;gica de apertura de la orden de reparaci&#243;n inicial.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-6">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #6</span> Informe de los veh&#237;culos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero registrar las observaciones y detalles espec&#237;ficos reportados por el cliente en la orden del veh&#237;culo, para transmitir de forma clara los s&#237;ntomas o peticiones a los mec&#225;nicos encargados de la reparaci&#243;n.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST: es Independiente (I) porque act&#250;a como un m&#243;dulo complementario al registro del veh&#237;culo sin bloquear el flujo principal de entrada; Negociable (N) al permitir acordar el formato de captura (ej. campo de texto libre con etiquetas o lista de comprobaci&#243;n inicial); Valiosa (V) ya que evita la p&#233;rdida o mala interpretaci&#243;n de la informaci&#243;n clave entregada por el cliente, mejorando la precisi&#243;n en el diagn&#243;stico t&#233;cnico; Estimable (E) y Testeable (T) mediante la verificaci&#243;n del guardado y correcta visualizaci&#243;n de las notas en la ficha de la orden; y Peque&#241;a (S) porque se limita a la edici&#243;n e incorporaci&#243;n de una descripcion dentro de la orden existente.</p>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si abro una orden de trabajo activa e introduzco notas o detalles (ej. s&#237;ntomas, ruidos, peticiones especiales), entonces el sistema guarda la informaci&#243;n asociada a esa orden y muestra la fecha, hora y autor del apunte.</li>
+<li>Si el mec&#225;nico o el equipo t&#233;cnico consulta la orden del veh&#237;culo, entonces puede visualizar las observaciones del recepcionista de forma clara y destacada antes de iniciar la revisi&#243;n.</li>
+<li>Si necesito a&#241;adir informaci&#243;n adicional durante el proceso de recepci&#243;n, entonces el sistema me permite anexar nuevas notas sin sobrescribir las observaciones registradas previamente.</li>
+<li>Si me dispongo a guardar una orden sin haber introducido ninguna observaci&#243;n t&#233;cnica, entonces el sistema me solicita confirmaci&#243;n o me permite continuar dejando el campo como opcional.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es fundamental para la comunicaci&#243;n interna entre el personal de atenci&#243;n al cliente y el equipo t&#233;cnico, reduciendo errores en el diagn&#243;stico y garantizando que se atiendan todas las solicitudes del cliente.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Requiere &#250;nicamente la adici&#243;n de un campo de texto enriquecido o historial de notas en la entidad de la orden de trabajo existente, junto con su persistencia y visualizaci&#243;n en la interfaz.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-7">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #7</span> Ordenaci&#243;n de prioridad de veh&#237;culos seg&#250;n categor&#237;as
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-baja">Prioridad: BAJA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-todo">Sin iniciar</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico jefe (administrador) del taller, quiero ordenar y filtrar la lista de veh&#237;culos seg&#250;n distintos criterios operativos (orden de llegada, tiempo estimado de reparaci&#243;n o espera de piezas), para priorizar las aver&#237;as m&#225;s urgentes y optimizar el reparto de trabajo en el taller.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST:</p>
+<ul>
+<li><strong>Independiente (I):</strong> No afecta al registro ni a la consulta de los veh&#237;culos por parte del cliente; simplemente mejora la forma en que el jefe de taller los organiza y visualiza en su panel.</li>
+<li><strong>Negociable (N):</strong> Permite acordar con el equipo cu&#225;les ser&#225;n las opciones de ordenaci&#243;n iniciales m&#225;s &#250;tiles para la gesti&#243;n diaria.</li>
+<li><strong>Valiosa (V):</strong> Optimiza el flujo de trabajo en la zona de reparaci&#243;n y ayuda a repartir las tareas seg&#250;n la prioridad o la carga de trabajo acumulada.</li>
+<li><strong>Estimable (E) y Testeable (T):</strong> Se comprueba f&#225;cilmente verificando que la lista de reparaciones responde y se reordena correctamente al cambiar el criterio elegido.</li>
+<li><strong>Peque&#241;a (S):</strong> Se limita a reorganizar y filtrar en pantalla la informaci&#243;n de las reparaciones que ya existe en el sistema.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si selecciono el criterio &quot;Orden de llegada&quot;, entonces la pantalla me muestra los veh&#237;culos ordenados del m&#225;s antiguo al m&#225;s reciente seg&#250;n su fecha de entrada en el taller.</li>
+<li>Si elijo el criterio &quot;Tiempo estimado de reparaci&#243;n&quot;, entonces los veh&#237;culos se organizan de menor a mayor (o viceversa) seg&#250;n la duraci&#243;n prevista del trabajo.</li>
+<li>Si selecciono la opci&#243;n &quot;Uso de piezas&quot;, entonces puedo agrupar o ver primero los veh&#237;culos seg&#250;n los materiales requeridos o consumidos en la intervenci&#243;n.</li>
+<li>Si cambio de criterio de ordenaci&#243;n, entonces la lista se actualiza al instante en pantalla sin necesidad de recargar la p&#225;gina completa.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Baja</div>
+                    <p>Es una herramienta de apoyo organizativo muy &#250;til para la eficiencia diaria, pero el taller puede seguir operando con la lista est&#225;ndar mientras se completan otras funciones principales.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Aprovecha los datos que ya est&#225;n guardados en el sistema y solo requiere a&#241;adir los controles de selecci&#243;n y ordenar din&#225;micamente los elementos en la pantalla.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-8">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #8</span> Registro cronol&#243;gico
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-todo">Sin iniciar</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico jefe, quiero disponer de un registro organizado por fecha y hora de llegada de cada veh&#237;culo, para dar prioridad a los coches que llevan m&#225;s tiempo esperando y decidir f&#225;cilmente cu&#225;l entra a reparaci&#243;n a continuaci&#243;n.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST: es Independiente (I) porque utiliza la fecha de entrada registrada en la recepci&#243;n sin interferir con otros procesos del taller; Negociable (N) al permitir acordar c&#243;mo se presenta la l&#237;nea de tiempo (ej. una lista cronol&#243;gica simple o una vista con indicadores visuales de tiempo transcurrido); Valiosa (V) ya que garantiza una gesti&#243;n justa del turno de atenci&#243;n, evitando retrasos excesivos en veh&#237;culos antiguos y mejorando la satisfacci&#243;n general del cliente; Estimable (E) y Testeable (T) mediante la verificaci&#243;n de que la lista sit&#250;a siempre en primer lugar los veh&#237;culos con mayor tiempo de estancia; y Peque&#241;a (S) porque se limita a mostrar un historial ordenado por fecha de ingreso sin a&#241;adir procesos complejos.</p>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si accedo a la vista del registro cronol&#243;gico, entonces el sistema me muestra la lista de veh&#237;culos pendientes ordenada autom&#225;ticamente desde el que lleva m&#225;s tiempo en el taller hasta el m&#225;s reciente.</li>
+<li>Si consulto un veh&#237;culo de la lista, entonces puedo ver claramente la fecha, la hora exacta de entrada y el tiempo total transcurrido en el taller (ej. 2 d&#237;as y 4 horas).</li>
+<li>Si un mec&#225;nico comienza a trabajar en un veh&#237;culo y su estado cambia a &quot;En reparaci&#243;n&quot;, entonces ese coche sale de la lista de espera cronol&#243;gica para no confundir la planificaci&#243;n.</li>
+<li>Si ingresa un nuevo veh&#237;culo en recepci&#243;n, entonces se a&#241;ade autom&#225;ticamente al final del registro cronol&#243;gico respetando su hora de llegada.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Ayuda a mantener un flujo de trabajo ordenado y a evitar descuidos con reparaciones antiguas, aunque la operativa b&#225;sica del taller puede funcionar temporalmente con listas est&#225;ndar.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Utiliza la marca de tiempo (timestamp) que se guarda al registrar el veh&#237;culo en la recepci&#243;n y solo requiere calcular el tiempo de estancia y mostrarlo de forma ordenada en pantalla</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-9">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #9</span> Informar cuando se termina una fase de reparaci&#243;n
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico, quiero marcar el cierre de cada fase de reparaci&#243;n en la orden de trabajo, para que el taller conozca el avance exacto del veh&#237;culo y se pueda organizar la siguiente tarea sin demoras.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST: es Independiente (I) porque no depende del sistema de notificaciones ni de la vista del cliente para funcionar dentro de la zona de trabajo; Negociable (N) al permitir acordar si el marcado de fases se hace mediante casillas de verificaci&#243;n (checklists) o un bot&#243;n de avance r&#225;pido; Valiosa (V) ya que aporta visibilidad interna en tiempo real sobre la evoluci&#243;n del trabajo, facilitando la coordinaci&#243;n entre mec&#225;nicos y la asignaci&#243;n de elevadores o herramientas; Estimable (E) y Testeable (T) mediante la comprobaci&#243;n de que el cambio de fase se guarda y refleja correctamente en el sistema; y Peque&#241;a (S) porque se centra &#250;nicamente en la acci&#243;n de actualizar las etapas del trabajo activo.</p>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si estoy trabajando en un veh&#237;culo y completo una tarea (ej. Diagn&#243;stico completado, Desmontaje finalizado o Cambio de pieza realizado), entonces puedo marcar esa fase como terminada desde la ficha del veh&#237;culo.</li>
+<li>Si marco una fase como completada, entonces el sistema registra de forma autom&#225;tica la fecha, hora exacta y el mec&#225;nico que finaliz&#243; dicha etapa.</li>
+<li>Si activo la finalizaci&#243;n de una fase, entonces el sistema muestra de forma clara cu&#225;l es la siguiente tarea pendiente en el flujo de trabajo del veh&#237;culo.</li>
+<li>Si marco por error una fase como terminada, entonces el sistema me permite desmarcarla o corregir el estado previa confirmaci&#243;n para evitar errores de seguimiento.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Aporta un gran control sobre el rendimiento interno y la log&#237;stica del taller, aunque no bloquea las reparaciones si el equipo trabaja con &#243;rdenes en formato f&#237;sico.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Aprovecha la orden de trabajo existente y solo a&#241;ade un listado de etapas actualizable con un clic en la interfaz del mec&#225;nico.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-10">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #10</span> Orden seg&#250;n estado de reparaci&#243;n
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico jefe, quiero ver los veh&#237;culos agrupados seg&#250;n su estado de reparaci&#243;n (ej. En diagn&#243;stico, Esperando piezas, En reparaci&#243;n, Listo), para tener una visi&#243;n clara de la carga de trabajo del taller y distribuir mejor las tareas entre los mec&#225;nicos.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST: es Independiente (I) porque no modifica los datos de los veh&#237;culos ni interfiere con las notificaciones, solo organiza la forma de visualizarlos; Negociable (N) al permitir acordar el formato visual de agrupaci&#243;n (ej. por columnas estilo tablero o por pesta&#241;as separadas); Valiosa (V) ya que evita confusiones sobre el progreso global del taller, permite detectar cuellos de botella (como acumulaci&#243;n de coches esperando piezas) y optimiza el uso de los espacios de trabajo; Estimable (E) y Testeable (T) mediante la comprobaci&#243;n de que cada veh&#237;culo aparece reflejado en su categor&#237;a correspondiente; y Peque&#241;a (S) porque se limita a clasificar y presentar los registros existentes en pantalla.</p>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si accedo a la vista de organizaci&#243;n del taller, entonces el sistema me muestra los veh&#237;culos agrupados claramente por su columna o secci&#243;n de estado actual.</li>
+<li>Si el estado de un veh&#237;culo cambia (por ejemplo, cuando un mec&#225;nico termina una etapa), entonces el coche se desplaza autom&#225;ticamente a la categor&#237;a que le corresponde sin tener que reordenarlo manualmente.</li>
+<li>Si consulto una categor&#237;a espec&#237;fica (ej. Esperando piezas), entonces puedo ver el n&#250;mero total de veh&#237;culos retenidos en ese estado para identificar posibles bloqueos en el taller.</li>
+<li>Si filtro por un estado en particular, entonces la pantalla se limpia para mostrarme &#250;nicamente los veh&#237;culos que se encuentran en esa fase de trabajo.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Facilita enormemente la gesti&#243;n del trabajo diario y la coordinaci&#243;n del equipo, aunque el taller puede seguir operando con listados b&#225;sicos mientras se desarrollan otras partes cr&#237;ticas.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Aprovecha el campo de estado que ya tienen asignado los veh&#237;culos en la base de datos y solo requiere estructurar la interfaz para mostrarlos agrupados visualmente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-12">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #12</span> Visualizar gasto de piezas diario
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico jefe, quiero consultar un resumen diario del n&#250;mero y tipo de piezas utilizadas en las reparaciones, para llevar un control preciso del inventario y saber qu&#233; repuestos necesito reponer en el taller.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST: es Independiente (I) porque lee el registro de repuestos asociados a las &#243;rdenes de trabajo sin bloquear la gesti&#243;n de los veh&#237;culos; Negociable (N) al permitir acordar el formato de presentaci&#243;n (ej. un listado acumulado del d&#237;a o un reporte descargable sencillo); Valiosa (V) ya que evita la falta de recambios esenciales, previene descuadres entre el stock f&#237;sico y el registro, y agiliza los pedidos a proveedores; Estimable (E) y Testeable (T) mediante la verificaci&#243;n de que la suma de piezas usadas en las reparaciones coincide exactamente con el total diario mostrado; y Peque&#241;a (S) porque se limita a realizar un conteo y agrupado de los componentes registrados durante la jornada.</p>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si accedo a la secci&#243;n de control de piezas, entonces el sistema me muestra el total de repuestos empleados durante el d&#237;a de hoy, agrupados por nombre y tipo de pieza (ej. 4 filtros de aceite, 2 juegos de pastillas de freno).</li>
+<li>Si selecciono un tipo de pieza de la lista diaria, entonces puedo ver en qu&#233; &#243;rdenes de trabajo o veh&#237;culos espec&#237;ficos se utiliz&#243; cada repuesto.</li>
+<li>Si cambio la fecha de consulta a un d&#237;a anterior, entonces el sistema actualiza la pantalla para mostrarme el historial de piezas consumidas en esa jornada espec&#237;fica.</li>
+<li>Si en el d&#237;a actual no se ha registrado el uso de ninguna pieza, entonces el sistema me muestra el mensaje: &quot;No se han registrado consumos de piezas en el d&#237;a de hoy&quot;.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es una herramienta muy &#250;til para el control de inventario y la planificaci&#243;n de compras, aunque la operativa de reparaci&#243;n en el taller puede continuar mientras se consolida este reporte.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Aprovecha el registro de materiales que se a&#241;aden a las &#243;rdenes de trabajo y solo requiere sumar y agrupar las cantidades por fecha en una pantalla de consulta.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-13">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #13</span> Registro de clientes
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero registrar los datos personales y de contacto de los nuevos clientes, para mantener una base de datos organizada y poder asociarlos r&#225;pidamente a sus veh&#237;culos y &#243;rdenes de trabajo.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST: es Independiente (I) porque sienta la ficha base del cliente sin depender de la existencia previa de un veh&#237;culo o reparaci&#243;n; Negociable (N) al permitir acordar con el equipo los campos de contacto m&#237;nimos obligatorios para una primera versi&#243;n (ej. nombre, tel&#233;fono y DNI/CIF); Valiosa (V) ya que es imprescindible para la comunicaci&#243;n diaria con el cliente, el cumplimiento normativo de datos y la gesti&#243;n administrativa del taller; Estimable (E) y Testeable (T) mediante la verificaci&#243;n de la correcta creaci&#243;n, validaci&#243;n y guardado de los perfiles en el sistema; y Peque&#241;a (S) porque se centra exclusivamente en el alta y almacenamiento inicial de datos de contacto sin abarcar la facturaci&#243;n o historiales complejos.</p>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si introduzco los datos obligatorios del cliente (DNI/CIF, nombre, apellidos, tel&#233;fono y correo electr&#243;nico) y guardo el formulario, entonces el sistema crea la ficha del cliente y me confirma que los datos se han guardado correctamente.</li>
+<li>Si intento registrar a un cliente con un DNI/CIF que ya existe en la base de datos, entonces el sistema me avisa del duplicado y me muestra la ficha guardada previamente para evitar cuentas repetidas.</li>
+<li>Si dejo campos obligatorios vac&#237;os o introduzco un formato de tel&#233;fono/correo no v&#225;lido, entonces el sistema me se&#241;ala los errores en la pantalla y no permite guardar el registro hasta corregirlos.</li>
+<li>Si necesito localizar a un cliente reci&#233;n creado para asociarlo a un veh&#237;culo, entonces el sistema me permite buscarlo por su nombre, tel&#233;fono o DNI de forma inmediata.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es un pilar b&#225;sico para la gesti&#243;n del taller; sin los datos del cliente guardados no es posible formalizar &#243;rdenes de reparaci&#243;n de manera correcta ni contactar con ellos para avisos o entregas.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Involucra la creaci&#243;n del formulario de captura en la interfaz, las validaciones de campos (formatos de DNI, tel&#233;fono y correo), el control de duplicados y la persistencia segura de los datos en el sistema.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-14">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #14</span> Actualizaciones en tiempo real
+            </div>
+            <div class="hu-badges">
+                <span class="badge badge-epica">ÉPICA</span>
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> [&#201;PICA] Como usuario del sistema (cliente o miembro del personal del taller), quiero que los cambios en el estado de los veh&#237;culos, piezas e intervenciones se reflejen en tiempo real en toda la plataforma, para mantener sincronizado el trabajo del taller y la informaci&#243;n que consulta el cliente.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n de Divisi&#243;n (Splitting seg&#250;n criterio INVEST)</div>
+                <p>Esta funcionalidad originalmente abarcaba a todo el taller y a los clientes al mismo tiempo, por lo que no cumpl&#237;a el criterio Peque&#241;a (S - Small) de INVEST al ser demasiado extensa para completarse de una sola vez con garant&#237;as dentro de un &#250;nico Sprint de 2 semanas.</p>
+<p>En lugar de abordar todo el trabajo junto (lo que supondr&#237;a un alto riesgo de bloqueo e incumplimiento en el sprint), se clasifica como una &#201;pica y se descompone en dos Historias de Usuario independientes, peque&#241;as y manejables:</p>
+<ul>
+<li><strong>HU #29 (Registro de datos y actividad):</strong> Enfocada en los paneles internos de trabajo para el personal del taller (recepcionista, mec&#225;nico y administrador).</li>
+<li><strong>HU #30 (Muestra de datos y actividad):</strong> Enfocada en la consulta p&#250;blica por localizador y el seguimiento en el panel privado del cliente.</li>
+</ul>
+
+            </div>
+            
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Representa el n&#250;cleo de comunicaci&#243;n y trazabilidad en vivo de todo el sistema MotorFlow.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande (&#201;pica dividida en HU #29 y HU #30)</div>
+                    <p>Por su alcance global sobre toda la arquitectura (backend y todas las vistas de frontend), se gestiona y estima a trav&#233;s de las historias hijas HU #29 y HU #30.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-15">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #15</span> Acceder a datos de clientes
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero buscar y consultar los datos de los clientes y sus veh&#237;culos, para poder atender de forma r&#225;pida y personalizada a quien llame por tel&#233;fono o venga al mostrador.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple con el criterio INVEST de manera equilibrada y clara:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra &#250;nicamente en consultar informaci&#243;n que ya existe en el taller (clientes y veh&#237;culos), sin depender de si esos coches tienen o no una reparaci&#243;n en marcha en ese momento.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros qu&#233; datos mostrar de un primer vistazo en la lista r&#225;pida (por ejemplo, el nombre y el tel&#233;fono) antes de abrir la ficha completa con todos los detalles.</li>
+<li><strong>Valiosa (V):</strong> Aporta una ayuda enorme en la atenci&#243;n diaria: cuando un cliente entra por la puerta o llama con dudas, el recepcionista puede saber en pocos segundos qui&#233;n es, cu&#225;ntos coches tiene y c&#243;mo contactarle sin hacerle esperar.</li>
+<li><strong>Estimable (E):</strong> Es muy f&#225;cil de calcular y repartir, ya que consiste en dise&#241;ar el recuadro de b&#250;squeda en la pantalla de recepci&#243;n y organizar c&#243;mo se muestran los datos del cliente y sus veh&#237;culos en tarjetas o tablas ordenadas.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un tama&#241;o muy c&#243;modo para el sprint porque se limita a buscar y mostrar informaci&#243;n en pantalla; no modifica datos, no crea aver&#237;as ni toca presupuestos.</li>
+<li><strong>Testeable (T):</strong> Se puede comprobar en las pruebas con facilidad: escribimos un DNI, un tel&#233;fono o una matr&#237;cula de prueba y verificamos que la web nos devuelve al cliente correcto con sus coches asociados.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si escribo un DNI, un n&#250;mero de tel&#233;fono o una matr&#237;cula en el buscador del panel de recepci&#243;n, entonces el sistema me muestra la lista de coincidencias encontradas de forma inmediata.</li>
+<li>Si elijo a un cliente de los resultados, entonces la pantalla me abre su ficha completa mostrando sus datos de contacto (nombre, apellidos, DNI, tel&#233;fono y correo) junto con la lista de sus veh&#237;culos (matr&#237;cula, marca y modelo).</li>
+<li>Si realizo una b&#250;squeda y no coincide con ning&#250;n registro, entonces la pantalla me muestra un aviso claro de que no se ha encontrado nada y me muestra un bot&#243;n directo para registrar al cliente como nuevo.</li>
+<li>Si una persona que no tiene rol de recepcionista o administrador intenta entrar a esta secci&#243;n de b&#250;squeda, entonces la web bloquea la pantalla para proteger la privacidad de los datos personales.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es muy &#250;til para la atenci&#243;n al p&#250;blico y el orden del taller, pero el n&#250;cleo de reparaciones puede seguir funcionando con datos de prueba si esta pantalla se deja para despu&#233;s del alta b&#225;sica de clientes y coches.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Comprende la creaci&#243;n del buscador en la pantalla de recepci&#243;n, el dise&#241;o de la vista donde se muestran juntos los datos de la persona y sus veh&#237;culos, y el aviso visual cuando no se localiza ninguna coincidencia.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-16">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #16</span> Elaboraci&#243;n de presupuestos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como administrador del taller, quiero fijar el presupuesto desglosando mano de obra y l&#237;mite de piezas para cambiar el estado a &quot;PENDIENTE_ACEPTACION&quot;, permitiendo que el cliente revise el importe y decida si autoriza la reparaci&#243;n.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en establecer los importes econ&#243;micos de una aver&#237;a registrada, funcionando por s&#237; sola sin depender de que el mec&#225;nico haya comenzado a trabajar ni del cobro final.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el desglose se introduce mediante importes num&#233;ricos directos (horas estimadas, precio por hora y tope para materiales) o si toma como referencia la estimaci&#243;n que anot&#243; recepci&#243;n al recibir el coche.</li>
+<li><strong>Valiosa (V):</strong> Es clave para el control del dinero y la transparencia: fija el coste que ver&#225; el cliente para decidir si sigue adelante y, al mismo tiempo, establece el l&#237;mite de gasto en piezas que tendr&#225; permitido el mec&#225;nico.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de medir y repartir en el equipo, ya que consiste en dise&#241;ar el formulario de importes en el panel de administraci&#243;n, calcular el total y actualizar el estado de la reparaci&#243;n en el servidor.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance acotado y manejable para el sprint: calcula la suma en pantalla, guarda las cantidades y cambia el estado a &quot;PENDIENTE_ACEPTACION&quot;, sin meterse todav&#237;a en la pasarela de pago ni en la entrega del coche.</li>
+<li><strong>Testeable (T):</strong> Se verifica con facilidad durante las pruebas: introducimos las cifras, comprobamos que el total se calcula bien y verificamos que la aver&#237;a pasa al estado &quot;PENDIENTE_ACEPTACION&quot;, quedando visible para que el cliente tome su decisi&#243;n.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si estoy en el panel de administraci&#243;n revisando una aver&#237;a registrada, entonces el sistema me muestra un formulario para introducir las horas estimadas de mano de obra, el coste por hora y el importe m&#225;ximo autorizado para piezas.</li>
+<li>Si introduzco estos importes, entonces la pantalla calcula y muestra de forma autom&#225;tica el total sumando la mano de obra y el tope de piezas previsto.</li>
+<li>Si intento guardar el presupuesto con campos vac&#237;os, con valores negativos o con importes iguales a cero, entonces el sistema me muestra un aviso de error y no guarda los cambios hasta que introduzca n&#250;meros v&#225;lidos.</li>
+<li>Si confirmo y guardo el presupuesto con datos v&#225;lidos, entonces el sistema actualiza el estado de la aver&#237;a a &quot;PENDIENTE_ACEPTACION&quot;, guarda el presupuesto total para el cliente y deja fijado el tope de piezas para el mec&#225;nico.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es indispensable para dar transparencia econ&#243;mica al cliente y fijar los l&#237;mites de gasto interno, pero no impide probar de forma aislada la asignaci&#243;n de mec&#225;nicos con datos de prueba si se deja para despu&#233;s del alta b&#225;sica de reparaciones.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Comprende la creaci&#243;n del formulario de c&#225;lculo dentro del panel del administrador con el dise&#241;o en negro y naranja, la suma autom&#225;tica de los conceptos en pantalla y el env&#237;o de los importes y del nuevo estado al servidor.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-17">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #17</span> Aceptar o rechazar presupuestos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-baja">Prioridad: BAJA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente del taller con cuenta, quiero poder aceptar o rechazar el presupuesto de mi coche introduciendo mi contrase&#241;a, para autorizar o denegar el inicio del arreglo de forma r&#225;pida y segura desde mi m&#243;vil u ordenador.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en la decisi&#243;n del cliente sobre el presupuesto. Funciona por s&#237; sola en cuanto el taller deja el coche en estado &quot;PENDIENTE_ACEPTACION&quot;, sin depender de la facturaci&#243;n posterior ni de c&#243;mo el mec&#225;nico organice sus herramientas.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si al rechazar es obligatorio escribir un motivo o si es opcional, y c&#243;mo mostrar la ventana donde se pide la contrase&#241;a para que sea c&#243;moda de usar.</li>
+<li><strong>Valiosa (V):</strong> Ahorra llamadas y esperas innecesarias: el cliente decide cu&#225;ndo y c&#243;mo dar el visto bueno sin desplazarse al taller, y la confirmaci&#243;n con contrase&#241;a asegura que nadie acepte o rechace un gasto importante por error o sin permiso.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de medir y programar: consiste en mostrar los dos botones en el panel del cliente, abrir una ventanita para pedir la contrase&#241;a y enviar al servidor la orden para cambiar el estado.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy bien delimitado para el sprint: solo gestiona la validaci&#243;n de la contrase&#241;a y la actualizaci&#243;n del estado del presupuesto a &quot;ACEPTADO&quot; o &quot;RECHAZADO&quot;.</li>
+<li><strong>Testeable (T):</strong> Es muy f&#225;cil de comprobar en las pruebas: entramos como cliente, pulsamos en aceptar o rechazar, probamos a meter una contrase&#241;a err&#243;nea para ver que falla y luego la correcta para comprobar que el estado cambia al que corresponde.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como cliente y consulto una reparaci&#243;n en estado &quot;PENDIENTE_ACEPTACION&quot;, entonces la web me muestra el importe del presupuesto y dos botones claros: &quot;Aceptar Presupuesto&quot; y &quot;Rechazar Presupuesto&quot;.</li>
+<li>Si pulso cualquiera de los dos botones, entonces la pantalla me abre una ventana emergente pidi&#233;ndome escribir la contrase&#241;a de mi cuenta para confirmar mi decisi&#243;n (y un campo opcional para explicar el motivo si elijo rechazar).</li>
+<li>Si introduzco mi contrase&#241;a correctamente y confirmo la aceptaci&#243;n, entonces el sistema cambia el estado del presupuesto a &quot;ACEPTADO&quot; y deja la aver&#237;a lista para que el taller comience a trabajar.</li>
+<li>Si introduzco mi contrase&#241;a correctamente y confirmo el rechazo, entonces el sistema cambia el estado a &quot;RECHAZADO&quot;, guarda el motivo si lo he escrito y avisa al taller de que el cliente no aprueba el gasto.</li>
+<li>Si escribo mal mi contrase&#241;a en la ventana emergente, entonces la web me muestra un aviso de error indicando que la contrase&#241;a no es v&#225;lida, no cambia el estado del coche y me permite volver a intentarlo.</li>
+<li>Si una reparaci&#243;n ya se encuentra previamente en estado &quot;ACEPTADO&quot; o &quot;RECHAZADO&quot;, entonces los botones de acci&#243;n aparecen bloqueados o desactivados para impedir cambios repetidos.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Baja</div>
+                    <p>Es una funci&#243;n muy c&#243;moda y moderna de cara al cliente, pero no bloquea el trabajo diario del taller si al principio el personal confirma los presupuestos por tel&#233;fono. Puede desarrollarse tras tener bien asentada la creaci&#243;n de aver&#237;as y la asignaci&#243;n de mec&#225;nicos.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Requiere a&#241;adir en el panel privado del cliente los botones de acci&#243;n, una ventana emergente sencilla con el campo de contrase&#241;a y conectar la respuesta con el servidor para comprobar las credenciales y guardar el nuevo estado.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-18">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #18</span> A&#241;adir pruebas gr&#225;ficas
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-baja">Prioridad: BAJA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico del taller, quiero adjuntar fotos de las piezas rotas o desgastadas a la reparaci&#243;n de un coche, para que el cliente pueda ver claramente la aver&#237;a y entienda por qu&#233; es necesario arreglarla o sustituirla.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro equipo:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra &#250;nicamente en a&#241;adir fotos a una reparaci&#243;n ya asignada. Funciona de manera aut&#243;noma sin depender del inventario del almac&#233;n ni de la facturaci&#243;n o cobro final del veh&#237;culo.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros un l&#237;mite m&#225;ximo de im&#225;genes por coche (por ejemplo, permitir hasta 3 fotos de prueba) y prescindir de archivos pesados como v&#237;deos para no complicar el servidor en este primer proyecto.</li>
+<li><strong>Valiosa (V):</strong> Aporta una enorme confianza y claridad al cliente al permitirle ver el problema real con sus propios ojos, facilitando que d&#233; su visto bueno a los presupuestos sin desconfiar del taller.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de medir y calcular: consiste en a&#241;adir un bot&#243;n de selecci&#243;n de archivos en la pantalla del mec&#225;nico, enviar la imagen guard&#225;ndola en el sistema y mostrar la miniatura en pantalla.</li>
+<li><strong>Peque&#241;a (S):</strong> Al limitarla a im&#225;genes ligeras en lugar de v&#237;deos, se convierte en una tarea muy asumible para el sprint que podemos completar y probar paso a paso.</li>
+<li><strong>Testeable (T):</strong> Se puede comprobar f&#225;cilmente en las pruebas: seleccionamos una imagen de prueba desde el ordenador, comprobamos que se sube y aparece en la ficha de la aver&#237;a, y probamos a subir un formato no v&#225;lido para verificar que la web avisa del error.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como mec&#225;nico y consulto una reparaci&#243;n asignada a m&#237; en estado &quot;EN_PROCESO&quot;, entonces veo un apartado para a&#241;adir fotos con un bot&#243;n para seleccionar im&#225;genes desde mi dispositivo.</li>
+<li>Si subo una imagen en formato permitido (como JPG o PNG), entonces el sistema la guarda asociada a ese coche y me muestra una vista en miniatura con un campo de texto opcional para escribir un breve comentario sobre la rotura.</li>
+<li>Si intento subir un archivo con un formato no permitido o que supere el tama&#241;o m&#225;ximo establecido (por ejemplo, m&#225;s de 5 MB), entonces la web cancela la subida y me muestra un mensaje en pantalla indicando el problema.</li>
+<li>Si la reparaci&#243;n ya se encuentra en estado &quot;FINALIZADA&quot;, &quot;CONFIRMADA&quot; o &quot;ENTREGADA&quot;, entonces el bot&#243;n para subir fotos aparece desactivado para que no se puedan alterar las pruebas una vez terminado el trabajo.</li>
+<li>Si intento acceder a una reparaci&#243;n que est&#225; asignada a otro compa&#241;ero del taller, entonces el sistema no me permite a&#241;adir ni modificar ninguna fotograf&#237;a.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Baja</div>
+                    <p>Es una funcionalidad muy atractiva para dar transparencia y mejorar la imagen del taller, pero el flujo principal de reparaci&#243;n y entrega de coches funciona perfectamente sin ella. Conviene dejarla para cuando el circuito b&#225;sico de estados y asignaciones est&#233; terminado.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Involucra dise&#241;ar el bot&#243;n de subida y el recuadro de previsualizaci&#243;n en la pantalla del mec&#225;nico, gestionar el env&#237;o de archivos de imagen al servidor y guardar la ruta de la fotograf&#237;a vinculada a la aver&#237;a correspondiente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-19">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #19</span> Tiempo invertido en mano de obra
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-todo">Sin iniciar</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico del taller, quiero medir con un temporizador el tiempo que dedico a cada arreglo (iniciando, pausando y parando), para que el taller registre las horas reales de trabajo y se cobre la mano de obra de forma justa.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en contabilizar las horas de trabajo sobre un coche que ya est&#225; en el taller. Funciona por s&#237; sola mientras la reparaci&#243;n se encuentra en estado &quot;EN_PROCESO&quot;, sin depender de c&#243;mo se haga el cobro final ni del almac&#233;n de piezas.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el tiempo se guarda en minutos totales o en horas con decimales, y permitir si hace falta que el administrador corrija el tiempo a mano en caso de que al mec&#225;nico se le olvide parar el contador.</li>
+<li><strong>Valiosa (V):</strong> Ayuda a saber exactamente cu&#225;nto tiempo cuesta reparar cada aver&#237;a, evitando cobrar de m&#225;s o de menos al cliente y permitiendo al taller saber si el trabajo se est&#225; haciendo con agilidad.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de comprender y desglosar: consiste en poner tres botones de control en la pantalla del mec&#225;nico y guardar las horas trabajadas en la ficha de la aver&#237;a.</li>
+<li><strong>Peque&#241;a (S):</strong> Aunque requiere cuidar que el contador no se pierda al recargar la p&#225;gina, se acota exclusivamente a contar y acumular tiempo de trabajo dentro de una reparaci&#243;n en marcha.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: entramos como mec&#225;nico, iniciamos el contador, lo pausamos durante unos segundos, lo detenemos y verificamos que el tiempo final acumulado queda guardado en la reparaci&#243;n.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como mec&#225;nico y consulto una reparaci&#243;n asignada a m&#237; en estado &quot;EN_PROCESO&quot;, entonces la pantalla me muestra un contador de tiempo con tres botones claros: &quot;Iniciar&quot;, &quot;Pausar&quot; y &quot;Terminar&quot;.</li>
+<li>Si pulso en &quot;Iniciar&quot;, entonces el contador empieza a sumar minutos en pantalla y el sistema anota la hora exacta de comienzo para no perder la cuenta si se cierra o recarga el navegador.</li>
+<li>Si pulso en &quot;Pausar&quot;, entonces el contador se detiene guardando los minutos acumulados hasta el momento, permiti&#233;ndome reanudar la cuenta m&#225;s tarde sin empezar desde cero.</li>
+<li>Si pulso en &quot;Terminar&quot;, entonces la web me pide una confirmaci&#243;n para evitar paradas accidentales, detiene el contador por completo y guarda el total de horas y minutos dedicados en la ficha de la aver&#237;a.</li>
+<li>Si intento iniciar el contador en un coche mientras ya tengo otro en marcha, entonces la web me muestra un aviso pidi&#233;ndome pausar la tarea activa antes de comenzar una nueva.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es muy &#250;til para controlar la rentabilidad del taller y justificar las horas cobradas, pero no impide que el flujo b&#225;sico de arreglar y entregar coches funcione con horas estimadas fijadas a mano.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Requiere programar el reloj en la pantalla del mec&#225;nico con el estilo visual del taller, coordinar las horas de inicio y fin con el servidor para que el tiempo no se borre al actualizar la p&#225;gina, y acumular el tiempo total en la aver&#237;a.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-20">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #20</span> Supervisi&#243;n del trabajo de los mec&#225;nicos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-todo">Sin iniciar</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como administrador del taller, quiero consultar los tiempos que ha dedicado cada mec&#225;nico a sus reparaciones, para revisar el rendimiento del equipo y saber si las aver&#237;as se resuelven con agilidad.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en consultar y sumar los tiempos que ya han quedado guardados en el sistema. Funciona por s&#237; sola como una pantalla de consulta, sin frenar el trabajo de los mec&#225;nicos ni modificar las aver&#237;as en curso.</li>
+<li><strong>Negociable (N):</strong> Podemos pactar entre nosotros si empezamos mostrando un resumen sencillo del mes actual y dejamos los filtros avanzados entre fechas personalizadas para una mejora posterior.</li>
+<li><strong>Valiosa (V):</strong> Proporciona al responsable del taller una visi&#243;n real del trabajo: permite detectar qu&#233; arreglos se est&#225;n atascando, felicitar a los empleados eficientes y ajustar mejor las estimaciones de mano de obra futuras.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de entender y repartir: consiste en hacer una pantalla en el panel de administraci&#243;n con una tabla resumen que sume las horas trabajadas por cada operario.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy c&#243;modo para el sprint porque se limita a leer y ordenar datos que ya existen en el sistema; no modifica piezas, no altera la caja del taller ni cambia estados de coches.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: entramos como administrador, seleccionamos a un mec&#225;nico de prueba con tiempos ya registrados y verificamos que la suma de horas y el desglose de sus coches coinciden exactamente.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como administrador y entro al apartado de tiempos del equipo, entonces veo una lista con todos los mec&#225;nicos del taller y el total de horas acumuladas por cada uno.</li>
+<li>Si uso los filtros de la pantalla para seleccionar a un mec&#225;nico concreto o un periodo de tiempo (por ejemplo, esta semana o este mes), entonces la tabla se actualiza mostrando &#250;nicamente los registros que coinciden con esa b&#250;squeda.</li>
+<li>Si elijo a un mec&#225;nico del listado, entonces la pantalla me abre el desglose de los coches en los que ha trabajado, mostrando el identificador de la aver&#237;a y el tiempo exacto (en horas y minutos) que dedic&#243; a cada uno.</li>
+<li>Si realizo una b&#250;squeda y no hay ning&#250;n tiempo anotado para ese empleado o esas fechas, entonces el sistema me muestra un mensaje en pantalla avisando de que no existen registros de trabajo para ese periodo.</li>
+<li>Si una persona con rol de mec&#225;nico o cliente intenta entrar a esta secci&#243;n de control de tiempos, entonces la web bloquea la pantalla para proteger la privacidad laboral del personal.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es muy pr&#225;ctica para el control interno y la gesti&#243;n del negocio, pero el taller puede seguir arreglando y entregando coches con normalidad aunque esta vista se implemente un poco m&#225;s adelante.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Consiste en dise&#241;ar la tabla de consulta en el panel del administrador con los colores negro y naranja, crear los filtros de b&#250;squeda por empleado o fechas, y programar la llamada para traer los tiempos sumados y pintarlos de forma limpia.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-21">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #21</span> Historial de reparaciones para mec&#225;nicos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-todo">Sin iniciar</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico del taller, quiero consultar el historial de reparaciones anteriores de un veh&#237;culo, para conocer qu&#233; piezas se le han cambiado antes o si ha tenido fallos repetidos y diagnosticar la aver&#237;a actual m&#225;s r&#225;pido.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro equipo:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra &#250;nicamente en consultar informaci&#243;n del pasado que ya est&#225; guardada en el sistema. Funciona de manera aut&#243;noma sin entorpecer la aver&#237;a actual que el mec&#225;nico tenga entre manos ni depender de la facturaci&#243;n.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros qu&#233; datos mostrar en la vista previa de cada reparaci&#243;n pasada (por ejemplo, fecha, motivo y piezas sustituidas) antes de abrir los detalles completos si el mec&#225;nico necesita profundizar.</li>
+<li><strong>Valiosa (V):</strong> Aporta una ayuda t&#233;cnica enorme: evita diagn&#243;sticos a ciegas, permite comprobar si una pieza cambiada hace poco sigue en garant&#237;a y ayuda a resolver fallos complicados fij&#225;ndose en c&#243;mo se solucionaron la &#250;ltima vez.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de entender y calcular: consiste en pedir al servidor las reparaciones concluidas asociadas a la matr&#237;cula del coche y mostrarlas en una lista ordenada por fecha en la pantalla del mec&#225;nico.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy manejable para el sprint porque es una funci&#243;n de solo lectura; no permite borrar ni modificar el pasado, lo que simplifica mucho la programaci&#243;n.</li>
+<li><strong>Testeable (T):</strong> Es muy f&#225;cil de verificar en las pruebas: seleccionamos un coche de prueba con reparaciones ya terminadas y comprobamos que aparecen en orden de la m&#225;s nueva a la m&#225;s vieja, y probamos con un coche nuevo para ver que avisa de que no tiene historial.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como mec&#225;nico y entro a la ficha de un veh&#237;culo o aver&#237;a asignada, entonces la pantalla me muestra un apartado de &quot;Historial de reparaciones&quot;.</li>
+<li>Si consulto ese historial, entonces veo la lista de todas las reparaciones pasadas que est&#233;n en estado &quot;FINALIZADA&quot; o &quot;ENTREGADA&quot;, ordenadas de la m&#225;s reciente a la m&#225;s antigua, mostrando la fecha, el motivo de entrada y el compa&#241;ero mec&#225;nico que la atendi&#243;.</li>
+<li>Si pulso sobre una reparaci&#243;n pasada del listado, entonces la pantalla se despliega mostrando el detalle completo: el trabajo que se le hizo, las piezas del almac&#233;n que se gastaron y las notas o fotos que se guardaron en su momento.</li>
+<li>Si el coche entra por primera vez al taller o no tiene arreglos terminados todav&#237;a, entonces la web me muestra un mensaje claro indicando que este veh&#237;culo no tiene reparaciones anteriores registradas.</li>
+<li>Si intento editar o borrar alg&#250;n dato del historial pasado, entonces el sistema me lo impide mostrando la informaci&#243;n en modo de solo lectura para proteger los registros del taller.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es una herramienta fant&#225;stica para facilitar el trabajo diario en el taller, pero el equipo puede seguir arreglando coches y cambiando estados sin ella durante las primeras fases de prueba.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Consiste en dise&#241;ar la lista desplegable o en acorde&#243;n dentro del panel del mec&#225;nico con el estilo negro y naranja, y programar la llamada para traer juntas las aver&#237;as pasadas concluidas de ese veh&#237;culo con sus piezas asociadas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-22">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #22</span> Historial de reparaciones para clientes
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente con cuenta, quiero consultar el historial de reparaciones de mis veh&#237;culos y poder abrir o descargar la factura oficial en PDF desde el navegador, para llevar un control ordenado de mis gastos sin depender de papeles f&#237;sicos.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a la arquitectura del proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en consultar datos cerrados de reparaciones y facturas pasadas. Funciona por s&#237; sola en el panel del cliente sin interferir en las aver&#237;as que el taller est&#233; reparando en ese momento.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros el dise&#241;o de la plantilla de impresi&#243;n de la factura (membrete del taller, logotipo, tipograf&#237;a y distribuci&#243;n de impuestos) para que quede impecable al generarse desde el navegador.</li>
+<li><strong>Valiosa (V):</strong> Proporciona al cliente total transparencia y comodidad al permitirle guardar o imprimir sus comprobantes oficiales cuando los necesite, mejorando la imagen profesional del taller y ahorrando impresiones en recepci&#243;n.</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible para el equipo: el servidor devuelve los datos fiscales de la reparaci&#243;n terminada y en el navegador se genera la vista maquetada lista para guardar como PDF mediante la funci&#243;n de impresi&#243;n nativa.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy manejable para el sprint: es una funcionalidad de lectura y maquetaci&#243;n de documento, sin alterar inventarios, estados ni registros contables en la base de datos.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: iniciamos sesi&#243;n como cliente, seleccionamos un veh&#237;culo con reparaciones en estado &quot;ENTREGADA&quot;, pulsamos el bot&#243;n de la factura y comprobamos que se abre la vista maquetada con los importes desglosados y la opci&#243;n de guardar como PDF.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como cliente y accedo al apartado de mis veh&#237;culos, entonces veo la lista de todos los coches asociados a mi cuenta.</li>
+<li>Si selecciono uno de mis veh&#237;culos, entonces la pantalla me muestra el historial de sus reparaciones concluidas (en estado &quot;ENTREGADA&quot;), indicando la fecha, el motivo de la aver&#237;a y el importe total abonado.</li>
+<li>Si pulso el bot&#243;n &quot;Ver/Descargar Factura&quot; en una reparaci&#243;n del listado, entonces el sistema genera y muestra la factura oficial maquetada con el membrete del taller, los datos fiscales, el desglose de piezas, mano de obra e impuestos, y abre el cuadro de di&#225;logo del navegador para imprimirla o guardarla en PDF.</li>
+<li>Si el veh&#237;culo seleccionado a&#250;n no tiene ninguna reparaci&#243;n terminada o entregada, entonces la web me muestra un mensaje claro indicando que a&#250;n no existen registros ni facturas para ese coche.</li>
+<li>Si intento consultar las reparaciones o facturas de un veh&#237;culo que no pertenece a mi cuenta de cliente, entonces el sistema bloquea el acceso para proteger la privacidad de los dem&#225;s clientes.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Aporta un gran valor percibido al cliente y moderniza el servicio del taller, pero el circuito operativo de arreglar y cobrar veh&#237;culos puede probarse antes de dejar lista la plantilla de impresi&#243;n de la factura.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Involucra dise&#241;ar la secci&#243;n del historial en el panel del cliente con el dise&#241;o negro y naranja, maquetar la plantilla HTML/CSS de la factura con sus reglas de impresi&#243;n y programar la funci&#243;n en JavaScript para volcar los datos desglosados y disparar la generaci&#243;n del PDF.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-23">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #23</span> Solicitudes de cita
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente con cuenta, quiero solicitar una cita previa eligiendo mi veh&#237;culo, la fecha y el motivo de la visita, para organizar la entrega de mi coche con antelaci&#243;n y evitar esperas en recepci&#243;n.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en el momento previo a la entrada del coche en el taller. Funciona por s&#237; sola en la zona del cliente sin interferir en las reparaciones que los mec&#225;nicos est&#233;n realizando ni en el almac&#233;n de piezas.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el cliente elige una hora exacta o simplemente un tramo horario (por ejemplo, turno de ma&#241;ana de 8:00 a 13:00 o de tarde de 15:00 a 19:00) para simplificar la gesti&#243;n de huecos en el sistema.</li>
+<li><strong>Valiosa (V):</strong> Aporta comodidad al cliente al permitirle pedir fecha desde su m&#243;vil a cualquier hora, y ayuda al recepcionista a saber cu&#225;ntos coches van a entrar cada d&#237;a para organizar mejor el trabajo del taller.</li>
+<li><strong>Estimable (E):</strong> Es medible y clara para el equipo: consiste en dise&#241;ar un formulario con calendario en el panel del cliente, enviar los datos seleccionados y guardar la solicitud asociada a su veh&#237;culo.</li>
+<li><strong>Peque&#241;a (S):</strong> Se mantiene en un tama&#241;o viable si evitamos algoritmos complejos de reservas cruzadas al segundo, limit&#225;ndonos a comprobar que la fecha elegida sea futura y dentro de d&#237;as laborables.</li>
+<li><strong>Testeable (T):</strong> Se comprueba con facilidad en las pruebas: iniciamos sesi&#243;n como cliente, seleccionamos un coche, elegimos un d&#237;a v&#225;lido con su motivo y verificamos que la cita queda registrada y confirmada en pantalla, probando tambi&#233;n que no permita elegir fechas pasadas.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como cliente y entro al apartado de solicitar cita, entonces la pantalla me permite seleccionar uno de mis veh&#237;culos guardados y escribir o seleccionar el motivo de la visita (por ejemplo: revisi&#243;n general, cambio de aceite o ruido en el motor).</li>
+<li>Si selecciono una fecha en el calendario y una franja horaria disponible en d&#237;as laborables de lunes a viernes, entonces el sistema me permite avanzar hacia la confirmaci&#243;n.</li>
+<li>Si pulso en &quot;Confirmar cita&quot; con todos los datos correctos, entonces el sistema guarda la reserva, me muestra una pantalla de confirmaci&#243;n con el resumen de la cita y la deja visible en mi panel para consultarla.</li>
+<li>Si intento seleccionar una fecha pasada, un fin de semana o dejo campos vac&#237;os (sin elegir coche o motivo), entonces la web me muestra un aviso de error indicando lo que falta y no permite guardar la solicitud.</li>
+<li>Si una franja horaria ya ha alcanzado el l&#237;mite m&#225;ximo de coches admitidos para ese d&#237;a, entonces la web me muestra ese horario como no disponible e impide seleccionarlo.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es muy pr&#225;ctica para mejorar el servicio y ordenar la entrada de veh&#237;culos, pero el taller puede seguir funcionando con normalidad atendiendo a los clientes directamente en recepci&#243;n mientras se termina de afinar esta pantalla.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Requiere dise&#241;ar el formulario con selector de fecha y horas dentro del panel del cliente con los colores negro y naranja, programar las comprobaciones de d&#237;as laborables en pantalla y guardar la cita asociada al cliente y a su coche en el servidor.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-24">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #24</span> Calendario organizado
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero consultar un calendario con las citas programadas y el l&#237;mite diario de veh&#237;culos, para organizar las entradas de trabajo sin sobrecargar a los mec&#225;nicos ni aceptar m&#225;s coches de los que podemos atender.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple &#237;ntegramente con el criterio INVEST:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se enfoca exclusivamente en la planificaci&#243;n y visualizaci&#243;n de las llegadas al taller. Funciona de manera aut&#243;noma conect&#225;ndose a los registros de citas previas, sin interferir en el trabajo de los mec&#225;nicos ni en el almac&#233;n de piezas.</li>
+<li><strong>Negociable (N):</strong> Permite pactar con el equipo el formato visual del calendario (vista por d&#237;as laborables y tramos horarios) y definir el aforo m&#225;ximo configurable de veh&#237;culos admitidos por franja y jornada.</li>
+<li><strong>Valiosa (V):</strong> Evita cuellos de botella y desorganizaci&#243;n en recepci&#243;n: asegura que el personal conozca de antemano el volumen de coches de cada d&#237;a, impide comprometer fechas de entrega irreales y distribuye la carga de trabajo de forma equilibrada.</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible para el equipo: consiste en consultar las citas almacenadas, agruparlas por fecha y tramo horario, y compararlas num&#233;ricamente con el l&#237;mite de capacidad fijado para el taller.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy manejable para el sprint al centrarse en la visualizaci&#243;n gr&#225;fica de la agenda, el control de cupo y la gesti&#243;n del estado de las citas, sin incluir la gesti&#243;n mec&#225;nica de las aver&#237;as ni la facturaci&#243;n.</li>
+<li><strong>Testeable (T):</strong> Se comprueba con facilidad en las pruebas: registramos citas de prueba hasta alcanzar el l&#237;mite del tramo o d&#237;a y verificamos que el indicador visual cambia de color (de verde a amarillo y rojo) y que el sistema bloquea nuevas reservas cuando el aforo llega al 100%.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como recepcionista (o administrador) y accedo al calendario del taller, entonces la pantalla me muestra los d&#237;as laborables con las citas agendadas y un indicador del volumen de ocupaci&#243;n respecto al tope m&#225;ximo (por ejemplo: &quot;5 de 8 plazas ocupadas&quot;).</li>
+<li>Si consulto un d&#237;a o franja horaria espec&#237;fica, entonces el sistema me muestra mediante c&#243;digos de colores el nivel de ocupaci&#243;n (verde con plazas libres, amarillo con ocupaci&#243;n media/alta y rojo cuando el cupo est&#225; completo).</li>
+<li>Si selecciono una fecha concreta en el calendario, entonces veo el listado detallado de las citas programadas para ese d&#237;a indicando la franja horaria, los datos del cliente, la matr&#237;cula del veh&#237;culo, el motivo de la visita y su estado (&quot;PENDIENTE&quot;, &quot;CONFIRMADA&quot; o &quot;CANCELADA&quot;).</li>
+<li>Si gestiono una cita desde el panel de recepci&#243;n, entonces puedo confirmar la asistencia o cancelarla (liberando autom&#225;ticamente esa plaza en el aforo disponible del d&#237;a).</li>
+<li>Si se intenta agendar una nueva cita en un tramo horario que ya ha alcanzado su l&#237;mite m&#225;ximo de veh&#237;culos, entonces el sistema muestra el tramo como completo y bloquea la reserva para evitar sobrecargar el taller.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es muy importante para organizar la recepci&#243;n diaria y evitar saturar a los mec&#225;nicos, aunque el taller puede registrar entradas directas en mostrador mientras se completa la vista gr&#225;fica del calendario.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Requiere construir la vista interactiva del calendario en el panel de recepci&#243;n y administraci&#243;n con indicadores de ocupaci&#243;n por colores, conectar con los endpoints de citas y aforo del servidor, y permitir confirmar o cancelar reservas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-25">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #25</span> Generar facturas
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-baja">Prioridad: BAJA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero generar la factura oficial a partir de las piezas gastadas y las horas de trabajo registradas, para cobrar al cliente de forma r&#225;pida y sin cometer errores de c&#225;lculo a mano.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en liquidar y formalizar el cobro de un trabajo ya realizado. Funciona sobre reparaciones que han completado su intervenci&#243;n t&#233;cnica, sin depender de pasarelas de pago externas ni de que el cliente use la web.</li>
+<li><strong>Negociable (N):</strong> Podemos pactar entre nosotros el dise&#241;o del documento (membrete, logotipo del taller y orden de los conceptos) y si los datos fiscales del cliente se pueden completar en ese mismo instante si faltaba alguno.</li>
+<li><strong>Valiosa (V):</strong> Elimina el riesgo de cobrar de menos o de m&#225;s: toma autom&#225;ticamente las piezas exactas que el mec&#225;nico descont&#243; del almac&#233;n y las horas reales de mano de obra, calculando los impuestos al instante y generando un comprobante profesional.</li>
+<li><strong>Estimable (E):</strong> Es medible y clara para el equipo: consiste en sumar el coste de materiales y mano de obra que ya est&#225;n en la base de datos, aplicar el porcentaje de IVA y presentar la factura maquetada en pantalla lista para imprimir o guardar en PDF.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy manejable para el sprint: realiza c&#225;lculos matem&#225;ticos b&#225;sicos y muestra el documento maquetado, sin meterse en integraciones bancarias complejas ni almacenamiento de archivos pesados en el servidor.</li>
+<li><strong>Testeable (T):</strong> Se verifica con facilidad en las pruebas: abrimos una reparaci&#243;n terminada, comprobamos que el total coincide al c&#233;ntimo con la suma de piezas m&#225;s horas trabajadas con su IVA, y confirmamos que se abre la vista de factura con su n&#250;mero identificativo.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como recepcionista y consulto una reparaci&#243;n que ya ha sido completada por el mec&#225;nico, entonces la pantalla me muestra habilitado el bot&#243;n para generar la factura.</li>
+<li>Si pulso en &quot;Generar Factura&quot;, entonces el sistema re&#250;ne autom&#225;ticamente los datos del cliente, los del coche, el listado de piezas utilizadas con su precio y las horas totales de mano de obra seg&#250;n la tarifa por hora acordada.</li>
+<li>Si se genera el desglose, entonces la pantalla calcula de forma inmediata el subtotal sin impuestos, el importe correspondiente al IVA y el total final a pagar, asignando un n&#250;mero de factura correlativo para el registro del taller.</li>
+<li>Si confirmo la factura, entonces la web abre la plantilla maquetada con los datos fiscales oficiales lista para imprimir o guardar en PDF desde el navegador, dejando la reparaci&#243;n lista para el cobro y entrega al cliente.</li>
+<li>Si intento generar la factura de una aver&#237;a que todav&#237;a no ha terminado el mec&#225;nico o a la que le faltan datos obligatorios del cliente (como DNI/CIF o tel&#233;fono), entonces el sistema bloquea la acci&#243;n y me muestra un aviso se&#241;alando lo que falta completar.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Baja</div>
+                    <p>Es una gran automatizaci&#243;n para la administraci&#243;n del taller, pero en una primera fase las reparaciones se pueden cerrar y cobrar revisando los datos en pantalla sin que sea obligatorio tener la plantilla de factura terminada.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Requiere programar el c&#225;lculo de subtotales e impuestos en el sistema, maquetar la plantilla de factura en HTML y CSS con el dise&#241;o del taller y configurar la funci&#243;n en JavaScript para volcar los datos y permitir la descarga o impresi&#243;n en PDF.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-26">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #26</span> Terminar y archivar
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero marcar una reparaci&#243;n como cobrada y entregada para registrar el pago, sumar el dinero a la caja y retirar el veh&#237;culo de la lista de coches activos del taller.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en el cierre comercial y la entrega de llaves. Funciona de manera aut&#243;noma una vez que el trabajo t&#233;cnico ha sido revisado, sin depender de pasarelas de pago telem&#225;ticas ni de dispositivos externos.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el m&#233;todo de pago se elige mediante un selector sencillo (efectivo o tarjeta) y si se permite a&#241;adir una nota breve sobre la entrega.</li>
+<li><strong>Valiosa (V):</strong> Es indispensable para cerrar el ciclo del coche: asegura que no se entregue ning&#250;n veh&#237;culo sin registrar su cobro, actualiza los ingresos de la caja del taller y limpia la pantalla principal para que el equipo solo vea los coches pendientes.</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible y sencilla para el equipo: consiste en abrir una ventana de confirmaci&#243;n para elegir el tipo de pago, sumar el importe al dinero del taller y cambiar el estado de la aver&#237;a a &quot;ENTREGADA&quot;.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy acotado y c&#243;modo para el sprint: actualiza el estado en el servidor y oculta el coche de las tablas activas mediante un filtro visual, sin tocar stock ni horas de trabajo.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: seleccionamos un coche en estado &quot;CONFIRMADA&quot;, pulsamos en cobrar y entregar, elegimos el m&#233;todo de pago y verificamos que pasa a &quot;ENTREGADA&quot;, desaparece de la lista activa y se puede consultar en el historial.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como recepcionista y accedo a una reparaci&#243;n que ya ha sido revisada por el taller (en estado &quot;CONFIRMADA&quot;), entonces la pantalla me muestra habilitado el bot&#243;n &quot;Cobrar y Entregar&quot;.</li>
+<li>Si pulso en &quot;Cobrar y Entregar&quot;, entonces se abre una ventana emergente que me pide seleccionar el m&#233;todo de pago (Efectivo o Tarjeta) y me permite escribir notas adicionales si fuera necesario.</li>
+<li>Si confirmo la operaci&#243;n en la ventana emergente, entonces el sistema registra el cobro, suma el importe al saldo de la caja del taller y actualiza el estado de la reparaci&#243;n a &quot;ENTREGADA&quot; con la fecha y hora actual.</li>
+<li>Si la reparaci&#243;n pasa a estado &quot;ENTREGADA&quot;, entonces el veh&#237;culo desaparece de forma autom&#225;tica de la lista de trabajo activo de recepci&#243;n y del taller, quedando disponible &#250;nicamente a trav&#233;s del buscador o del historial.</li>
+<li>Si intento marcar como entregada una reparaci&#243;n que a&#250;n no ha sido revisada o que sigue en estados previos (como &quot;PENDIENTE&quot;, &quot;EN_PROCESO&quot; o &quot;FINALIZADA&quot; sin confirmar), entonces el sistema mantiene el bot&#243;n desactivado o muestra un aviso indicando que el trabajo debe ser confirmado primero.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es fundamental para cerrar el ciclo diario y mantener el control del dinero y las listas de trabajo limpias, pero puede implementarse una vez asentado el n&#250;cleo de cambio de estados entre mec&#225;nicos y administrador.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Requiere a&#241;adir en el panel de recepci&#243;n el bot&#243;n de acci&#243;n, la ventana emergente para registrar la forma de pago y enviar la actualizaci&#243;n al servidor para pasar la aver&#237;a a estado &quot;ENTREGADA&quot; y sumar el importe en caja.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-27">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #27</span> Alertas por stock bajo
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-baja">Prioridad: BAJA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como administrador del taller, quiero ver alertas visuales en mi panel cuando el stock de una pieza baje de su l&#237;mite m&#237;nimo, para pedir repuestos a los proveedores a tiempo y evitar que los mec&#225;nicos se queden sin materiales.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en avisar de la falta de materiales dentro del almac&#233;n. Funciona por s&#237; sola comprobando las cantidades que quedan en el inventario, sin depender de c&#243;mo se organicen las compras con los proveedores externos.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el aviso se muestra como un contador en la cabecera del panel o resaltando las filas de las piezas agotadas con una etiqueta en color rojo dentro de la tabla de almac&#233;n.</li>
+<li><strong>Valiosa (V):</strong> Evita que los coches se queden parados en el taller por falta de repuestos habituales (como aceites, filtros o pastillas de freno), permitiendo al responsable pedir material antes de que se agote por completo.</li>
+<li><strong>Estimable (E):</strong> Es muy f&#225;cil de medir y programar: consiste en una comprobaci&#243;n b&#225;sica de n&#250;meros (si la cantidad actual es menor o igual al stock m&#237;nimo) y pintar el aviso correspondiente en la pantalla del administrador.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy reducido y c&#243;modo para el sprint: lee el inventario y resalta los datos visualmente, sin necesidad de crear bandejas de correo complejas ni pasarelas de pedidos autom&#225;ticos.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: descontamos unidades de una pieza hasta dejarla por debajo de su umbral m&#237;nimo y verificamos que en el panel del administrador aparece el aviso o la fila en color rojo.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si una pieza del almac&#233;n queda con una cantidad igual o inferior al stock m&#237;nimo configurado tras usarse en una reparaci&#243;n, entonces el sistema la marca internamente como material con aviso de reposici&#243;n.</li>
+<li>Si inicio sesi&#243;n como administrador, entonces el panel me muestra un indicador de aviso en el men&#250; o cabecera se&#241;alando el n&#250;mero de piezas que necesitan reposici&#243;n urgente.</li>
+<li>Si entro a la secci&#243;n de inventario o almac&#233;n, entonces la pantalla resalta en color rojo o con una etiqueta de advertencia aquellas piezas que est&#225;n por debajo del m&#237;nimo, mostrando las unidades restantes y el l&#237;mite configurado.</li>
+<li>Si se a&#241;aden nuevas unidades de esa pieza al inventario y el total vuelve a superar el m&#237;nimo, entonces el aviso desaparece de forma autom&#225;tica de la pantalla.</li>
+<li>Si una persona con rol de mec&#225;nico est&#225;ndar o cliente entra a la aplicaci&#243;n, entonces la web no le muestra estos avisos de gesti&#243;n de compras para mantener limpio su entorno de trabajo.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Baja</div>
+                    <p>Es una mejora visual muy pr&#225;ctica para evitar despistes en el almac&#233;n, pero el taller puede seguir operando consultando la lista de piezas a mano mientras se afina el n&#250;cleo de las reparaciones.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Requiere a&#241;adir en el panel del administrador la comprobaci&#243;n num&#233;rica entre las existencias actuales y el valor m&#237;nimo fijado, mostrando una etiqueta de advertencia o color rojo en la lista de materiales y un contador en la cabecera.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-29">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #29</span> Registro de datos y actividad
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como miembro del personal del taller (recepcionista, mec&#225;nico o administrador), quiero ver en mi pantalla de trabajo los datos y el estado actualizado de las reparaciones seg&#250;n mi puesto, para coordinarme con mis compa&#241;eros sin tener que preguntarnos las cosas en persona y evitar despistes o retrasos en el trabajo diario.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple con el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra &#250;nicamente en la organizaci&#243;n interna del equipo del taller. Los trabajadores pueden revisar sus tareas y actualizar el estado de los veh&#237;culos sin importar si los clientes usan la web o no.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros qu&#233; datos prioritarios mostrar primero en cada pantalla (por ejemplo, que el mec&#225;nico vea primero su lista de tareas pendientes y el bot&#243;n para cambiar de fase, dejando otros detalles para m&#225;s adelante).</li>
+<li><strong>Valiosa (V):</strong> Evita p&#233;rdidas de tiempo y descontrol en el taller: el mec&#225;nico sabe exactamente qu&#233; coche le toca arreglar, el recepcionista conoce al momento el estado de cualquier veh&#237;culo para informar a los clientes, y el responsable del taller controla los gastos, los ingresos y las piezas que se est&#225;n acabando.</li>
+<li><strong>Estimable (E):</strong> Es f&#225;cil de calcular y repartir porque el servidor ya tiene lista toda la informaci&#243;n; nuestro trabajo consiste en pedir esos datos desde la p&#225;gina web y colocarlos de forma ordenada en la pantalla que le corresponde a cada empleado.</li>
+<li><strong>Peque&#241;a (S):</strong> Al separar en otra historia independiente la parte p&#250;blica de los clientes (HU #30), esta historia queda acotada a la operativa interna del personal para completarse dentro de las dos semanas del sprint.</li>
+<li><strong>Testeable (T):</strong> Es muy f&#225;cil de comprobar en las pruebas: entramos a la web con la cuenta de cada tipo de trabajador y comprobamos que cada uno ve &#250;nicamente su informaci&#243;n y que los botones para cambiar estados o piezas funcionan como deben.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como mec&#225;nico, entonces la web me muestra &#250;nicamente la lista de los coches que tengo asignados para reparar, el estado en el que se encuentran y me permite pulsar un bot&#243;n para pasar de fase (de &quot;PENDIENTE&quot; a &quot;EN_PROCESO&quot; y luego a &quot;FINALIZADA&quot;).</li>
+<li>Si inicio sesi&#243;n como administrador, entonces veo la lista completa de todas las reparaciones del taller, qu&#233; mec&#225;nico se encarga de cada una, el dinero disponible en la caja y un aviso en color rojo en aquellas piezas del almac&#233;n que se est&#233;n quedando sin existencias.</li>
+<li>Si inicio sesi&#243;n como recepcionista, entonces puedo consultar en qu&#233; punto exacto est&#225; cualquier veh&#237;culo del taller para poder informar r&#225;pidamente a quien pregunte en el mostrador o por tel&#233;fono.</li>
+<li>Si un mec&#225;nico anota que ha utilizado piezas del almac&#233;n en un arreglo (por ejemplo, dos filtros de aceite), entonces el n&#250;mero de piezas disponibles se descuenta autom&#225;ticamente para que todo el equipo vea el inventario real sin tener que contarlo a mano.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es imprescindible para el funcionamiento interno del taller; sin estas pantallas de trabajo el personal no sabr&#237;a qu&#233; tareas realizar, qu&#233; coches faltan por arreglar ni qu&#233; materiales quedan en el almac&#233;n.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande</div>
+                    <p>Aunque entra dentro de un &#250;nico sprint de dos semanas (cumpliendo el criterio S tras haberse dividido de la &#233;pica original HU #14), tiene una envergadura grande dentro del sprint (3-4 d&#237;as) porque abarca el dise&#241;o y conexi&#243;n con el servidor de los tres paneles internos de trabajo (<code>dashboard-recepcionista.html</code>, <code>dashboard-mecanico.html</code> y <code>dashboard-admin.html</code>).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-30">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #30</span> Muestra de datos y actividad
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como cliente del taller, quiero consultar el avance de la reparaci&#243;n de mi veh&#237;culo introduciendo mi c&#243;digo localizador o desde mi cuenta personal, para saber en todo momento qu&#233; le est&#225;n haciendo a mi coche sin tener que llamar o desplazarme al taller.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple con el criterio INVEST de forma sencilla y directa:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra exclusivamente en la parte p&#250;blica y de consulta que ve el cliente. Funciona leyendo la informaci&#243;n que ya existe en el taller, sin entorpecer el trabajo diario de los mec&#225;nicos ni depender de otras pantallas internas.</li>
+<li><strong>Negociable (N):</strong> Podemos pactar entre nosotros qu&#233; datos exactos mostrarle al due&#241;o del coche (por ejemplo, mostrar el estado con etiquetas de colores llamativas como &quot;EN_PROCESO&quot; o &quot;FINALIZADA&quot;, pero manteniendo ocultas las notas internas o los m&#225;rgenes de beneficio del taller).</li>
+<li><strong>Valiosa (V):</strong> Aporta una gran comodidad y tranquilidad al cliente al permitirle ver el progreso desde su casa. Adem&#225;s, protege su privacidad al buscar por un c&#243;digo &#250;nico de 8 caracteres en lugar de por matr&#237;cula, evitando que otras personas puedan ver sus datos.</li>
+<li><strong>Estimable (E):</strong> Es una tarea f&#225;cil de medir y repartir entre nosotros: consiste en dise&#241;ar la pantalla de consulta r&#225;pida por localizador y la zona privada del cliente, mostr&#225;ndole sus coches y estados de forma ordenada.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance manejable que se puede completar y probar dentro de un &#250;nico sprint de dos semanas, ya que solo consulta y muestra datos en pantalla y permite vincular c&#243;digos localizadores, sin modificar inventarios ni finanzas del taller.</li>
+<li><strong>Testeable (T):</strong> Es muy f&#225;cil de comprobar durante las pruebas: introducimos un c&#243;digo localizador de 8 caracteres de prueba para ver si la web muestra el coche y el color de estado correspondiente, y probamos a iniciar sesi&#243;n como cliente para verificar que aparecen sus veh&#237;culos guardados.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si introduzco un c&#243;digo localizador v&#225;lido de 8 caracteres en la pantalla de consulta r&#225;pida, entonces la web me muestra al momento la marca, modelo y matr&#237;cula de mi coche junto a una etiqueta de color con su estado actual (por ejemplo: &quot;PENDIENTE&quot;, &quot;EN_PROCESO&quot;, &quot;FINALIZADA&quot;, &quot;CONFIRMADA&quot; o &quot;ENTREGADA&quot;) sin pedirme ninguna contrase&#241;a.</li>
+<li>Si escribo un c&#243;digo localizador que no existe o me equivoco en alg&#250;n car&#225;cter, entonces la web me muestra un aviso claro en pantalla indicando que no se ha encontrado ning&#250;n veh&#237;culo con ese c&#243;digo para que pueda corregirlo.</li>
+<li>Si inicio sesi&#243;n con mi cuenta personal de cliente, entonces en mi panel privado veo autom&#225;ticamente la lista de todos mis veh&#237;culos registrados con sus reparaciones activas, el desglose de estado y un apartado para vincular nuevos c&#243;digos localizadores a mi perfil.</li>
+<li>Si el estado de mi veh&#237;culo se actualiza en el taller (por ejemplo, cuando pasa a estar listo para recoger), entonces al consultar de nuevo con mi localizador o desde mi cuenta veo reflejado inmediatamente el nuevo estado alcanzado.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es una de las funcionalidades principales de valor para el cliente final y una de las dos partes fundamentales en las que se desglosa la &#233;pica de consulta de actividad en tiempo real.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande</div>
+                    <p>Dentro del sprint supone un esfuerzo amplio (3-4 d&#237;as) ya que abarca tanto la p&#225;gina p&#250;blica de consulta r&#225;pida por localizador (<code>consulta-estado.html</code>) como la visualizaci&#243;n detallada en el panel privado del cliente (<code>dashboard-cliente.html</code>) y su conexi&#243;n con el backend.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-32">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #32</span> Registro de piezas
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico o administrador del taller, quiero consultar y mantener actualizada la lista de piezas y repuestos del almac&#233;n, para conocer los materiales disponibles y evitar que falten piezas durante las reparaciones.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en el cat&#225;logo de materiales del taller. Funciona de manera aut&#243;noma como un registro de almac&#233;n, sin depender de que haya coches en reparaci&#243;n en ese momento ni de la facturaci&#243;n.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros las categor&#237;as iniciales de repuestos (por ejemplo: filtros, frenos, motor o l&#237;quidos) y qu&#233; datos son obligatorios al dar de alta una pieza nueva.</li>
+<li><strong>Valiosa (V):</strong> Es la base del control material del taller: permite a los mec&#225;nicos saber al instante si tienen la pieza para reparar un coche y da al responsable el control total de los precios y las existencias para no perder dinero.</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible para el equipo: consiste en una tabla de materiales donde el administrador puede a&#241;adir, modificar o consultar piezas, y el mec&#225;nico puede ver las existencias disponibles.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance bien delimitado para el sprint: gestiona la ficha de cada repuesto (nombre, referencia, cantidad y precio), sin meterse en pedidos autom&#225;ticos a proveedores externos.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: entramos como administrador y a&#241;adimos una pieza de prueba, comprobamos que aparece en la tabla con sus unidades, entramos como mec&#225;nico para ver que solo se puede consultar sin editar, y probamos a meter precios o cantidades negativas para verificar que el sistema lo rechaza.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como mec&#225;nico o administrador y accedo a la secci&#243;n de almac&#233;n, entonces la pantalla me muestra una tabla con todas las piezas registradas, indicando su c&#243;digo de referencia, nombre, categor&#237;a, unidades disponibles, cantidad m&#237;nima de aviso y precio unitario.</li>
+<li>Si utilizo el buscador de la pantalla o el selector de categor&#237;as, entonces la tabla se actualiza de inmediato mostrando &#250;nicamente los repuestos que coinciden con el nombre, c&#243;digo o grupo seleccionado.</li>
+<li>Si inicio sesi&#243;n como administrador, entonces la pantalla me muestra los botones para dar de alta una pieza nueva, modificar sus datos o precios, y ajustar a mano la cantidad de existencias.</li>
+<li>Si inicio sesi&#243;n como mec&#225;nico, entonces la pantalla me permite buscar y ver las cantidades en modo de solo lectura, manteniendo ocultos o desactivados los botones de crear, editar o borrar materiales.</li>
+<li>Si se intenta registrar una pieza con un c&#243;digo de referencia que ya existe, o con un n&#250;mero de existencias o precio menor que cero, entonces el sistema bloquea el guardado y muestra un aviso en pantalla se&#241;alando el error.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es fundamental para llevar el orden del almac&#233;n y habilitar el descuento de piezas en las reparaciones, pero el registro inicial de coches y clientes puede ponerse a prueba antes de terminar de cargar todo el cat&#225;logo.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Requiere dise&#241;ar la tabla de materiales en el panel del taller con los colores negro y naranja, crear los formularios de alta y edici&#243;n para el administrador, y aplicar los permisos para que el mec&#225;nico solo pueda consultar las existencias.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-34">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #34</span> Informar de piezas utilizadas
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico del taller, quiero registrar las piezas y repuestos que gasto en cada reparaci&#243;n, para que se descuenten autom&#225;ticamente del almac&#233;n y no superar el presupuesto de materiales asignado a la aver&#237;a.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en asociar materiales consumidos a una aver&#237;a que ya est&#225; en marcha. Funciona por s&#237; sola mientras el coche se encuentra en estado &quot;EN_PROCESO&quot;, sin depender de la factura final ni de la recogida del veh&#237;culo.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si al buscar una pieza se muestra un men&#250; desplegable sencillo o un buscador por nombre, y qu&#233; aviso mostrar si el coste de las piezas se acerca al l&#237;mite fijado por el administrador.</li>
+<li><strong>Valiosa (V):</strong> Es esencial para evitar descuadres en el taller: mantiene el inventario al d&#237;a al segundo, asegura que ninguna pieza gastada se quede sin cobrar y evita que el mec&#225;nico gaste m&#225;s dinero en recambios del que se autoriz&#243; para ese coche.</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible para el equipo: consiste en seleccionar una pieza del cat&#225;logo, indicar cu&#225;ntas unidades se usan, restar esa cantidad del almac&#233;n y sumar su importe al gasto acumulado de la reparaci&#243;n.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy bien acotado para el sprint: gestiona la vinculaci&#243;n entre piezas y aver&#237;as activas, sin meterse en pedidos a distribuidores ni en el cobro en caja.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: a&#241;adimos dos filtros a un coche en proceso y verificamos que el almac&#233;n tiene dos unidades menos, probamos a pedir m&#225;s piezas de las que hay en stock para ver el bloqueo, y probamos a superar el l&#237;mite de dinero autorizado para comprobar la alerta.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como mec&#225;nico y entro al detalle de una reparaci&#243;n asignada en estado &quot;EN_PROCESO&quot;, entonces veo la lista de piezas gastadas y un bot&#243;n habilitado para &quot;A&#241;adir pieza&quot;.</li>
+<li>Si pulso en &quot;A&#241;adir pieza&quot;, entonces la pantalla me abre un selector para buscar repuestos por nombre o referencia, mostrando las unidades disponibles en ese momento en el almac&#233;n.</li>
+<li>Si elijo una pieza, indico la cantidad y confirmo, entonces el sistema descuenta esas unidades del almac&#233;n al instante, a&#241;ade el concepto a la reparaci&#243;n y actualiza el gasto total en piezas acumulado.</li>
+<li>Si intento a&#241;adir una cantidad mayor que las unidades disponibles en el almac&#233;n, entonces el sistema bloquea la acci&#243;n y me muestra un aviso de existencias insuficientes.</li>
+<li>Si el coste total de las piezas seleccionadas supera el l&#237;mite m&#225;ximo autorizado por el administrador para esa aver&#237;a, entonces la web me muestra un aviso de advertencia por sobrepasar el presupuesto de materiales.</li>
+<li>Si elimino una pieza que a&#241;ad&#237; por error antes de cerrar el trabajo, entonces el sistema la quita de la aver&#237;a y repone de inmediato esas unidades al almac&#233;n general.</li>
+<li>Si una reparaci&#243;n se encuentra en estado &quot;FINALIZADA&quot;, &quot;CONFIRMADA&quot; o &quot;ENTREGADA&quot;, entonces los botones para a&#241;adir o quitar piezas aparecen bloqueados para que nadie altere los materiales utilizados una vez terminado el trabajo.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es fundamental para el control del inventario y el c&#225;lculo del coste real de las reparaciones, pero el flujo b&#225;sico de cambiar estados de coches puede probarse antes de enlazar el cat&#225;logo completo de piezas.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Medio</div>
+                    <p>Comprende dise&#241;ar el selector de repuestos en el panel del mec&#225;nico con el estilo negro y naranja, coordinar la suma y resta de unidades con el almac&#233;n en el servidor y comprobar tanto el stock disponible como el presupuesto tope de la aver&#237;a.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-35">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #35</span> Asignaci&#243;n de mec&#225;nicos
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como administrador del taller, quiero asignar cada reparaci&#243;n a un mec&#225;nico disponible, para organizar el trabajo diario y que cada operario sepa qu&#233; veh&#237;culos tiene pendientes de arreglar.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra &#250;nicamente en vincular a un empleado con una orden de trabajo ya registrada. Funciona de manera aut&#243;noma sin depender de los materiales del almac&#233;n ni del cobro final.</li>
+<li><strong>Negociable (N):</strong> Podemos pactar entre nosotros si en el desplegable de asignaci&#243;n se muestra junto al nombre del mec&#225;nico el n&#250;mero de tareas que ya tiene asignadas, para que el administrador pueda repartir la faena de forma m&#225;s equilibrada.</li>
+<li><strong>Valiosa (V):</strong> Es indispensable para el orden del taller: elimina la incertidumbre entre los trabajadores, evita que dos personas toquen el mismo veh&#237;culo por error y permite al responsable saber qui&#233;n responde de cada arreglo.</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible y sencilla para el equipo: consiste en rellenar un men&#250; desplegable con los usuarios que tienen rol de mec&#225;nico y guardar el identificador del empleado seleccionado en la ficha de la reparaci&#243;n.</li>
+<li><strong>Peque&#241;a (S):</strong> Tiene un alcance muy compacto y manejable para el sprint: asocia dos registros que ya existen en el sistema (empleado y aver&#237;a) sin alterar inventarios ni generar facturas.</li>
+<li><strong>Testeable (T):</strong> Se verifica con facilidad en las pruebas: entramos como administrador, asignamos un coche pendiente a un mec&#225;nico concreto, y luego iniciamos sesi&#243;n con la cuenta de ese mec&#225;nico para comprobar que el veh&#237;culo aparece inmediatamente en su lista de tareas.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si inicio sesi&#243;n como administrador y consulto una reparaci&#243;n en estado &quot;PENDIENTE&quot; (o con presupuesto aceptado), entonces el sistema me muestra un selector con la lista de todos los mec&#225;nicos dados de alta en el taller.</li>
+<li>Si selecciono a un mec&#225;nico y confirmo la asignaci&#243;n, entonces el sistema guarda la vinculaci&#243;n manteniendo la reparaci&#243;n en su estado actual a la espera de que el operario comience el trabajo.</li>
+<li>Si el mec&#225;nico asignado inicia sesi&#243;n en su cuenta y entra a su panel de trabajo, entonces ve aparecer autom&#225;ticamente este nuevo veh&#237;culo en su lista de tareas pendientes.</li>
+<li>Si intento asignar o cambiar de mec&#225;nico una reparaci&#243;n que ya se encuentra en estado &quot;FINALIZADA&quot;, &quot;CONFIRMADA&quot; o &quot;ENTREGADA&quot;, entonces el sistema mantiene el selector bloqueado o muestra un aviso impidiendo modificar los datos de un trabajo ya concluido.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Es fundamental para coordinar el trabajo del equipo, pero el sistema puede seguir recibiendo coches y registrando datos b&#225;sicos mientras se programa este selector.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Peque&#241;o</div>
+                    <p>Consiste en a&#241;adir el desplegable de mec&#225;nicos en la pantalla del administrador con el dise&#241;o negro y naranja, consultar los empleados con rol de mec&#225;nico y enviar la asignaci&#243;n al servidor para actualizar la aver&#237;a.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-36">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #36</span> Log-In
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como usuario del taller (administrador, recepcionista, mec&#225;nico o cliente), quiero iniciar sesi&#243;n con mi usuario y contrase&#241;a, para acceder a mi panel correspondiente y gestionar las tareas o consultar los veh&#237;culos seg&#250;n mis permisos.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra en verificar la identidad de la persona que entra a la web y su rol. Funciona de manera aut&#243;noma como puerta de entrada al sistema, sin depender de que existan aver&#237;as creadas ni de piezas en el almac&#233;n.</li>
+<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el acceso se realiza mediante nombre de usuario o correo electr&#243;nico, y c&#243;mo estructurar las pesta&#241;as de acceso diferenciado para clientes y personal del taller.</li>
+<li><strong>Valiosa (V):</strong> Es el pilar de la seguridad del taller: garantiza que nadie ajeno acceda a los datos de los clientes, evita que un usuario sin permisos toque el dinero de la caja y asegura que cada empleado vea &#250;nicamente las funciones de su puesto (control de acceso basado en roles - RBAC).</li>
+<li><strong>Estimable (E):</strong> Es totalmente medible para el equipo: consiste en crear la pantalla de acceso con sus campos de texto, comprobar los datos introducidos contra el servidor y redirigir a cada persona a su p&#225;gina correspondiente seg&#250;n su rol.</li>
+<li><strong>Peque&#241;a (S):</strong> Aunque es una pieza transversal clave, tiene un alcance bien acotado para completarse en un &#250;nico sprint: valida las credenciales, guarda la sesi&#243;n activa y protege el acceso a las rutas de cada rol.</li>
+<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: probamos a entrar con un usuario de prueba de cada rol (mec&#225;nico, recepcionista, admin y cliente) para verificar que cada uno llega a su pantalla, y probamos con contrase&#241;as err&#243;neas o intentando saltar directamente a una p&#225;gina privada para ver el bloqueo.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si introduzco mis credenciales correctas y tengo rol de administrador, entonces la web me redirige de forma autom&#225;tica al panel de control de administraci&#243;n (<code>dashboard-admin.html</code>).</li>
+<li>Si introduzco mis credenciales correctas y tengo rol de recepcionista, entonces la web me redirige al panel de recepci&#243;n (<code>dashboard-recepcionista.html</code>) para atender clientes, veh&#237;culos y citas.</li>
+<li>Si introduzco mis credenciales correctas y tengo rol de mec&#225;nico, entonces la web me redirige al panel de taller (<code>dashboard-mecanico.html</code>) con mi lista de reparaciones asignadas.</li>
+<li>Si introduzco mis credenciales correctas y tengo rol de cliente, entonces la web me redirige a mi panel personal (<code>dashboard-cliente.html</code>) con la lista de mis veh&#237;culos y presupuestos.</li>
+<li>Si escribo un usuario inexistente o una contrase&#241;a incorrecta, entonces la pantalla me muestra un aviso de error claro indicando que los datos son incorrectos, sin cambiar de p&#225;gina.</li>
+<li>Si intento entrar directamente escribiendo la direcci&#243;n de cualquier panel privado en el navegador sin haber iniciado sesi&#243;n previamente o con un rol distinto al requerido, entonces el sistema bloquea el acceso y me redirige a la pantalla de inicio de sesi&#243;n.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es imprescindible para el arranque del sistema; sin esta puerta de acceso y control de roles no es posible separar las vistas por puestos de trabajo ni proteger la informaci&#243;n del taller.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande</div>
+                    <p>Dentro del sprint supone un esfuerzo amplio (3-4 d&#237;as) ya que comprende el dise&#241;o de la pantalla unificada de acceso (<code>login.html</code>) con pesta&#241;as diferenciadas para clientes y personal, la verificaci&#243;n de credenciales en el servidor, la gesti&#243;n de sesi&#243;n en el navegador y las guardas de seguridad por rol en todas las pantallas privadas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
