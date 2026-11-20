@@ -59,16 +59,17 @@ Para garantizar la compatibilidad entre todos los integrantes del equipo y evita
 * Se recomienda que cualquier nuevo colaborador configure su IDE con esta versión de JDK.
 
 ### Suite Completa de Pruebas Unitarias y Seguridad (JUnit 5 + Mockito)
-El sistema dispone de una suite integral de **33 pruebas unitarias automatizadas** que garantizan el correcto funcionamiento y la seguridad del taller:
+El sistema dispone de una suite integral de **43 pruebas unitarias automatizadas** que garantizan el correcto funcionamiento y la seguridad del taller:
 * **Ubicación del código de pruebas:** `backend/src/test/java/com/taller/PruebasUnitariasTest.java`
 * **Módulos probados:**
   * **Cálculos y Contabilidad:** Comprobación matemática de facturas, desglose de mano de obra, márgenes comerciales del taller, IVA (21%) y presupuestos con líneas de piezas.
-  * **Ciberseguridad y Control de Acceso (RBAC):** Bloqueo a mecánicos para crear órdenes de recepción, bloqueo a recepcionistas para asignaciones técnicas, rechazo de credenciales incorrectas, bloqueo de usuarios inexistentes y protección antifraude en recuperación de contraseñas.
-  * **Máquina de Estados de Reparación:** Validación estricta del ciclo de vida (`PENDIENTE` ➔ `EN_PROCESO` ➔ `FINALIZADA` ➔ `CONFIRMADA` ➔ `ENTREGADA`), prohibiendo saltos ilegales, retrocesos o ediciones sobre reparaciones ya entregadas.
+  * **Ciberseguridad y Control de Acceso (RBAC):** Bloqueo a mecánicos para crear órdenes de recepción o acceder a supervisión administrativa, bloqueo a recepcionistas para asignaciones técnicas, rechazo de credenciales incorrectas, bloqueo de usuarios inexistentes y protección antifraude en recuperación de contraseñas.
+  * **Máquina de Estados de Reparación:** Validación estricta del ciclo de vida (`PENDIENTE` ➔ `EN_PROCESO` ➔ `FINALIZADA` ➔ `CONFIRMADA` ➔ `ENTREGADA` y `CANCELADA`), prohibiendo saltos ilegales, retrocesos o ediciones sobre reparaciones ya concluidas o entregadas.
   * **Almacén y Vehículos:** Validación de stock negativo, stock insuficiente, bloqueo de consumo de piezas sin presupuesto aceptado, matrículas duplicadas o vacías y años de fabricación inválidos.
   * **Gestión de Citas Previas:** Detección de fines de semana, festivos oficiales nacionales y cálculo de días hábiles.
+  * **Priorización, Cola Cronológica, Temporizador y Supervisión (HU #7, #8, #19, #20, #21):** Ordenación dinámica de reparaciones por categoría, cola cronológica de espera `PENDIENTE`, ciclo Iniciar/Pausar/Terminar con bloqueo de tareas simultáneas, supervisión RBAC de tiempos por mecánico e historial técnico de solo lectura.
 * **Cómo ejecutar las pruebas:**
-  * **Desde IntelliJ IDEA:** Clic derecho sobre `PruebasUnitariasTest.java` y seleccionar *Run 'PruebasUnitariasTest'* (o atajo `Mayús+F10`). Se mostrarán los 33 checks verdes.
+  * **Desde IntelliJ IDEA:** Clic derecho sobre `PruebasUnitariasTest.java` y seleccionar *Run 'PruebasUnitariasTest'* (o atajo `Mayús+F10`). Se mostrarán los 43 checks verdes.
   * **Desde consola (Maven):** Situarse en la carpeta `backend/` y ejecutar:
     ```powershell
     .\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest

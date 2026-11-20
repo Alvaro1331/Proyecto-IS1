@@ -149,12 +149,12 @@
         <div class="meta-box">
             <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
             <strong>Fecha:</strong> Noviembre 2026 &nbsp;|&nbsp; 
-            <strong>Estado:</strong> 100% Operativo y Verificado (38/38 Pruebas Exitosas)
+            <strong>Estado:</strong> 100% Operativo y Verificado (43/43 Pruebas Exitosas)
         </div>
     </div>
 
     <div class="alert alert-success">
-        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>38 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Vehículos y Máquina de Estados de Reparación)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>43 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Ordenación por Prioridad HU #7, Registro Cronológico de Espera HU #8, Temporizador de Mano de Obra HU #19, Supervisión de Mecánicos HU #20 e Historial Técnico de Solo Lectura HU #21)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
     </div>
 
     <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
@@ -328,7 +328,7 @@
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">5. Catálogo Completo de las 38 Pruebas Unitarias Implementadas</h2>
+    <h2 class="section-title">5. Catálogo Completo de las 43 Pruebas Unitarias Implementadas</h2>
     <p>
         La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable, de gestión y de seguridad del taller:
     </p>
@@ -571,6 +571,36 @@
                 <td>Verifica la auto-vinculación de reparaciones existentes: al registrarse un cliente con un teléfono ya dado de alta en el taller, añade automáticamente todas las reparaciones de sus vehículos a <code>reparacionesVinculadas</code> sin pegar localizador.</td>
                 <td><code>assertEquals(2, vinculadas)</code><br><code>assertTrue(anyMatch(101L))</code><br><code>verify(clienteRepo, times(1)).save(...)</code></td>
             </tr>
+            <tr>
+                <td><strong>39</strong></td>
+                <td><code>ReparacionService</code><br><code>ordenarReparacionesPorCriterio()</code></td>
+                <td><strong>(HU #7) Ordenación de prioridad de vehículos:</strong> Verifica la ordenación dinámica de reparaciones por orden de llegada (<code>LLEGADA_ASC</code>), menor tiempo estimado (<code>TIEMPO_ASC</code>) y mayor consumo de piezas (<code>PIEZAS_DESC</code>).</td>
+                <td><code>assertEquals(List.of(2L, 1L, 3L), ...)</code><br><code>assertEquals(List.of(3L, 2L, 1L), ...)</code><br><code>assertEquals(List.of(2L, 3L, 1L), ...)</code></td>
+            </tr>
+            <tr>
+                <td><strong>40</strong></td>
+                <td><code>ReparacionService</code><br><code>obtenerRegistroCronologicoEspera()</code></td>
+                <td><strong>(HU #8) Registro cronológico de espera:</strong> Verifica que solo se listan vehículos en estado <code>PENDIENTE</code> ordenados del más antiguo al más reciente, excluyendo los que pasan a <code>EN_PROCESO</code>, y calcula el texto de estancia en días y horas.</td>
+                <td><code>assertEquals(2, cola.size())</code><br><code>assertEquals(11L, cola.get(0).getId())</code><br><code>assertTrue(contains("días"))</code></td>
+            </tr>
+            <tr>
+                <td><strong>41</strong></td>
+                <td><code>ReparacionService</code><br><code>iniciarTemporizador()</code><br><code>pausarTemporizador()</code><br><code>terminarTemporizador()</code></td>
+                <td><strong>(HU #19) Temporizador de mano de obra y bloqueo de simultaneidad:</strong> Verifica el ciclo <code>EN_MARCHA</code> &rarr; <code>PAUSADO</code> &rarr; <code>DETENIDO</code>, el cálculo de segundos/horas acumuladas y el bloqueo con <code>IllegalStateException</code> si el mecánico intenta iniciar un segundo temporizador teniendo otro activo.</td>
+                <td><code>assertEquals("EN_MARCHA", estado)</code><br><code>assertThrows(IllegalStateException.class, ...)</code><br><code>assertEquals(0.50, horas, 0.02)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>42</strong></td>
+                <td><code>ReparacionService</code><br><code>obtenerSupervisionTiemposMecanicos()</code></td>
+                <td><strong>SEGURIDAD (RBAC) Y SUPERVISIÓN DE MECÁNICOS (HU #20):</strong> Bloquea el acceso a <code>MECANICO</code> y <code>CLIENTE</code> con <code>SecurityException</code>, verifica la suma de tiempos (<code>2 h 30 min</code>) y desglose para <code>ADMIN</code>, y comprueba el indicador <code>sinRegistros</code> cuando no hay actividad en el período.</td>
+                <td><code>assertThrows(SecurityException.class, ...)</code><br><code>assertEquals("2 h 30 min", total)</code><br><code>assertEquals(true, sinRegistros)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>43</strong></td>
+                <td><code>ReparacionService</code><br><code>obtenerHistorialVehiculoParaMecanico()</code><br><code>registrarIncidencia()</code><br><code>actualizarHorasTrabajo()</code></td>
+                <td><strong>INTEGRIDAD DE SOLO LECTURA E HISTORIAL TÉCNICO (HU #21):</strong> Verifica que el historial devuelve solo reparaciones concluidas ordenadas de más reciente a más antigua (excluyendo la activa) y bloquea añadir incidencias o modificar horas sobre reparaciones ya concluidas.</td>
+                <td><code>assertEquals(2, historial.size())</code><br><code>assertEquals(2L, get(0).getId())</code><br><code>assertThrows(IllegalArgumentException.class, ...)</code></td>
+            </tr>
         </tbody>
     </table>
 
@@ -583,29 +613,29 @@
         <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
         <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
         <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
-        <li>En el panel inferior de IntelliJ se mostrarán los <strong>38 tests con el check verde de aprobación</strong>.</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>43 tests con el check verde de aprobación</strong>.</li>
     </ol>
 
     <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
     <p>Desde una terminal de PowerShell en la carpeta <code>backend</code>, ejecuta el comando de pruebas:</p>
     <div class="code-block">.\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest</div>
 
-    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 3.47 s):</h3>
+    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 1.84 s):</h3>
     <div class="code-block">[INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running com.taller.PruebasUnitariasTest
-[INFO] Tests run: 38, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.468 s -- in com.taller.PruebasUnitariasTest
+[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.835 s -- in com.taller.PruebasUnitariasTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[INFO] Tests run: 38, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  16.557 s
-[INFO] Finished at: 2026-11-20T10:52:50+01:00
+[INFO] Total time:  4.464 s
+[INFO] Finished at: 2026-11-20T16:58:45+01:00
 [INFO] ------------------------------------------------------------------------</div>
 
     <h2 class="section-title">7. Pasos para Crear una Nueva Prueba Unitaria de Seguridad (Checklist Rápido)</h2>
@@ -619,9 +649,9 @@
     <div class="alert alert-info">
         <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
         <ul>
-            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 38 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 43 pruebas y módulo de seguridad.</li>
             <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
-            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 38 pruebas unitarias listo para copiar.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 43 pruebas unitarias listo para copiar.</li>
         </ul>
     </div>
 
