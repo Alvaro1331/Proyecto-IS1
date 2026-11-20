@@ -61,6 +61,7 @@ public class ReparacionResponseDTO {
     private String estadoPresupuesto;
     private String dniCifCliente;
     private String direccionFiscalCliente;
+    private boolean clienteTieneCuenta;
     private String mensaje;
 
     public ReparacionResponseDTO() {}
@@ -208,6 +209,9 @@ public class ReparacionResponseDTO {
 
     public String getDireccionFiscalCliente() { return direccionFiscalCliente; }
     public void setDireccionFiscalCliente(String direccionFiscalCliente) { this.direccionFiscalCliente = direccionFiscalCliente; }
+
+    public boolean isClienteTieneCuenta() { return clienteTieneCuenta; }
+    public void setClienteTieneCuenta(boolean clienteTieneCuenta) { this.clienteTieneCuenta = clienteTieneCuenta; }
 
     public String getMensaje() { return mensaje; }
     public void setMensaje(String mensaje) { this.mensaje = mensaje; }

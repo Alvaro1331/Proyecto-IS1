@@ -158,6 +158,7 @@
                     <button class="btn btn-secondary" onclick="cargarReparaciones('FINALIZADA')">Por Confirmar (Finalizadas)</button>
                     <button class="btn btn-secondary" onclick="cargarReparaciones('CONFIRMADA')">Confirmadas (Para Entregar)</button>
                     <button class="btn btn-secondary" onclick="cargarReparaciones('ENTREGADA')">Entregadas</button>
+                    <button class="btn btn-secondary" onclick="cargarReparaciones('CANCELADA')">Canceladas (Historial)</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
@@ -685,14 +686,10 @@
                 ]);
 
                 const repEnriquecidas = (reparaciones || []).map(enriquecerReparacionFinanzas);
-                const repPorMatricula = {};
-                repEnriquecidas.forEach(r => {
-                    const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                    if (mat) repPorMatricula[mat] = r;
-                });
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(repEnriquecidas);
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
 
                 document.getElementById('stat-usuarios').textContent = usuarios.length || 0;
@@ -732,7 +729,7 @@
             if (!container) return;
 
             const porConfirmar = reparaciones.filter(r => r.estado === 'FINALIZADA');
-            const porAsignar = reparaciones.filter(r => r.estado === 'PENDIENTE' || ((!r.nombreMecanico || r.nombreMecanico === 'Sin asignar') && r.estado !== 'ENTREGADA'));
+            const porAsignar = reparaciones.filter(r => r.estado === 'PENDIENTE' || ((!r.nombreMecanico || r.nombreMecanico === 'Sin asignar') && !esEstadoCerradoTaller(r.estado)));
 
             const totalRepTareas = porConfirmar.length + porAsignar.length;
             const totalNotificaciones = totalRepTareas + (matBajoStock.length > 0 ? 1 : 0);
@@ -896,6 +893,33 @@
         // ================= REPARACIONES =================
         let currentRepEstado = '';
         let reparacionesAdminCache = [];
+
+        async function refrescarTodoAdmin() {
+            await Promise.all([
+                cargarStats(),
+                cargarReparaciones(),
+                cargarFacturasAdmin(),
+                cargarVehiculosYClientes()
+            ]);
+        }
+
+        function abrirRespuestaPresencialAdmin(repId, accion) {
+            const rep = reparacionesAdminCache.find(item => item.id === repId);
+            if (!rep) return;
+            abrirModalRespuestaPresupuestoPresencial(rep, accion, refrescarTodoAdmin);
+        }
+
+        function abrirCancelarReparacionAdmin(repId) {
+            const rep = reparacionesAdminCache.find(item => item.id === repId);
+            if (!rep) return;
+            const user = getUsuarioActual();
+            confirmarCancelarReparacionRechazada(rep, {
+                usuarioId: user ? user.id : null,
+                alertContainer: 'alert-container',
+                onSuccess: refrescarTodoAdmin
+            });
+        }
+
         async function cargarReparaciones(estado = currentRepEstado) {
             currentRepEstado = estado;
             try {
@@ -903,7 +927,7 @@
                 let reparaciones = (todas || []).map(enriquecerReparacionFinanzas);
                 reparacionesAdminCache = reparaciones;
                 if (!estado) {
-                    reparaciones = reparaciones.filter(r => r.estado !== 'ENTREGADA');
+                    reparaciones = reparaciones.filter(r => !esEstadoCerradoTaller(r.estado));
                 } else {
                     reparaciones = reparaciones.filter(r => r.estado === estado);
                 }
@@ -924,11 +948,13 @@
                     const mecanico = tieneMecanico ? nomMec : '<span style="color: var(--text-muted);">Sin asignar</span>';
                     const estadoHtml = crearBadgeEstado(r.estado);
                     const tieneFactura = !!r.factura;
-                    const importePrincipal = tieneFactura
-                        ? `<strong>${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
-                        : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`;
+                    const importePrincipal = r.estado === 'CANCELADA'
+                        ? `<span style="color: var(--err); font-weight: 600;">0,00 €</span><div style="font-size: 0.76rem; color: var(--text-muted);">Cancelada · Sin factura</div>`
+                        : (tieneFactura
+                            ? `<strong>${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
+                            : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`);
                     let accionPrimaria = '';
-                    if (r.estado === 'PENDIENTE' || !tieneMecanico) {
+                    if (!esEstadoCerradoTaller(r.estado) && (r.estado === 'PENDIENTE' || !tieneMecanico)) {
                         const opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
                         accionPrimaria = `
                             <select id="mec-${r.id}" style="padding: 0.35rem 0.5rem; width: auto; min-width: 135px; font-size: 0.84rem;">
@@ -942,6 +968,19 @@
                     } else if (r.estado === 'CONFIRMADA' && !tieneFactura) {
                         accionPrimaria = `<button class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="emitirFacturaDesdeAdmin(${r.id})">Emitir Factura</button>`;
                     }
+
+                    let accionPresupuesto = '';
+                    if (!esEstadoCerradoTaller(r.estado)) {
+                        if (r.presupuestoFormal && r.estadoPresupuesto === 'PENDIENTE_ACEPTACION' && !r.presupuestoFormal.caducado) {
+                            accionPresupuesto = `
+                                <button type="button" class="btn btn-success" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirRespuestaPresencialAdmin(${r.id}, 'ACEPTAR')">Aceptar (Pres./Tel.)</button>
+                                <button type="button" class="btn btn-danger" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirRespuestaPresencialAdmin(${r.id}, 'RECHAZAR')">Rechazar (Pres./Tel.)</button>
+                            `;
+                        } else if (r.estadoPresupuesto === 'RECHAZADO' && (r.estado === 'PENDIENTE' || r.estado === 'EN_PROCESO')) {
+                            accionPresupuesto = `<button type="button" class="btn btn-danger" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirCancelarReparacionAdmin(${r.id})">Cancelar y Devolver</button>`;
+                        }
+                    }
+
                     tbody.innerHTML += `
                         <tr>
                             <td>
@@ -949,6 +988,7 @@
                                     <strong>${mat}</strong>
                                     ${marcaMod ? `<span style="color: var(--text-muted); font-size: 0.86rem;">${marcaMod}</span>` : ''}
                                     <span style="font-family: monospace; font-size: 0.76rem; color: var(--brand-text); background: var(--brand-soft); padding: 0.1rem 0.45rem; border-radius: 4px;">#${r.id} · ${r.localizador || ''}</span>
+                                    ${!r.clienteTieneCuenta ? '<span class="badge badge-delivered" style="font-size: 0.68rem;">Sin cuenta</span>' : ''}
                                 </div>
                                 <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
                                     ${cliente} · <span style="color: var(--text);">${r.descripcionAveria || 'Sin descripción'}</span>
@@ -965,6 +1005,7 @@
                             <td style="text-align: right; white-space: nowrap;">
                                 <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.4rem; flex-wrap: wrap;">
                                     ${accionPrimaria}
+                                    ${accionPresupuesto}
                                     <button type="button" class="btn btn-secondary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="verDetalleReparacionAdmin(${r.id})">Ver detalle</button>
                                 </div>
                             </td>
@@ -978,7 +1019,7 @@
 
         function verDetalleReparacionAdmin(repId) {
             const rep = reparacionesAdminCache.find(item => item.id === repId);
-            if (rep) abrirModalDetalleReparacion(rep, { rol: 'ADMIN' });
+            if (rep) abrirModalDetalleReparacion(rep, { rol: 'ADMIN', onRefresh: refrescarTodoAdmin });
         }
 
         async function asignarMecanico(repId) {
@@ -1350,17 +1391,14 @@
                     apiFetch('/reparaciones').catch(() => [])
                 ]);
 
-                const repPorMatricula = {};
-                if (Array.isArray(reparaciones)) {
-                    reparaciones.forEach(r => {
-                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                        if (mat) repPorMatricula[mat] = enriquecerReparacionFinanzas(r);
-                    });
-                }
+                const repEnriquecidas = Array.isArray(reparaciones)
+                    ? reparaciones.map(enriquecerReparacionFinanzas)
+                    : [];
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(repEnriquecidas);
 
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
 
                 const tVehiculos = document.getElementById('tabla-vehiculos');

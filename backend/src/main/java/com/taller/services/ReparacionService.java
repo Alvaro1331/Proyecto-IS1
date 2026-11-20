@@ -8,6 +8,7 @@ import com.taller.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -159,15 +160,33 @@ public class ReparacionService {
         reparacionRepository.save(reparacion);
 
         if (vehiculo.getCliente() != null) {
-            eventPublisher.publishEvent(new NotificacionReparacionEvent(
-                    vehiculo.getCliente(),
-                    reparacion,
-                    TipoNotificacion.ENTRADA_TALLER,
-                    "Vehículo recepcionado en el taller",
-                    "Hemos recibido tu vehículo " + vehiculo.getMarca() + " " + vehiculo.getModelo()
-                            + " (" + vehiculo.getMatricula() + "). Tu código localizador de seguimiento es: "
-                            + reparacion.getLocalizador()
-            ));
+            Cliente cli = vehiculo.getCliente();
+            if (cli.tieneCuenta() && clienteRepository != null) {
+                Cliente cliPersistido = cli.getId() != null
+                        ? clienteRepository.findById(cli.getId()).orElse(cli)
+                        : cli;
+                if (cliPersistido.getReparacionesVinculadas() == null) {
+                    cliPersistido.setReparacionesVinculadas(new HashSet<>());
+                }
+                boolean yaVinculada = cliPersistido.getReparacionesVinculadas().stream()
+                        .anyMatch(r -> reparacion.getId() != null && reparacion.getId().equals(r.getId()));
+                if (!yaVinculada) {
+                    cliPersistido.getReparacionesVinculadas().add(reparacion);
+                    clienteRepository.save(cliPersistido);
+                }
+            }
+
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cli,
+                        reparacion,
+                        TipoNotificacion.ENTRADA_TALLER,
+                        "Vehículo recepcionado en el taller",
+                        "Hemos recibido tu vehículo " + vehiculo.getMarca() + " " + vehiculo.getModelo()
+                                + " (" + vehiculo.getMatricula() + "). Tu código localizador de seguimiento es: "
+                                + reparacion.getLocalizador()
+                ));
+            }
         }
 
         return convertirAResponseDTO(reparacion,
@@ -202,6 +221,11 @@ public class ReparacionService {
         if (mecanico.getRol() != Rol.MECANICO && mecanico.getRol() != Rol.ADMIN) {
             throw new IllegalArgumentException(
                     "El usuario " + mecanico.getNombre() + " no tiene rol de mecánico.");
+        }
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "No se puede asignar un mecánico a una reparación ya cerrada (" + reparacion.getEstado() + ").");
         }
 
         reparacion.setMecanico(mecanico);
@@ -292,7 +316,7 @@ public class ReparacionService {
         reparacion.setDiasEstimados(dias);
         reparacionRepository.save(reparacion);
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             eventPublisher.publishEvent(new NotificacionReparacionEvent(
                     reparacion.getVehiculo().getCliente(),
                     reparacion,
@@ -343,7 +367,7 @@ public class ReparacionService {
         IncidenciaReparacion incidencia = new IncidenciaReparacion(reparacion, descripcion.trim(), impacto, rutaFotoPublica);
         incidenciaRepository.save(incidencia);
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             String extraImpacto = (impacto > 0)
                     ? " (Impacto económico estimado: +" + String.format(Locale.US, "%.2f", impacto) + " €)"
                     : "";
@@ -466,7 +490,9 @@ public class ReparacionService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
 
-        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE || reparacion.getEstado() == EstadoReparacion.EN_PROCESO) {
+        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE
+                || reparacion.getEstado() == EstadoReparacion.EN_PROCESO
+                || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
             throw new IllegalArgumentException(
                     "No se puede generar la factura si la reparación no está en estado FINALIZADA o CONFIRMADA (estado actual: "
                             + reparacion.getEstado().name() + ").");
@@ -539,6 +565,11 @@ public class ReparacionService {
                                                                          List<Map<String, Object>> lineasRaw) {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede emitir ni modificar el presupuesto de una reparación ya "
+                    + reparacion.getEstado().name() + ".");
+        }
 
         if (lineasRaw == null || lineasRaw.isEmpty()) {
             throw new IllegalArgumentException("El presupuesto debe contener al menos un concepto (pieza o mano de obra).");
@@ -631,7 +662,7 @@ public class ReparacionService {
                 ? "Ampliación de presupuesto " + presupuesto.getNumeroPresupuesto() + " enviada al cliente. La reparación queda en pausa hasta su aceptación."
                 : "Presupuesto " + presupuesto.getNumeroPresupuesto() + " guardado y enviado al cliente (PENDIENTE_ACEPTACION).");
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             String tituloNotif = eraAmpliacion ? "Ampliación de presupuesto disponible" : "Presupuesto desglosado disponible";
             eventPublisher.publishEvent(new NotificacionReparacionEvent(
                     reparacion.getVehiculo().getCliente(),
@@ -694,6 +725,11 @@ public class ReparacionService {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
 
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede responder al presupuesto porque la reparación ya está "
+                    + reparacion.getEstado().name() + ".");
+        }
+
         PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException("Esta reparación no tiene un presupuesto formal pendiente."));
 
@@ -751,15 +787,17 @@ public class ReparacionService {
                     null
             ));
 
-            eventPublisher.publishEvent(new NotificacionReparacionEvent(
-                    cliente,
-                    reparacion,
-                    TipoNotificacion.EN_PROCESO,
-                    "Presupuesto aceptado - Reparación en marcha",
-                    "Has autorizado el presupuesto " + presupuesto.getNumeroPresupuesto()
-                            + " (" + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €). Tu vehículo ("
-                            + reparacion.getVehiculo().getMatricula() + ") ya está listo para que el mecánico inicie las reparaciones."
-            ));
+            if (eventPublisher != null && cliente != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cliente,
+                        reparacion,
+                        TipoNotificacion.EN_PROCESO,
+                        "Presupuesto aceptado - Reparación en marcha",
+                        "Has autorizado el presupuesto " + presupuesto.getNumeroPresupuesto()
+                                + " (" + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €). Tu vehículo ("
+                                + reparacion.getVehiculo().getMatricula() + ") ya está listo para que el mecánico inicie las reparaciones."
+                ));
+            }
         } else if ("RECHAZAR".equals(accionNorm) || "RECHAZADO".equals(accionNorm)) {
             presupuesto.setEstado("RECHAZADO");
             presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
@@ -784,6 +822,219 @@ public class ReparacionService {
                 ? "Has aceptado el presupuesto correctamente. El taller ya puede iniciar la reparación."
                 : "Has rechazado el presupuesto. Se ha notificado al taller tu decisión.");
         return dto;
+    }
+
+    /**
+     * Punto 2: Permite a Recepción o Administración registrar la ACEPTACIÓN o RECHAZO
+     * presencial/telefónico de un presupuesto cuando el cliente no tiene cuenta web.
+     */
+    @Transactional
+    public synchronized Map<String, Object> responderPresupuestoPersonal(Long reparacionId,
+                                                                         String accion,
+                                                                         String canalConfirmacion,
+                                                                         String motivoRechazo,
+                                                                         Long usuarioId) {
+        if (usuarioId == null) {
+            throw new IllegalArgumentException("Solo Recepción o Administración puede registrar la aceptación o rechazo presencial/telefónico de un presupuesto.");
+        }
+        Usuario empleado = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario del taller con ID: " + usuarioId));
+
+        if (empleado.getRol() != Rol.RECEPCIONISTA && empleado.getRol() != Rol.ADMIN) {
+            throw new IllegalArgumentException("Solo Recepción o Administración puede registrar la aceptación o rechazo presencial/telefónico de un presupuesto.");
+        }
+
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede responder al presupuesto porque la reparación ya está "
+                    + reparacion.getEstado().name() + ".");
+        }
+
+        PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("Esta reparación no tiene un presupuesto formal pendiente."));
+
+        if (!"PENDIENTE_ACEPTACION".equalsIgnoreCase(presupuesto.getEstado())) {
+            throw new IllegalStateException("No se puede modificar este presupuesto porque ya se encuentra en estado "
+                    + presupuesto.getEstado() + ".");
+        }
+
+        if (presupuesto.estaCaducado()) {
+            throw new IllegalStateException("Este presupuesto ha superado su fecha de validez ("
+                    + presupuesto.getFechaValidez() + ") y ya no puede ser aceptado ni rechazado.");
+        }
+
+        String canal = (canalConfirmacion != null && !canalConfirmacion.trim().isEmpty())
+                ? canalConfirmacion.trim() : "Presencial / Teléfono";
+        String accionNorm = accion != null ? accion.trim().toUpperCase() : "";
+        Cliente cliente = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getCliente() : null;
+        String matricula = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getMatricula() : "";
+
+        if ("ACEPTAR".equals(accionNorm) || "ACEPTADO".equals(accionNorm)) {
+            presupuesto.setEstado("ACEPTADO");
+            presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            presupuesto.setMotivoRechazo(null);
+            presupuestoRepository.save(presupuesto);
+
+            if (reparacion.getEstado() == EstadoReparacion.PENDIENTE && reparacion.getMecanico() != null) {
+                reparacion.setEstado(EstadoReparacion.EN_PROCESO);
+            }
+            reparacion.setPresupuesto(presupuesto.getTotalPresupuesto());
+            reparacionRepository.save(reparacion);
+
+            if (incidenciaRepository != null) {
+                incidenciaRepository.save(new IncidenciaReparacion(
+                        reparacion,
+                        "✅ Presupuesto " + presupuesto.getNumeroPresupuesto() + " ACEPTADO (" + canal
+                                + ") registrado por " + empleado.getNombre() + ". Vehículo autorizado para reparar.",
+                        0.0,
+                        null
+                ));
+            }
+
+            if (eventPublisher != null && cliente != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cliente,
+                        reparacion,
+                        TipoNotificacion.EN_PROCESO,
+                        "Presupuesto aceptado - Reparación en marcha",
+                        "Se ha registrado la autorización (" + canal + ") del presupuesto "
+                                + presupuesto.getNumeroPresupuesto() + " ("
+                                + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €) para tu vehículo ("
+                                + matricula + ")."
+                ));
+            }
+        } else if ("RECHAZAR".equals(accionNorm) || "RECHAZADO".equals(accionNorm)) {
+            presupuesto.setEstado("RECHAZADO");
+            presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            String motivo = (motivoRechazo != null && !motivoRechazo.trim().isEmpty())
+                    ? motivoRechazo.trim() : "Rechazado por el cliente (" + canal + ")";
+            presupuesto.setMotivoRechazo(motivo);
+            presupuestoRepository.save(presupuesto);
+
+            if (incidenciaRepository != null) {
+                incidenciaRepository.save(new IncidenciaReparacion(
+                        reparacion,
+                        "❌ Presupuesto " + presupuesto.getNumeroPresupuesto() + " RECHAZADO (" + canal
+                                + ") registrado por " + empleado.getNombre() + ". Motivo: " + motivo
+                                + ". La orden queda abierta para nuevo presupuesto o cancelación.",
+                        0.0,
+                        null
+                ));
+            }
+
+            if (eventPublisher != null && cliente != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cliente,
+                        reparacion,
+                        TipoNotificacion.INFO,
+                        "Presupuesto rechazado (" + canal + ")",
+                        "Se ha registrado el rechazo del presupuesto " + presupuesto.getNumeroPresupuesto()
+                                + " para tu vehículo (" + matricula + "). Motivo: " + motivo
+                                + ". Puedes solicitar un nuevo presupuesto o retirar el vehículo sin reparar."
+                ));
+            }
+        } else {
+            throw new IllegalArgumentException("Acción no válida. Debe ser ACEPTAR o RECHAZAR.");
+        }
+
+        Map<String, Object> dto = mapearPresupuestoCompleto(presupuesto);
+        dto.put("estadoReparacion", reparacion.getEstado().name());
+        dto.put("canalConfirmacion", canal);
+        dto.put("mensaje", "ACEPTADO".equals(presupuesto.getEstado())
+                ? "Presupuesto marcado como ACEPTADO (" + canal + "). El taller ya puede iniciar la reparación."
+                : "Presupuesto marcado como RECHAZADO (" + canal + "). La reparación sigue abierta a un nuevo presupuesto o a su cancelación definitiva.");
+        return dto;
+    }
+
+    /**
+     * Punto 3: Cancela definitivamente una reparación tras haberse rechazado el presupuesto
+     * y devuelve el vehículo sin reparar, retirándolo de las listas activas del taller.
+     * Puede invocarlo el cliente propietario/vinculado o un Recepcionista/Admin.
+     */
+    @Transactional
+    public synchronized ReparacionResponseDTO cancelarReparacionPorRechazo(Long reparacionId,
+                                                                           String motivo,
+                                                                           Long clienteId,
+                                                                           Long usuarioId) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede cancelar la reparación porque ya se encuentra en estado "
+                    + reparacion.getEstado().name() + ".");
+        }
+        if (reparacion.getEstado() == EstadoReparacion.FINALIZADA || reparacion.getEstado() == EstadoReparacion.CONFIRMADA) {
+            throw new IllegalStateException("No se puede cancelar una reparación que ya ha sido finalizada o confirmada.");
+        }
+
+        PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Solo se puede cancelar una reparación y retirar el vehículo sin reparar cuando el presupuesto haya sido rechazado previamente."));
+
+        if (!"RECHAZADO".equalsIgnoreCase(presupuesto.getEstado())) {
+            throw new IllegalStateException(
+                    "Solo se puede cancelar una reparación y retirar el vehículo sin reparar cuando el presupuesto haya sido rechazado previamente.");
+        }
+
+        String origen;
+        if (usuarioId != null) {
+            Usuario empleado = usuarioRepository.findById(usuarioId)
+                    .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario con ID: " + usuarioId));
+            if (empleado.getRol() != Rol.RECEPCIONISTA && empleado.getRol() != Rol.ADMIN) {
+                throw new IllegalArgumentException("Solo el cliente, Recepción o Administración pueden cancelar la reparación.");
+            }
+            origen = "Recepción/Admin (" + empleado.getNombre() + ")";
+        } else if (clienteId != null) {
+            Cliente cli = clienteRepository.findById(clienteId)
+                    .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + clienteId));
+            boolean esPropietario = reparacion.getVehiculo() != null
+                    && reparacion.getVehiculo().getCliente() != null
+                    && clienteId.equals(reparacion.getVehiculo().getCliente().getId());
+            boolean estaVinculado = cli.getReparacionesVinculadas() != null
+                    && cli.getReparacionesVinculadas().stream().anyMatch(r -> reparacionId.equals(r.getId()));
+            if (!esPropietario && !estaVinculado) {
+                throw new IllegalArgumentException("No tienes permiso para cancelar esta reparación.");
+            }
+            origen = "Cliente (" + cli.getNombre() + ")";
+        } else {
+            throw new IllegalArgumentException("Debes identificarte como cliente, recepcionista o administrador para cancelar la reparación.");
+        }
+
+        reparacion.setEstado(EstadoReparacion.CANCELADA);
+        reparacion.setFechaSalida(LocalDate.now());
+        reparacionRepository.save(reparacion);
+
+        String motivoLimpio = (motivo != null && !motivo.trim().isEmpty()) ? motivo.trim() : null;
+        if (incidenciaRepository != null) {
+            incidenciaRepository.save(new IncidenciaReparacion(
+                    reparacion,
+                    "🚫 Reparación CANCELADA por " + origen
+                            + ". El vehículo ha sido devuelto/retirado sin reparar tras rechazar el presupuesto."
+                            + (motivoLimpio != null ? " Observaciones: " + motivoLimpio : ""),
+                    0.0,
+                    null
+            ));
+        }
+
+        Cliente clienteNotif = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getCliente() : null;
+        String matricula = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getMatricula() : "";
+        if (eventPublisher != null && clienteNotif != null) {
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    clienteNotif,
+                    reparacion,
+                    TipoNotificacion.CANCELADA,
+                    "Reparación cancelada - Vehículo devuelto sin reparar",
+                    "La reparación de tu vehículo (" + matricula + ") ha sido cancelada tras el rechazo del presupuesto. "
+                            + "El vehículo ha sido retirado sin coste de reparación."
+            ));
+        }
+
+        return convertirAResponseDTO(
+                reparacion,
+                "Reparación cancelada correctamente. El vehículo ha sido retirado de la lista activa del taller y registrado en el historial como CANCELADA."
+        );
     }
 
     public Map<String, Object> mapearPresupuestoCompleto(PresupuestoReparacion p) {
@@ -924,6 +1175,7 @@ public class ReparacionService {
         ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
 
         return reparacionRepository.findAll().stream()
+                .filter(r -> r.getEstado() != EstadoReparacion.CANCELADA)
                 .filter(r -> {
                     if (filtro.isEmpty()) return true;
                     String desc = r.getDescripcionAveria() != null ? r.getDescripcionAveria().toLowerCase() : "";
@@ -986,12 +1238,14 @@ public class ReparacionService {
             nuevoEstado = EstadoReparacion.valueOf(nuevoEstadoStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Estado no válido: " + nuevoEstadoStr
-                    + ". Los estados válidos son: PENDIENTE, EN_PROCESO, FINALIZADA, CONFIRMADA, ENTREGADA");
+                    + ". Los estados válidos son: PENDIENTE, EN_PROCESO, FINALIZADA, CONFIRMADA, ENTREGADA, CANCELADA");
         }
 
         validarTransicionEstado(reparacion.getEstado(), nuevoEstado);
 
-        if (nuevoEstado != EstadoReparacion.PENDIENTE && reparacion.getMecanico() == null) {
+        if (nuevoEstado != EstadoReparacion.PENDIENTE
+                && nuevoEstado != EstadoReparacion.CANCELADA
+                && reparacion.getMecanico() == null) {
             throw new IllegalArgumentException(
                     "No se puede cambiar el estado a " + nuevoEstado + " porque la reparación no tiene ningún mecánico asignado.");
         }
@@ -1015,7 +1269,8 @@ public class ReparacionService {
 
         if (nuevoEstado == EstadoReparacion.FINALIZADA
                 || nuevoEstado == EstadoReparacion.CONFIRMADA
-                || nuevoEstado == EstadoReparacion.ENTREGADA) {
+                || nuevoEstado == EstadoReparacion.ENTREGADA
+                || nuevoEstado == EstadoReparacion.CANCELADA) {
             reparacion.setFechaSalida(LocalDate.now());
         }
 
@@ -1026,7 +1281,7 @@ public class ReparacionService {
             generarFactura(reparacionId, reparacion.getHorasTrabajoMecanico());
         }
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             Cliente cliente = reparacion.getVehiculo().getCliente();
             String matricula = reparacion.getVehiculo().getMatricula();
             switch (nuevoEstado) {
@@ -1056,6 +1311,13 @@ public class ReparacionService {
                             cliente, reparacion, TipoNotificacion.ENTREGADA,
                             "Vehículo entregado - Factura disponible",
                             "Tu vehículo (" + matricula + ") ha sido entregado. Muchas gracias por confiar en MotorFlow. Tu factura ya está disponible para descargar."
+                    ));
+                    break;
+                case CANCELADA:
+                    eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                            cliente, reparacion, TipoNotificacion.CANCELADA,
+                            "Reparación cancelada - Vehículo devuelto sin reparar",
+                            "La reparación de tu vehículo (" + matricula + ") ha sido cancelada tras rechazar el presupuesto."
                     ));
                     break;
                 default:
@@ -1098,8 +1360,9 @@ public class ReparacionService {
                 .mapToDouble(Factura::getTotalFactura)
                 .sum();
 
-        // Previsión de ingresos en curso (reparaciones sin factura emitida todavía)
+        // Previsión de ingresos en curso (reparaciones activas sin factura emitida todavía, excluyendo canceladas)
         double ingresosEnCurso = todas.stream()
+                .filter(r -> r.getEstado() != EstadoReparacion.CANCELADA)
                 .filter(r -> facturaRepository.findByReparacionId(r.getId()).isEmpty())
                 .mapToDouble(this::calcularTotalPrevistoReparacion)
                 .sum();
@@ -1347,6 +1610,9 @@ public class ReparacionService {
     }
 
     public double calcularTotalPrevistoReparacion(Reparacion r) {
+        if (r == null || r.getEstado() == EstadoReparacion.CANCELADA) {
+            return 0.0;
+        }
         ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
         double costeMat = calcularCosteMateriales(r.getId());
         double horas = r.getHorasTrabajoMecanico() != null ? r.getHorasTrabajoMecanico() : 0.0;
@@ -1407,6 +1673,17 @@ public class ReparacionService {
             throw new IllegalArgumentException(
                     "La reparación ya está ENTREGADA, no se puede modificar su estado.");
         }
+        if (actual == EstadoReparacion.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "La reparación ya está CANCELADA, no se puede modificar su estado.");
+        }
+        if (nuevo == EstadoReparacion.CANCELADA) {
+            if (actual == EstadoReparacion.FINALIZADA || actual == EstadoReparacion.CONFIRMADA) {
+                throw new IllegalArgumentException(
+                        "No se puede cancelar una reparación que ya ha sido finalizada o confirmada.");
+            }
+            return;
+        }
         if (actual.ordinal() > nuevo.ordinal()) {
             throw new IllegalArgumentException(
                     "No se puede cambiar de " + actual + " a " + nuevo
@@ -1438,7 +1715,9 @@ public class ReparacionService {
         int diasEstimados = reparacion.getDiasEstimados();
         LocalDate fechaEstimadaFin = reparacion.getFechaEstimadaFin();
         long diasRestantes = 0L;
-        if (reparacion.getEstado() != EstadoReparacion.ENTREGADA && fechaEstimadaFin != null) {
+        if (reparacion.getEstado() != EstadoReparacion.ENTREGADA
+                && reparacion.getEstado() != EstadoReparacion.CANCELADA
+                && fechaEstimadaFin != null) {
             diasRestantes = Math.max(0L, ChronoUnit.DAYS.between(LocalDate.now(), fechaEstimadaFin));
         }
 
@@ -1469,7 +1748,9 @@ public class ReparacionService {
 
         // Beneficio neto del taller en esta reparación (mano de obra + margen sobre base, o estimación - materiales si aún está pendiente)
         double beneficio;
-        if (optFactura.isPresent()) {
+        if (reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            beneficio = 0.0;
+        } else if (optFactura.isPresent()) {
             Factura f = optFactura.get();
             beneficio = Math.round((f.getSubtotalManoObra() + f.getImporteMargen()) * 100.0) / 100.0;
         } else if (costeMateriales > 0 || horasTrabajo > 0) {
@@ -1525,6 +1806,7 @@ public class ReparacionService {
         dto.setEstadoPresupuesto(estadoPresupuesto);
         dto.setDniCifCliente(reparacion.getVehiculo().getCliente().getDniCif() != null ? reparacion.getVehiculo().getCliente().getDniCif() : "");
         dto.setDireccionFiscalCliente(reparacion.getVehiculo().getCliente().getDireccionFiscal() != null ? reparacion.getVehiculo().getCliente().getDireccionFiscal() : "");
+        dto.setClienteTieneCuenta(reparacion.getVehiculo().getCliente().tieneCuenta());
         dto.setMensaje(mensaje);
         return dto;
     }

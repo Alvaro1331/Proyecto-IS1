@@ -373,6 +373,55 @@ public class ReparacionController {
         }
     }
 
+    /**
+     * Punto 2: Permite a Recepción o Administración registrar la ACEPTACIÓN o RECHAZO
+     * presencial/telefónico de un presupuesto cuando el cliente no tiene cuenta web.
+     * POST /api/reparaciones/{id}/presupuesto-formal/responder-presencial
+     */
+    @PostMapping("/{id}/presupuesto-formal/responder-presencial")
+    public ResponseEntity<?> responderPresupuestoFormalPresencial(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        try {
+            String accion = body.get("accion") != null ? body.get("accion").toString() : null;
+            String canal = body.get("canal") != null ? body.get("canal").toString()
+                    : (body.get("canalConfirmacion") != null ? body.get("canalConfirmacion").toString() : null);
+            String motivoRechazo = body.get("motivoRechazo") != null ? body.get("motivoRechazo").toString() : null;
+            Long usuarioId = body.get("usuarioId") != null && !body.get("usuarioId").toString().isBlank()
+                    ? Long.valueOf(body.get("usuarioId").toString()) : null;
+            Map<String, Object> respuesta = reparacionService.responderPresupuestoPersonal(
+                    id, accion, canal, motivoRechazo, usuarioId);
+            return ResponseEntity.ok(respuesta);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Punto 3: Cancela definitivamente una reparación tras el rechazo del presupuesto
+     * y retira el vehículo sin reparar de la lista activa del taller.
+     * POST /api/reparaciones/{id}/cancelar
+     */
+    @PostMapping("/{id}/cancelar")
+    public ResponseEntity<?> cancelarReparacionPorRechazo(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            String motivo = (body != null && body.get("motivo") != null) ? body.get("motivo").toString() : null;
+            Long clienteId = (body != null && body.get("clienteId") != null && !body.get("clienteId").toString().isBlank())
+                    ? Long.valueOf(body.get("clienteId").toString()) : null;
+            Long usuarioId = (body != null && body.get("usuarioId") != null && !body.get("usuarioId").toString().isBlank())
+                    ? Long.valueOf(body.get("usuarioId").toString()) : null;
+            return ResponseEntity.ok(reparacionService.cancelarReparacionPorRechazo(id, motivo, clienteId, usuarioId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/estado/{estado}")
     public ResponseEntity<?> obtenerPorEstado(@PathVariable String estado) {
         try {

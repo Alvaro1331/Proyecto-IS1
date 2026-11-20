@@ -4,8 +4,8 @@ PROYECTO MOTORFLOW - CÓDIGO DE LAS PRUEBAS UNITARIAS (JUNIT 5)
 Ubicación del archivo en el proyecto:
 backend/src/test/java/com/taller/PruebasUnitariasTest.java
 
-Total de pruebas unitarias implementadas: 33 (incluye bloque de Seguridad, RBAC, Notificaciones, Cita Previa, Vehículos y Máquina de Estados)
-Estado de ejecución: 33/33 PASADAS (0 fallos, 0 errores)
+Total de pruebas unitarias implementadas: 38 (incluye bloque de Seguridad, RBAC, Notificaciones, Cita Previa sin Sesión, Presupuestos Presenciales, Cancelación de Reparación, Auto-vinculación, Vehículos y Máquina de Estados)
+Estado de ejecución: 38/38 PASADAS (0 fallos, 0 errores)
 Framework utilizado: JUnit 5 (Jupiter API) + Mockito
 
 --------------------------------------------------------------------------------
@@ -18,8 +18,12 @@ import com.taller.dtos.UsuarioResponseDTO;
 import com.taller.dtos.VehiculoRequestDTO;
 import com.taller.models.*;
 import com.taller.repositories.ClienteRepository;
+import com.taller.repositories.CitaPreviaRepository;
+import com.taller.repositories.FacturaRepository;
+import com.taller.repositories.IncidenciaReparacionRepository;
 import com.taller.repositories.MaterialRepository;
 import com.taller.repositories.NotificacionClienteRepository;
+import com.taller.repositories.PresupuestoReparacionRepository;
 import com.taller.repositories.ReparacionRepository;
 import com.taller.repositories.ReparacionMaterialRepository;
 import com.taller.repositories.UsuarioRepository;
@@ -27,11 +31,15 @@ import com.taller.repositories.VehiculoRepository;
 import com.taller.services.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -859,5 +867,282 @@ public class PruebasUnitariasTest {
 
         assertTrue(ex.getMessage().contains("No se puede cambiar de"),
                 "Debe indicar que no se puede retroceder en el flujo de estados");
+    }
+
+    // =========================================================================
+    //  NUEVAS PRUEBAS UNITARIAS (34 – 38)
+    // =========================================================================
+
+    /**
+     * PRUEBA 34 (CitaPreviaService - Solicitud pública sin sesión):
+     * Verifica que una solicitud pública sin iniciar sesión exige correo electrónico válido
+     * y se crea siempre en estado PENDIENTE guardando el emailContacto en la cita sin crear cuenta.
+     */
+    @Test
+    @DisplayName("Prueba 34: Cita previa sin sesión exige correo y se crea como PENDIENTE")
+    void test34_CitaPublicaSinSesionCreaPendienteYExigeEmail() {
+        CitaPreviaRepository citaRepo = mock(CitaPreviaRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        VehiculoRepository vehiculoRepo = mock(VehiculoRepository.class);
+
+        CitaPreviaService citaService = new CitaPreviaService();
+        ReflectionTestUtils.setField(citaService, "citaRepository", citaRepo);
+        ReflectionTestUtils.setField(citaService, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(citaService, "vehiculoRepository", vehiculoRepo);
+
+        LocalDate diaLaborable = LocalDate.of(2027, 3, 16);
+
+        // 1) Sin email debe rechazarse
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            citaService.crearCita(
+                    null, null, "4321XYZ", "Sofía Navarro", "699112233",
+                    "", "Seat", "Ibiza", 2020,
+                    diaLaborable, "10:00", "Revisión periódica", "Sin observaciones",
+                    "CONFIRMADA", true
+            );
+        });
+        assertTrue(ex.getMessage().contains("correo electrónico válido"));
+
+        // 2) Con email válido se crea en estado PENDIENTE aunque se pase CONFIRMADA
+        when(vehiculoRepo.findByMatricula("4321XYZ")).thenReturn(Optional.empty());
+        when(clienteRepo.findByTelefono("699112233")).thenReturn(Optional.empty());
+        when(clienteRepo.save(any(Cliente.class))).thenAnswer(inv -> {
+            Cliente c = inv.getArgument(0);
+            c.setId(50L);
+            return c;
+        });
+        when(vehiculoRepo.save(any(Vehiculo.class))).thenAnswer(inv -> {
+            Vehiculo v = inv.getArgument(0);
+            v.setId(70L);
+            return v;
+        });
+        when(citaRepo.findByFechaOrderByFranjaHorariaAsc(diaLaborable)).thenReturn(Collections.emptyList());
+        when(citaRepo.findByCodigoCita(anyString())).thenReturn(Optional.empty());
+        when(citaRepo.save(any(CitaPrevia.class))).thenAnswer(inv -> {
+            CitaPrevia cp = inv.getArgument(0);
+            cp.setId(90L);
+            return cp;
+        });
+
+        Map<String, Object> creada = citaService.crearCita(
+                null, null, "4321XYZ", "Sofía Navarro", "699112233",
+                "sofia.navarro@ejemplo.com", "Seat", "Ibiza", 2020,
+                diaLaborable, "10:00", "Revisión periódica", "Revisión anual",
+                "CONFIRMADA", true
+        );
+
+        assertEquals("PENDIENTE", creada.get("estado"));
+        assertEquals("sofia.navarro@ejemplo.com", creada.get("emailContacto"));
+    }
+
+    /**
+     * PRUEBA 35 (CitaPreviaService + NotificacionService - Notificación al rechazar cita):
+     * Verifica que al cambiar el estado de una cita PENDIENTE a CANCELADA (rechazo),
+     * se invoca a NotificacionService para notificar al correo de contacto del cliente.
+     */
+    @Test
+    @DisplayName("Prueba 35: Rechazar una cita previa notifica por correo al cliente")
+    void test35_RechazarCitaNotificaPorEmail() {
+        CitaPreviaRepository citaRepo = mock(CitaPreviaRepository.class);
+        NotificacionService notifService = mock(NotificacionService.class);
+
+        CitaPreviaService citaService = new CitaPreviaService();
+        ReflectionTestUtils.setField(citaService, "citaRepository", citaRepo);
+        ReflectionTestUtils.setField(citaService, "notificacionService", notifService);
+
+        Cliente cliente = new Cliente("Sofía Navarro", "699112233");
+        Vehiculo vehiculo = new Vehiculo("4321XYZ", "Seat", "Ibiza", 2020, cliente);
+        CitaPrevia cita = new CitaPrevia(
+                cliente, vehiculo, LocalDate.of(2027, 3, 16), "10:00",
+                "Revisión periódica", "", "PENDIENTE"
+        );
+        cita.setId(90L);
+        cita.setEmailContacto("sofia.navarro@ejemplo.com");
+
+        when(citaRepo.findById(90L)).thenReturn(Optional.of(cita));
+        when(citaRepo.save(any(CitaPrevia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, Object> res = citaService.cambiarEstadoCita(90L, "CANCELADA", "Elevador ocupado en esa franja");
+
+        assertEquals("CANCELADA", res.get("estado"));
+        assertEquals(true, res.get("notificacionEnviada"));
+        verify(notifService, times(1)).notificarCambioEstadoCita(
+                argThat(c -> "CANCELADA".equals(c.getEstado()) && "sofia.navarro@ejemplo.com".equals(c.getEmailContacto())),
+                eq("PENDIENTE"),
+                eq("Elevador ocupado en esa franja")
+        );
+    }
+
+    /**
+     * PRUEBA 36 (ReparacionService - Respuesta presencial/telefónica a presupuesto sin cuenta y RBAC):
+     * Verifica que un recepcionista puede marcar un presupuesto como ACEPTADO o RECHAZADO sin contraseña
+     * del cliente, que un mecánico no está autorizado, y que el rechazo mantiene la reparación abierta.
+     */
+    @Test
+    @DisplayName("Prueba 36: Aceptar/Rechazar presupuesto presencialmente sin cuenta y validación RBAC")
+    void test36_ResponderPresupuestoPresencialAceptarRechazarYRBAC() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        PresupuestoReparacionRepository presupuestoRepo = mock(PresupuestoReparacionRepository.class);
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        IncidenciaReparacionRepository incidenciaRepo = mock(IncidenciaReparacionRepository.class);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(service, "presupuestoRepository", presupuestoRepo);
+        ReflectionTestUtils.setField(service, "usuarioRepository", usuarioRepo);
+        ReflectionTestUtils.setField(service, "incidenciaRepository", incidenciaRepo);
+        ReflectionTestUtils.setField(service, "eventPublisher", publisher);
+
+        Cliente clienteSinCuenta = new Cliente("María Sin Cuenta", "622222222");
+        Vehiculo vehiculo = new Vehiculo("9012GHI", "Seat", "Ibiza", 2018, clienteSinCuenta);
+        Usuario recepcionista = new Usuario("Laura", "laura@taller.com", "1234", "600000002", Rol.RECEPCIONISTA);
+        recepcionista.setId(2L);
+        Usuario mecanico = new Usuario("Pedro", "pedro@taller.com", "1234", "600000003", Rol.MECANICO);
+        mecanico.setId(3L);
+
+        Reparacion reparacion = new Reparacion(vehiculo, recepcionista, "Frenos", 150.0, 2);
+        reparacion.setId(10L);
+        reparacion.setMecanico(mecanico);
+
+        PresupuestoReparacion presupuesto = new PresupuestoReparacion(
+                "PRES-2026-010", reparacion, "Cambio de pastillas", LocalDate.now().plusDays(15), 15.0, 21.0
+        );
+        presupuesto.getLineas().add(new LineaPresupuesto(presupuesto, "PIEZA", "Pastillas", 1.0, 50.0, null));
+        presupuesto.recalcularTotales();
+
+        when(reparacionRepo.findById(10L)).thenReturn(Optional.of(reparacion));
+        when(presupuestoRepo.findByReparacionId(10L)).thenReturn(Optional.of(presupuesto));
+        when(usuarioRepo.findById(2L)).thenReturn(Optional.of(recepcionista));
+        when(usuarioRepo.findById(3L)).thenReturn(Optional.of(mecanico));
+
+        // 1) Mecánico bloqueado por RBAC
+        assertThrows(IllegalArgumentException.class, () ->
+                service.responderPresupuestoPersonal(10L, "ACEPTAR", "Presencial", null, 3L)
+        );
+
+        // 2) Recepcionista rechaza presencialmente -> presupuesto RECHAZADO pero reparación sigue PENDIENTE (abierta a nuevo presupuesto)
+        Map<String, Object> resRechazo = service.responderPresupuestoPersonal(10L, "RECHAZAR", "Por teléfono", "Demasiado caro", 2L);
+        assertEquals("RECHAZADO", resRechazo.get("estado"));
+        assertEquals("PENDIENTE", resRechazo.get("estadoReparacion"));
+        assertEquals(EstadoReparacion.PENDIENTE, reparacion.getEstado());
+
+        // 3) Si se emite nuevo presupuesto y Recepción lo marca ACEPTADO, pasa a EN_PROCESO
+        presupuesto.setEstado("PENDIENTE_ACEPTACION");
+        Map<String, Object> resAceptado = service.responderPresupuestoPersonal(10L, "ACEPTAR", "Presencial en recepción", null, 2L);
+        assertEquals("ACEPTADO", resAceptado.get("estado"));
+        assertEquals("EN_PROCESO", resAceptado.get("estadoReparacion"));
+        assertEquals(EstadoReparacion.EN_PROCESO, reparacion.getEstado());
+    }
+
+    /**
+     * PRUEBA 37 (ReparacionService - Cancelación tras rechazo del presupuesto y bloqueo posterior):
+     * Verifica que solo se puede cancelar cuando el presupuesto está RECHAZADO, que cambia el estado
+     * a CANCELADA con fechaSalida y sin generar factura, y bloquea cambios posteriores.
+     */
+    @Test
+    @DisplayName("Prueba 37: Cancelar reparación tras rechazo de presupuesto y bloquear cambios posteriores")
+    void test37_CancelarReparacionTrasRechazoYBloqueoModificacion() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        PresupuestoReparacionRepository presupuestoRepo = mock(PresupuestoReparacionRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        IncidenciaReparacionRepository incidenciaRepo = mock(IncidenciaReparacionRepository.class);
+        FacturaRepository facturaRepo = mock(FacturaRepository.class);
+        ReparacionMaterialRepository repMatRepo = mock(ReparacionMaterialRepository.class);
+        ConfiguracionTallerService configService = mock(ConfiguracionTallerService.class);
+        ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
+
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(service, "presupuestoRepository", presupuestoRepo);
+        ReflectionTestUtils.setField(service, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(service, "incidenciaRepository", incidenciaRepo);
+        ReflectionTestUtils.setField(service, "facturaRepository", facturaRepo);
+        ReflectionTestUtils.setField(service, "reparacionMaterialRepository", repMatRepo);
+        ReflectionTestUtils.setField(service, "configuracionService", configService);
+        ReflectionTestUtils.setField(service, "eventPublisher", publisher);
+
+        Cliente cliente = new Cliente("Carlos", "633333333", "carlos@email.com", "pass");
+        cliente.setId(5L);
+        Vehiculo vehiculo = new Vehiculo("3456JKL", "VW", "Golf", 2022, cliente);
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "1234", "600", Rol.RECEPCIONISTA);
+        Reparacion reparacion = new Reparacion(vehiculo, recep, "Avería motor", 300.0, 4);
+        reparacion.setId(20L);
+
+        PresupuestoReparacion presupuesto = new PresupuestoReparacion(
+                "PRES-2026-020", reparacion, "Diagnóstico motor", LocalDate.now().plusDays(15), 15.0, 21.0
+        );
+
+        when(reparacionRepo.findById(20L)).thenReturn(Optional.of(reparacion));
+        when(presupuestoRepo.findByReparacionId(20L)).thenReturn(Optional.of(presupuesto));
+        when(clienteRepo.findById(5L)).thenReturn(Optional.of(cliente));
+        when(configService.obtenerConfiguracion()).thenReturn(new ConfiguracionTaller());
+        when(repMatRepo.findByReparacionId(20L)).thenReturn(Collections.emptyList());
+        when(incidenciaRepo.findByReparacionIdOrderByFechaAsc(20L)).thenReturn(Collections.emptyList());
+        when(facturaRepo.findByReparacionId(20L)).thenReturn(Optional.empty());
+
+        // No permite cancelar mientras el presupuesto siga PENDIENTE_ACEPTACION
+        assertThrows(IllegalStateException.class, () ->
+                service.cancelarReparacionPorRechazo(20L, "Retira coche", 5L, null)
+        );
+
+        // Tras rechazar el presupuesto, el cliente sí puede cancelar y retirar el vehículo
+        presupuesto.setEstado("RECHAZADO");
+        var resp = service.cancelarReparacionPorRechazo(20L, "Prefiere no reparar", 5L, null);
+
+        assertEquals("CANCELADA", resp.getEstado());
+        assertNotNull(resp.getFechaSalida());
+        assertNull(resp.getFactura());
+        verify(facturaRepo, never()).save(any(Factura.class));
+
+        // Una vez CANCELADA, no permite transicionar a otro estado
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                service.actualizarEstado(20L, "EN_PROCESO")
+        );
+        assertTrue(ex.getMessage().contains("CANCELADA"));
+    }
+
+    /**
+     * PRUEBA 38 (ClienteService - Auto-vinculación de reparaciones al registrarse):
+     * Verifica que cuando un cliente ya existente en taller (sin cuenta) se registra
+     * con su teléfono, ClienteService vincula automáticamente todas las reparaciones
+     * de sus vehículos a reparacionesVinculadas sin necesidad de pegar el localizador.
+     */
+    @Test
+    @DisplayName("Prueba 38: Auto-vinculación de reparaciones existentes al registrarse el cliente por teléfono")
+    void test38_RegistroClienteAutoVinculaReparacionesExistentes() {
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionService reparacionService = mock(ReparacionService.class);
+
+        ClienteService clienteService = new ClienteService();
+        ReflectionTestUtils.setField(clienteService, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(clienteService, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(clienteService, "reparacionService", reparacionService);
+
+        Cliente clienteExistente = new Cliente("María Sánchez", "622222222");
+        clienteExistente.setId(2L);
+
+        Vehiculo vehiculo = new Vehiculo("9012GHI", "Seat", "Ibiza", 2018, clienteExistente);
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "1234", "600", Rol.RECEPCIONISTA);
+        Reparacion rep1 = new Reparacion(vehiculo, recep, "Pastillas de freno", 140.0, 2);
+        rep1.setId(101L);
+        Reparacion rep2 = new Reparacion(vehiculo, recep, "Revisión aceite", 90.0, 1);
+        rep2.setId(102L);
+
+        when(clienteRepo.findByEmail("maria@email.com")).thenReturn(Optional.empty());
+        when(clienteRepo.findByTelefono("622222222")).thenReturn(Optional.of(clienteExistente));
+        when(reparacionRepo.findByVehiculoClienteId(2L)).thenReturn(List.of(rep1, rep2));
+        when(clienteRepo.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, Object> resultado = clienteService.registrarCliente(
+                "María Sánchez", "622222222", "maria@email.com", "maria123"
+        );
+
+        assertEquals(2, resultado.get("reparacionesVinculadas"));
+        assertEquals(2, clienteExistente.getReparacionesVinculadas().size());
+        assertTrue(clienteExistente.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(101L)));
+        assertTrue(clienteExistente.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(102L)));
+        verify(clienteRepo, times(1)).save(clienteExistente);
     }
 }

@@ -182,7 +182,12 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
                     <h2 style="margin: 0;">Reparaciones en Taller y Formalización de Facturas</h2>
-                    <button class="btn btn-secondary" onclick="loadReparaciones()">↻ Actualizar</button>
+                    <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center;">
+                        <button type="button" class="btn btn-primary" id="btn-rep-filtro-activas" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="loadReparaciones('ACTIVAS')">Activas en Taller</button>
+                        <button type="button" class="btn btn-secondary" id="btn-rep-filtro-entregada" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="loadReparaciones('ENTREGADA')">Historial Entregadas</button>
+                        <button type="button" class="btn btn-secondary" id="btn-rep-filtro-cancelada" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="loadReparaciones('CANCELADA')">Historial Canceladas</button>
+                        <button type="button" class="btn btn-secondary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="loadReparaciones()">↻ Actualizar</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table" id="tabla-reparaciones">
@@ -464,18 +469,12 @@
                     apiFetch('/facturas').catch(() => [])
                 ]);
 
-                const repPorMatricula = {};
-                if (Array.isArray(reparaciones)) {
-                    reparaciones.forEach(r => {
-                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                        if (mat) repPorMatricula[mat] = r;
-                    });
-                }
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(reparaciones);
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
-                const repActivas = (reparaciones || []).filter(r => r.estado !== 'ENTREGADA');
+                const repActivas = (reparaciones || []).filter(r => !esEstadoCerradoTaller(r.estado));
 
                 document.getElementById('stat-vehiculos').textContent = vehiculosEnTaller.length;
                 document.getElementById('stat-clientes').textContent = clientes ? clientes.length : 0;
@@ -492,16 +491,10 @@
                     apiFetch('/vehiculos').catch(() => []),
                     apiFetch('/reparaciones').catch(() => [])
                 ]);
-                const repPorMatricula = {};
-                if (Array.isArray(reparaciones)) {
-                    reparaciones.forEach(r => {
-                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                        if (mat) repPorMatricula[mat] = r;
-                    });
-                }
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(reparaciones);
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
 
                 const select = document.getElementById('rep-vehiculo');
@@ -746,30 +739,93 @@
             }
         }
 
-        async function loadReparaciones() {
+        let filtroRepRecepcion = 'ACTIVAS';
+
+        function actualizarBotonesFiltroRepRecepcion() {
+            const mapa = {
+                ACTIVAS: document.getElementById('btn-rep-filtro-activas'),
+                ENTREGADA: document.getElementById('btn-rep-filtro-entregada'),
+                CANCELADA: document.getElementById('btn-rep-filtro-cancelada')
+            };
+            Object.entries(mapa).forEach(([key, btn]) => {
+                if (btn) btn.className = (key === filtroRepRecepcion) ? 'btn btn-primary' : 'btn btn-secondary';
+            });
+        }
+
+        async function refrescarTodoRecepcion() {
+            await Promise.all([
+                loadStats(),
+                loadVehiculosParaSelect(),
+                loadReparaciones(),
+                loadFacturasArchivo(),
+                loadVehiculos()
+            ]);
+        }
+
+        function abrirRespuestaPresencialRecep(repId, accion) {
+            const rep = reparacionesRecepCache.find(item => item.id === repId);
+            if (!rep) return;
+            abrirModalRespuestaPresupuestoPresencial(rep, accion, refrescarTodoRecepcion);
+        }
+
+        function abrirCancelarReparacionRecep(repId) {
+            const rep = reparacionesRecepCache.find(item => item.id === repId);
+            if (!rep) return;
+            const user = getUsuarioActual();
+            confirmarCancelarReparacionRechazada(rep, {
+                usuarioId: user ? user.id : null,
+                alertContainer: 'alerts-container',
+                onSuccess: refrescarTodoRecepcion
+            });
+        }
+
+        async function loadReparaciones(filtro = filtroRepRecepcion) {
+            filtroRepRecepcion = filtro || 'ACTIVAS';
+            actualizarBotonesFiltroRepRecepcion();
             try {
                 const reparaciones = await apiFetch('/reparaciones');
-                const activas = (reparaciones || [])
-                    .filter(r => r.estado !== 'ENTREGADA')
-                    .map(enriquecerReparacionFinanzas);
-                reparacionesRecepCache = activas;
+                const todas = (reparaciones || []).map(enriquecerReparacionFinanzas);
+                let lista;
+                if (filtroRepRecepcion === 'ENTREGADA') {
+                    lista = todas.filter(r => r.estado === 'ENTREGADA');
+                } else if (filtroRepRecepcion === 'CANCELADA') {
+                    lista = todas.filter(r => r.estado === 'CANCELADA');
+                } else {
+                    lista = todas.filter(r => !esEstadoCerradoTaller(r.estado));
+                }
+                reparacionesRecepCache = lista;
                 const tbody = document.querySelector('#tabla-reparaciones tbody');
                 tbody.innerHTML = '';
-                if (activas.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay reparaciones activas en el taller</td></tr>';
+                if (lista.length === 0) {
+                    const textoVacio = filtroRepRecepcion === 'CANCELADA'
+                        ? 'No hay reparaciones canceladas en el historial'
+                        : (filtroRepRecepcion === 'ENTREGADA'
+                            ? 'No hay reparaciones entregadas en el historial'
+                            : 'No hay reparaciones activas en el taller');
+                    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">${textoVacio}</td></tr>`;
                     return;
                 }
-                activas.forEach(r => {
+                lista.forEach(r => {
                     const tr = document.createElement('tr');
                     const matricula = r.matriculaVehiculo || r.vehiculo?.matricula || '-';
                     const marcaMod = `${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''}`.trim();
                     const clienteNom = r.nombreCliente || r.vehiculo?.cliente?.nombre || '-';
                     const mecanicoNom = r.nombreMecanico || r.mecanico?.nombre || 'Sin asignar';
                     const tieneFactura = !!r.factura;
-                    const importeHtml = tieneFactura
-                        ? `<strong style="color: var(--ok);">${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
-                        : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`;
+                    const importeHtml = r.estado === 'CANCELADA'
+                        ? `<span style="color: var(--err); font-weight: 600;">0,00 €</span><div style="font-size: 0.76rem; color: var(--text-muted);">Cancelada · Sin factura</div>`
+                        : (tieneFactura
+                            ? `<strong style="color: var(--ok);">${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
+                            : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`);
                     const botones = [];
+                    if (!esEstadoCerradoTaller(r.estado)) {
+                        if (r.presupuestoFormal && r.estadoPresupuesto === 'PENDIENTE_ACEPTACION' && !r.presupuestoFormal.caducado) {
+                            botones.push(`<button type="button" class="btn btn-success" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirRespuestaPresencialRecep(${r.id}, 'ACEPTAR')">Aceptar (Pres./Tel.)</button>`);
+                            botones.push(`<button type="button" class="btn btn-danger" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirRespuestaPresencialRecep(${r.id}, 'RECHAZAR')">Rechazar (Pres./Tel.)</button>`);
+                        } else if (r.estadoPresupuesto === 'RECHAZADO' && (r.estado === 'PENDIENTE' || r.estado === 'EN_PROCESO')) {
+                            botones.push(`<button type="button" class="btn btn-danger" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirCancelarReparacionRecep(${r.id})">Cancelar y Devolver</button>`);
+                        }
+                    }
                     if (r.estado === 'CONFIRMADA') {
                         botones.push(`<button type="button" class="btn btn-success" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="entregarVehiculo(${r.id})">Entregar y Cobrar</button>`);
                     } else if (r.estado === 'FINALIZADA') {
@@ -782,6 +838,7 @@
                                 <strong>${matricula}</strong>
                                 ${marcaMod ? `<span style="color: var(--text-muted); font-size: 0.86rem;">${marcaMod}</span>` : ''}
                                 <span style="font-family: monospace; font-size: 0.76rem; color: var(--brand-text); background: var(--brand-soft); padding: 0.1rem 0.45rem; border-radius: 4px;">#${r.id} · ${r.localizador || '-'}</span>
+                                ${!r.clienteTieneCuenta ? '<span class="badge badge-delivered" style="font-size: 0.68rem;">Sin cuenta</span>' : ''}
                             </div>
                             <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
                                 ${clienteNom} · <span style="color: var(--text);">${r.descripcionAveria || '-'}</span>
@@ -810,7 +867,7 @@
 
         function verDetalleReparacionRecep(repId) {
             const rep = reparacionesRecepCache.find(item => item.id === repId);
-            if (rep) abrirModalDetalleReparacion(rep, { rol: 'RECEPCIONISTA' });
+            if (rep) abrirModalDetalleReparacion(rep, { rol: 'RECEPCIONISTA', onRefresh: refrescarTodoRecepcion });
         }
 
         async function loadFacturasArchivo() {
@@ -899,17 +956,14 @@
                 const tbody = document.querySelector('#tabla-vehiculos tbody');
                 tbody.innerHTML = '';
 
-                const repPorMatricula = {};
-                if (Array.isArray(reparaciones)) {
-                    reparaciones.forEach(r => {
-                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                        if (mat) repPorMatricula[mat] = enriquecerReparacionFinanzas(r);
-                    });
-                }
+                const reparacionesEnriquecidas = Array.isArray(reparaciones)
+                    ? reparaciones.map(enriquecerReparacionFinanzas)
+                    : [];
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(reparacionesEnriquecidas);
 
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
 
                 if (vehiculosEnTaller.length === 0) {
@@ -1262,7 +1316,11 @@
                     : citasDia.map(c => `
                         <tr>
                             <td><strong style="color: var(--primary-light); font-size: 0.95rem;">${c.franjaHoraria}</strong><div style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">${c.codigoCita}</div></td>
-                            <td><strong>${c.nombreCliente}</strong><div style="font-size:0.78rem; color:var(--text-muted);">${c.telefonoCliente}</div></td>
+                            <td>
+                                <strong>${c.nombreCliente}</strong>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">${c.telefonoCliente}</div>
+                                ${c.emailContacto ? `<div style="font-size:0.74rem; color:var(--info);">${c.emailContacto}</div>` : ''}
+                            </td>
                             <td><strong>${c.matriculaVehiculo}</strong><div style="font-size:0.78rem; color:var(--text-muted);">${c.marcaVehiculo} ${c.modeloVehiculo}</div></td>
                             <td><strong>${c.motivo}</strong>${c.observaciones ? `<div style="font-size:0.78rem; color:var(--text-muted);">${c.observaciones}</div>` : ''}</td>
                             <td>
@@ -1271,7 +1329,11 @@
                                 </span>
                             </td>
                             <td>
-                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                    ${c.estado === 'PENDIENTE' ? `
+                                        <button type="button" class="btn btn-success" style="padding: 0.25rem 0.5rem; font-size: 0.74rem;" onclick="cambiarEstadoCitaRecepcion(${c.id}, 'CONFIRMADA')">Confirmar</button>
+                                        <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.74rem;" onclick="abrirModalRechazoCitaRecepcion(${c.id}, '${c.codigoCita}', '${(c.emailContacto || '').replace(/'/g, "\\'")}')">Rechazar</button>
+                                    ` : ''}
                                     <select id="est-cita-${c.id}" style="width: auto; padding: 0.28rem 0.45rem; font-size: 0.78rem;">
                                         <option value="PENDIENTE" ${c.estado === 'PENDIENTE' ? 'selected' : ''}>PENDIENTE</option>
                                         <option value="CONFIRMADA" ${c.estado === 'CONFIRMADA' ? 'selected' : ''}>CONFIRMADA</option>
@@ -1312,6 +1374,7 @@
                             <td>
                                 <strong>${c.nombreCliente || '—'}</strong>
                                 <div style="font-size: 0.76rem; color: var(--text-muted);">${c.telefonoCliente || 'Sin tlf.'}</div>
+                                ${c.emailContacto ? `<div style="font-size: 0.72rem; color: var(--info);">${c.emailContacto}</div>` : ''}
                             </td>
                             <td>
                                 <span style="font-family: monospace; font-weight: 700;">${c.matriculaVehiculo || '—'}</span>
@@ -1428,19 +1491,68 @@
             }
         }
 
-        async function cambiarEstadoCitaRecepcion(citaId) {
-            const nuevoEstado = document.getElementById(`est-cita-${citaId}`)?.value;
+        async function cambiarEstadoCitaRecepcion(citaId, estadoForzado = null, motivo = null) {
+            const nuevoEstado = estadoForzado || document.getElementById(`est-cita-${citaId}`)?.value;
             if (!nuevoEstado) return;
             try {
                 const res = await apiFetch(`/citas/${citaId}/estado`, {
                     method: 'PUT',
-                    body: JSON.stringify({ estado: nuevoEstado })
+                    body: JSON.stringify({ estado: nuevoEstado, motivo: motivo || '' })
                 });
                 mostrarAlerta(res.mensaje || 'Estado de la cita actualizado.', 'success', document.getElementById('alerts-container'));
                 await cargarCalendarioRecepcion();
             } catch (error) {
                 mostrarAlerta(error.message, 'error', document.getElementById('alerts-container'));
             }
+        }
+
+        let citaRechazoPendienteId = null;
+
+        function abrirModalRechazoCitaRecepcion(citaId, codigoCita, emailContacto) {
+            citaRechazoPendienteId = citaId;
+            let overlay = document.getElementById('modal-rechazar-cita-recep');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'modal-rechazar-cita-recep';
+                overlay.className = 'modal-overlay';
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) cerrarModalRechazoCitaRecepcion();
+                };
+                overlay.innerHTML = `
+                    <div class="modal card" style="max-width: 480px; width: 95%;">
+                        <h3 style="margin: 0 0 0.45rem 0; color: var(--err);">Rechazar / Cancelar Solicitud de Cita</h3>
+                        <p id="rechazar-cita-desc" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.9rem;"></p>
+                        <div class="form-group">
+                            <label style="font-size: 0.84rem;">Motivo del rechazo (Opcional, se incluirá en el correo al cliente)</label>
+                            <textarea id="input-motivo-rechazo-cita-recep" rows="2" placeholder="Ej. No disponemos de elevador libre en ese tramo horario; por favor solicita otra hora..."></textarea>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="cerrarModalRechazoCitaRecepcion()">Volver</button>
+                            <button type="button" class="btn btn-danger" onclick="confirmarRechazoCitaRecepcion()">Rechazar y Notificar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+            }
+            document.getElementById('input-motivo-rechazo-cita-recep').value = '';
+            document.getElementById('rechazar-cita-desc').innerHTML = emailContacto
+                ? `Vas a rechazar la cita <strong>${codigoCita}</strong>. Se enviará automáticamente un aviso por correo electrónico a <strong>${emailContacto}</strong>.`
+                : `Vas a rechazar/cancelar la cita <strong>${codigoCita}</strong> (no tiene correo electrónico de contacto registrado).`;
+            overlay.style.display = 'flex';
+        }
+
+        function cerrarModalRechazoCitaRecepcion() {
+            const overlay = document.getElementById('modal-rechazar-cita-recep');
+            if (overlay) overlay.style.display = 'none';
+            citaRechazoPendienteId = null;
+        }
+
+        async function confirmarRechazoCitaRecepcion() {
+            if (!citaRechazoPendienteId) return;
+            const id = citaRechazoPendienteId;
+            const motivo = document.getElementById('input-motivo-rechazo-cita-recep')?.value.trim() || '';
+            cerrarModalRechazoCitaRecepcion();
+            await cambiarEstadoCitaRecepcion(id, 'CANCELADA', motivo);
         }
 
         async function crearCitaManualRecepcion(fechaIso, btn) {

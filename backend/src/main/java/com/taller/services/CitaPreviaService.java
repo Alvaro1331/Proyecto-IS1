@@ -49,6 +49,9 @@ public class CitaPreviaService {
     @Autowired
     private VehiculoRepository vehiculoRepository;
 
+    @Autowired(required = false)
+    private NotificacionService notificacionService;
+
     public boolean esFinDeSemana(LocalDate fecha) {
         DayOfWeek dow = fecha.getDayOfWeek();
         return dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY;
@@ -135,6 +138,24 @@ public class CitaPreviaService {
                                                       String marcaManual, String modeloManual,
                                                       LocalDate fecha, String franjaHoraria,
                                                       String motivo, String observaciones, String estadoInicial) {
+        return crearCita(
+                clienteId, vehiculoId, matriculaManual,
+                nombreClienteManual, telefonoClienteManual, null,
+                marcaManual, modeloManual, null,
+                fecha, franjaHoraria, motivo, observaciones, estadoInicial, false
+        );
+    }
+
+    /**
+     * Sobrecarga completa de creación de cita previa, soportando solicitudes públicas sin iniciar sesión
+     * (que se crean obligatoriamente en estado PENDIENTE y exigen correo de contacto para notificaciones).
+     */
+    public synchronized Map<String, Object> crearCita(Long clienteId, Long vehiculoId, String matriculaManual,
+                                                      String nombreClienteManual, String telefonoClienteManual,
+                                                      String emailContacto, String marcaManual, String modeloManual,
+                                                      Integer anioManual, LocalDate fecha, String franjaHoraria,
+                                                      String motivo, String observaciones, String estadoInicial,
+                                                      boolean esSolicitudPublica) {
         if (fecha == null) {
             throw new IllegalArgumentException("Debes seleccionar una fecha válida para la cita.");
         }
@@ -143,6 +164,27 @@ public class CitaPreviaService {
         }
         if (motivo == null || motivo.trim().isEmpty()) {
             throw new IllegalArgumentException("Debes especificar el motivo de la visita.");
+        }
+
+        String emailTrim = (emailContacto != null && !emailContacto.trim().isEmpty()) ? emailContacto.trim() : null;
+        if (esSolicitudPublica) {
+            if (nombreClienteManual == null || nombreClienteManual.trim().isEmpty()) {
+                throw new IllegalArgumentException("Debes indicar tu nombre y apellidos para solicitar la cita.");
+            }
+            if (telefonoClienteManual == null || telefonoClienteManual.trim().isEmpty()) {
+                throw new IllegalArgumentException("Debes indicar tu teléfono de contacto para solicitar la cita.");
+            }
+            if (emailTrim == null || !esEmailValido(emailTrim)) {
+                throw new IllegalArgumentException("Debes introducir un correo electrónico válido para poder notificarte si tu cita es confirmada o rechazada.");
+            }
+            if (matriculaManual == null || matriculaManual.trim().isEmpty()) {
+                throw new IllegalArgumentException("Debes indicar la matrícula de tu vehículo.");
+            }
+            if (marcaManual == null || marcaManual.trim().isEmpty() || modeloManual == null || modeloManual.trim().isEmpty()) {
+                throw new IllegalArgumentException("Debes indicar la marca y el modelo de tu vehículo.");
+            }
+        } else if (emailTrim != null && !esEmailValido(emailTrim)) {
+            throw new IllegalArgumentException("El formato del correo electrónico de contacto no es válido.");
         }
 
         // Validación de fecha u hora pasada
@@ -195,7 +237,9 @@ public class CitaPreviaService {
                 }
                 String marca = (marcaManual != null && !marcaManual.trim().isEmpty()) ? marcaManual.trim() : "Pendiente";
                 String modelo = (modeloManual != null && !modeloManual.trim().isEmpty()) ? modeloManual.trim() : "Cita Previa";
-                vehiculo = vehiculoRepository.save(new Vehiculo(mat, marca, modelo, LocalDate.now().getYear(), cliente));
+                int anioValido = (anioManual != null && anioManual >= 1900 && anioManual <= LocalDate.now().getYear() + 1)
+                        ? anioManual : LocalDate.now().getYear();
+                vehiculo = vehiculoRepository.save(new Vehiculo(mat, marca, modelo, anioValido, cliente));
             }
         } else {
             throw new IllegalArgumentException("Debes seleccionar un vehículo para agendar la cita.");
@@ -238,6 +282,14 @@ public class CitaPreviaService {
             codigo = CitaPrevia.generarCodigoCita();
         }
 
+        String estadoFinal = esSolicitudPublica
+                ? "PENDIENTE"
+                : ((estadoInicial != null && !estadoInicial.isBlank()) ? estadoInicial.trim().toUpperCase() : "PENDIENTE");
+
+        String emailParaCita = emailTrim != null
+                ? emailTrim
+                : (cliente != null && cliente.getEmail() != null && !cliente.getEmail().isBlank() ? cliente.getEmail().trim() : null);
+
         CitaPrevia cita = new CitaPrevia(
                 cliente,
                 vehiculo,
@@ -245,14 +297,28 @@ public class CitaPreviaService {
                 franjaHoraria.trim(),
                 motivo.trim(),
                 observaciones != null ? observaciones.trim() : "",
-                estadoInicial != null ? estadoInicial : "CONFIRMADA"
+                estadoFinal
         );
         cita.setCodigoCita(codigo);
+        cita.setEmailContacto(emailParaCita);
         citaRepository.save(cita);
 
         Map<String, Object> dto = mapearCita(cita);
-        dto.put("mensaje", "Cita previa " + cita.getCodigoCita() + " confirmada para el " + fecha + " a las " + franjaHoraria + ".");
+        String msg = "PENDIENTE".equalsIgnoreCase(cita.getEstado())
+                ? "Solicitud de cita previa " + cita.getCodigoCita() + " registrada en estado PENDIENTE para el "
+                        + fecha + " a las " + franjaHoraria + ". Te notificaremos por correo electrónico cualquier actualización o rechazo."
+                : "Cita previa " + cita.getCodigoCita() + " confirmada para el " + fecha + " a las " + franjaHoraria + ".";
+        dto.put("mensaje", msg);
         return dto;
+    }
+
+    private boolean esEmailValido(String email) {
+        if (email == null || email.contains(" ")) return false;
+        int at = email.indexOf('@');
+        if (at <= 0 || at != email.lastIndexOf('@')) return false;
+        String dominio = email.substring(at + 1);
+        int dot = dominio.indexOf('.');
+        return dot > 0 && !dominio.endsWith(".");
     }
 
     /**
@@ -339,6 +405,10 @@ public class CitaPreviaService {
     }
 
     public synchronized Map<String, Object> cambiarEstadoCita(Long citaId, String nuevoEstado) {
+        return cambiarEstadoCita(citaId, nuevoEstado, null);
+    }
+
+    public synchronized Map<String, Object> cambiarEstadoCita(Long citaId, String nuevoEstado, String motivo) {
         CitaPrevia cita = citaRepository.findById(citaId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la cita con ID: " + citaId));
 
@@ -350,8 +420,10 @@ public class CitaPreviaService {
             throw new IllegalArgumentException("Estado de cita no válido: " + nuevoEstado);
         }
 
+        String estadoAnterior = cita.getEstado();
+
         // Si se reactiva una cita cancelada, comprobar que quede cupo
-        if ("CANCELADA".equalsIgnoreCase(cita.getEstado()) && !"CANCELADA".equals(estadoNorm)) {
+        if ("CANCELADA".equalsIgnoreCase(estadoAnterior) && !"CANCELADA".equals(estadoNorm)) {
             List<CitaPrevia> activas = citaRepository.findByFechaOrderByFranjaHorariaAsc(cita.getFecha()).stream()
                     .filter(c -> !"CANCELADA".equalsIgnoreCase(c.getEstado()))
                     .collect(Collectors.toList());
@@ -363,8 +435,23 @@ public class CitaPreviaService {
         cita.setEstado(estadoNorm);
         citaRepository.save(cita);
 
+        boolean estadoCambiado = estadoAnterior == null || !estadoNorm.equalsIgnoreCase(estadoAnterior);
+        if (estadoCambiado && notificacionService != null) {
+            notificacionService.notificarCambioEstadoCita(cita, estadoAnterior, motivo);
+        }
+
+        boolean tieneEmail = (cita.getEmailContacto() != null && !cita.getEmailContacto().isBlank())
+                || (cita.getCliente() != null && cita.getCliente().getEmail() != null && !cita.getCliente().getEmail().isBlank());
+
         Map<String, Object> dto = mapearCita(cita);
-        dto.put("mensaje", "Estado de la cita " + cita.getCodigoCita() + " actualizado a " + estadoNorm + ".");
+        dto.put("notificacionEnviada", estadoCambiado && tieneEmail && !"PENDIENTE".equals(estadoNorm));
+        String msg = "Estado de la cita " + cita.getCodigoCita() + " actualizado a " + estadoNorm + ".";
+        if (estadoCambiado && "CANCELADA".equals(estadoNorm) && tieneEmail) {
+            msg += " Se ha enviado notificación por correo electrónico al cliente.";
+        } else if (estadoCambiado && "CONFIRMADA".equals(estadoNorm) && tieneEmail) {
+            msg += " Se ha notificado la confirmación por correo al cliente.";
+        }
+        dto.put("mensaje", msg);
         return dto;
     }
 
@@ -391,6 +478,10 @@ public class CitaPreviaService {
         m.put("clienteId", c.getCliente() != null ? c.getCliente().getId() : null);
         m.put("nombreCliente", c.getCliente() != null ? c.getCliente().getNombre() : "-");
         m.put("telefonoCliente", c.getCliente() != null ? c.getCliente().getTelefono() : "-");
+        String emailContacto = (c.getEmailContacto() != null && !c.getEmailContacto().isBlank())
+                ? c.getEmailContacto()
+                : (c.getCliente() != null && c.getCliente().getEmail() != null ? c.getCliente().getEmail() : "");
+        m.put("emailContacto", emailContacto);
         m.put("vehiculoId", c.getVehiculo() != null ? c.getVehiculo().getId() : null);
         m.put("matriculaVehiculo", c.getVehiculo() != null ? c.getVehiculo().getMatricula() : "-");
         String marca = c.getVehiculo() != null && c.getVehiculo().getMarca() != null ? c.getVehiculo().getMarca() : "";

@@ -148,13 +148,13 @@
         <h2>Informe Técnico: Configuración, Ejecución y Manual Completo de Pruebas Unitarias</h2>
         <div class="meta-box">
             <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
-            <strong>Fecha:</strong> Febrero 2026 &nbsp;|&nbsp; 
-            <strong>Estado:</strong> 100% Operativo y Verificado (33/33 Pruebas Exitosas)
+            <strong>Fecha:</strong> Noviembre 2026 &nbsp;|&nbsp; 
+            <strong>Estado:</strong> 100% Operativo y Verificado (38/38 Pruebas Exitosas)
         </div>
     </div>
 
     <div class="alert alert-success">
-        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>33 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Notificaciones al Cliente, Citas Previas, Vehículos y Máquina de Estados de Reparación)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>38 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Vehículos y Máquina de Estados de Reparación)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
     </div>
 
     <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
@@ -328,7 +328,7 @@
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">5. Catálogo Completo de las 33 Pruebas Unitarias Implementadas</h2>
+    <h2 class="section-title">5. Catálogo Completo de las 38 Pruebas Unitarias Implementadas</h2>
     <p>
         La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable, de gestión y de seguridad del taller:
     </p>
@@ -541,6 +541,36 @@
                 <td><strong>FLUJO UNIDIRECCIONAL:</strong> Impide retroceder en la secuencia lógica de estados del ciclo de vida de la reparación (por ejemplo, intentar pasar de <code>FINALIZADA</code> a <code>PENDIENTE</code>).</td>
                 <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(ex.getMessage().contains("No se puede cambiar de"))</code></td>
             </tr>
+            <tr>
+                <td><strong>34</strong></td>
+                <td><code>CitaPreviaService</code><br><code>crearCita()</code></td>
+                <td>Verifica que una solicitud de cita previa sin iniciar sesión exige obligatoriamente un correo electrónico válido y se crea siempre en estado <code>PENDIENTE</code> guardando <code>emailContacto</code> sin crear cuenta web.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("PENDIENTE", estado)</code><br><code>assertEquals(email, emailContacto)</code></td>
+            </tr>
+            <tr>
+                <td><strong>35</strong></td>
+                <td><code>CitaPreviaService</code><br><code>cambiarEstadoCita()</code></td>
+                <td>Verifica que al rechazar una cita previa (de <code>PENDIENTE</code> a <code>CANCELADA</code> con motivo opcional), el sistema invoca a <code>NotificacionService.notificarCambioEstadoCita(...)</code> para avisar por correo al cliente.</td>
+                <td><code>assertEquals("CANCELADA", estado)</code><br><code>assertEquals(true, notificacionEnviada)</code><br><code>verify(notifService, times(1))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>36</strong></td>
+                <td><code>ReparacionService</code><br><code>responderPresupuestoPersonal()</code></td>
+                <td><strong>SEGURIDAD (RBAC) Y GESTIÓN PRESENCIAL:</strong> Bloquea al rol <code>MECANICO</code>, permite a <code>RECEPCIONISTA</code>/<code>ADMIN</code> marcar presupuestos como aceptados o rechazados presencialmente o por teléfono sin contraseña del cliente y mantiene la reparación abierta tras un rechazo.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertEquals("RECHAZADO", estado)</code><br><code>assertEquals("ACEPTADO", estado)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>37</strong></td>
+                <td><code>ReparacionService</code><br><code>cancelarReparacionPorRechazo()</code><br><code>actualizarEstado()</code></td>
+                <td><strong>INTEGRIDAD DEL CICLO DE VIDA (Cancelación):</strong> Impide cancelar si el presupuesto no está <code>RECHAZADO</code>; al cancelar pasa la reparación a <code>CANCELADA</code> con <code>fechaSalida</code>, sin emitir factura, y bloquea modificaciones de estado posteriores.</td>
+                <td><code>assertThrows(IllegalStateException.class, ...)</code><br><code>assertEquals("CANCELADA", estado)</code><br><code>verify(facturaRepo, never()).save(...)</code></td>
+            </tr>
+            <tr>
+                <td><strong>38</strong></td>
+                <td><code>ClienteService</code><br><code>registrarCliente()</code></td>
+                <td>Verifica la auto-vinculación de reparaciones existentes: al registrarse un cliente con un teléfono ya dado de alta en el taller, añade automáticamente todas las reparaciones de sus vehículos a <code>reparacionesVinculadas</code> sin pegar localizador.</td>
+                <td><code>assertEquals(2, vinculadas)</code><br><code>assertTrue(anyMatch(101L))</code><br><code>verify(clienteRepo, times(1)).save(...)</code></td>
+            </tr>
         </tbody>
     </table>
 
@@ -553,29 +583,29 @@
         <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
         <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
         <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
-        <li>En el panel inferior de IntelliJ se mostrarán los <strong>33 tests con el check verde de aprobación</strong>.</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>38 tests con el check verde de aprobación</strong>.</li>
     </ol>
 
     <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
     <p>Desde una terminal de PowerShell en la carpeta <code>backend</code>, ejecuta el comando de pruebas:</p>
     <div class="code-block">.\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest</div>
 
-    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 1.78 s):</h3>
+    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 3.47 s):</h3>
     <div class="code-block">[INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running com.taller.PruebasUnitariasTest
-[INFO] Tests run: 33, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.782 s -- in com.taller.PruebasUnitariasTest
+[INFO] Tests run: 38, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.468 s -- in com.taller.PruebasUnitariasTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[INFO] Tests run: 33, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 38, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  8.215 s
-[INFO] Finished at: 2026-11-10T16:45:10+01:00
+[INFO] Total time:  16.557 s
+[INFO] Finished at: 2026-11-20T10:52:50+01:00
 [INFO] ------------------------------------------------------------------------</div>
 
     <h2 class="section-title">7. Pasos para Crear una Nueva Prueba Unitaria de Seguridad (Checklist Rápido)</h2>
@@ -589,9 +619,9 @@
     <div class="alert alert-info">
         <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
         <ul>
-            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 33 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 38 pruebas y módulo de seguridad.</li>
             <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
-            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 33 pruebas unitarias listo para copiar.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 38 pruebas unitarias listo para copiar.</li>
         </ul>
     </div>
 

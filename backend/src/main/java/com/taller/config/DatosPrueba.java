@@ -36,9 +36,12 @@ public class DatosPrueba implements CommandLineRunner {
     @Autowired private ConfiguracionTallerService configuracionService;
     @Autowired private ReparacionService reparacionService;
     @Autowired private CitaPreviaService citaService;
+    @Autowired(required = false) private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        asegurarColumnasVarcharMySQL();
+
         // 1. Asegurar que exista siempre la Configuración del Taller por defecto (15% margen, 35 €/h, 2000 € fondo)
         ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
 
@@ -56,7 +59,10 @@ public class DatosPrueba implements CommandLineRunner {
                     r.setFechaEstimadaFin(r.getFechaEntrada().plusDays(r.getDiasEstimados()));
                     modificado = true;
                 }
-                if (r.getHorasTrabajoMecanico() == null || (r.getHorasTrabajoMecanico() == 0.0 && r.getEstado() != EstadoReparacion.PENDIENTE)) {
+                if (r.getHorasTrabajoMecanico() == null
+                        || (r.getHorasTrabajoMecanico() == 0.0
+                        && r.getEstado() != EstadoReparacion.PENDIENTE
+                        && r.getEstado() != EstadoReparacion.CANCELADA)) {
                     r.setHorasTrabajoMecanico(r.getEstado() == EstadoReparacion.FINALIZADA
                             || r.getEstado() == EstadoReparacion.CONFIRMADA
                             || r.getEstado() == EstadoReparacion.ENTREGADA ? 2.0 : 1.5);
@@ -230,7 +236,7 @@ public class DatosPrueba implements CommandLineRunner {
                         r.setEstado(EstadoReparacion.PENDIENTE);
                         reparacionRepository.save(r);
                     }
-                } else if (r.getEstado() != EstadoReparacion.PENDIENTE) {
+                } else if (r.getEstado() != EstadoReparacion.PENDIENTE && r.getEstado() != EstadoReparacion.CANCELADA) {
                     reparacionService.crearPresupuestoAceptadoInicial(
                             r.getId(),
                             "Diagnóstico inicial confirmado con el cliente: " + r.getDescripcionAveria(),
@@ -310,5 +316,17 @@ public class DatosPrueba implements CommandLineRunner {
             cursor = cursor.plusDays(1);
         }
         return cursor;
+    }
+
+    private void asegurarColumnasVarcharMySQL() {
+        if (jdbcTemplate == null) {
+            return;
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE reparaciones MODIFY COLUMN estado VARCHAR(30) NOT NULL");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE notificaciones_cliente MODIFY COLUMN tipo VARCHAR(50) NOT NULL");
+        } catch (Exception ignored) {}
     }
 }

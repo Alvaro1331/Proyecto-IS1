@@ -6,10 +6,14 @@ import com.taller.repositories.ClienteRepository;
 import com.taller.repositories.ReparacionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -31,38 +35,48 @@ public class ClienteService {
     @Autowired
     private ReparacionService reparacionService;
 
+    @Transactional
     public Map<String, Object> registrarCliente(String nombre, String telefono, String email, String password) {
-        if (clienteRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("Ya existe una cuenta con el correo: " + email);
+        String emailLimpio = email != null ? email.trim() : "";
+        String telefonoLimpio = telefono != null ? telefono.trim() : "";
+        String nombreLimpio = nombre != null ? nombre.trim() : "";
+
+        if (clienteRepository.findByEmail(emailLimpio).isPresent()) {
+            throw new IllegalArgumentException("Ya existe una cuenta con el correo: " + emailLimpio);
         }
 
-        var clienteExistente = clienteRepository.findByTelefono(telefono);
+        var clienteExistente = clienteRepository.findByTelefono(telefonoLimpio);
 
         if (clienteExistente.isPresent()) {
             Cliente cliente = clienteExistente.get();
             if (cliente.tieneCuenta()) {
                 throw new IllegalArgumentException("Ya existe una cuenta asociada a este teléfono.");
             }
-            cliente.setEmail(email);
+            cliente.setEmail(emailLimpio);
             cliente.setPassword(password);
-            cliente.setNombre(nombre);
+            cliente.setNombre(nombreLimpio);
+            int nuevasVinculadas = vincularReparacionesDeVehiculosPropios(cliente);
             clienteRepository.save(cliente);
+            int totalVinculadas = cliente.getReparacionesVinculadas() != null
+                    ? cliente.getReparacionesVinculadas().size() : nuevasVinculadas;
             return Map.of(
                 "id", cliente.getId(),
                 "nombre", cliente.getNombre(),
                 "email", cliente.getEmail(),
                 "telefono", cliente.getTelefono(),
-                "mensaje", "Cuenta creada correctamente. Se ha vinculado a tus vehículos existentes."
+                "reparacionesVinculadas", totalVinculadas,
+                "mensaje", "Cuenta creada correctamente. Se ha vinculado a tus vehículos y reparaciones existentes (" + totalVinculadas + ")."
             );
         }
 
-        Cliente nuevoCliente = new Cliente(nombre, telefono, email, password);
+        Cliente nuevoCliente = new Cliente(nombreLimpio, telefonoLimpio, emailLimpio, password);
         clienteRepository.save(nuevoCliente);
         return Map.of(
             "id", nuevoCliente.getId(),
             "nombre", nuevoCliente.getNombre(),
             "email", nuevoCliente.getEmail(),
             "telefono", nuevoCliente.getTelefono(),
+            "reparacionesVinculadas", 0,
             "mensaje", "Cuenta creada correctamente."
         );
     }
@@ -93,6 +107,7 @@ public class ClienteService {
         throw new IllegalArgumentException("Usuario no encontrado: no existe ninguna cuenta con ese correo o teléfono.");
     }
 
+    @Transactional
     public Map<String, Object> vincularLocalizador(Long clienteId, String codigoLocalizador) {
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
@@ -105,8 +120,15 @@ public class ClienteService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró ninguna reparación con el código: " + codigoLocalizador));
 
-        cliente.getReparacionesVinculadas().add(reparacion);
-        clienteRepository.save(cliente);
+        if (cliente.getReparacionesVinculadas() == null) {
+            cliente.setReparacionesVinculadas(new HashSet<>());
+        }
+        boolean yaEsta = cliente.getReparacionesVinculadas().stream()
+                .anyMatch(r -> reparacion.getId() != null && reparacion.getId().equals(r.getId()));
+        if (!yaEsta) {
+            cliente.getReparacionesVinculadas().add(reparacion);
+            clienteRepository.save(cliente);
+        }
 
         return Map.of(
             "mensaje", "Reparación vinculada correctamente.",
@@ -118,13 +140,24 @@ public class ClienteService {
 
     /**
      * Obtiene el listado enriquecido de reparaciones vinculadas a la cuenta del cliente,
-     * incluyendo línea temporal, días estimados, incidencias con fotos y factura.
+     * auto-vinculando previamente cualquier reparación de sus vehículos propios para que
+     * no necesite pegar el código localizador manualmente.
      */
+    @Transactional
     public List<Map<String, Object>> obtenerMisReparaciones(Long clienteId) {
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
 
+        if (vincularReparacionesDeVehiculosPropios(cliente) > 0) {
+            clienteRepository.save(cliente);
+        }
+
+        if (cliente.getReparacionesVinculadas() == null) {
+            return List.of();
+        }
+
         return cliente.getReparacionesVinculadas().stream()
+                .sorted(Comparator.comparing(Reparacion::getId, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(r -> {
                     ReparacionResponseDTO dto = reparacionService.convertirAResponseDTO(r, null);
                     Map<String, Object> map = new LinkedHashMap<>();
@@ -156,6 +189,36 @@ public class ClienteService {
                     return map;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private int vincularReparacionesDeVehiculosPropios(Cliente cliente) {
+        if (cliente == null || cliente.getId() == null || reparacionRepository == null) {
+            return 0;
+        }
+        List<Reparacion> propias = reparacionRepository.findByVehiculoClienteId(cliente.getId());
+        if (propias == null || propias.isEmpty()) {
+            return 0;
+        }
+        if (cliente.getReparacionesVinculadas() == null) {
+            cliente.setReparacionesVinculadas(new HashSet<>());
+        }
+        Set<Long> idsYaVinculados = cliente.getReparacionesVinculadas().stream()
+                .map(Reparacion::getId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        int anadidas = 0;
+        for (Reparacion rep : propias) {
+            Long repId = rep.getId();
+            if (repId != null ? !idsYaVinculados.contains(repId) : !cliente.getReparacionesVinculadas().contains(rep)) {
+                cliente.getReparacionesVinculadas().add(rep);
+                if (repId != null) {
+                    idsYaVinculados.add(repId);
+                }
+                anadidas++;
+            }
+        }
+        return anadidas;
     }
 
     private Map<String, Object> clienteToLoginResponse(Cliente c) {

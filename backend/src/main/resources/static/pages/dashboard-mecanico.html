@@ -271,7 +271,7 @@
             try {
                 const todasReparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
                 const reparaciones = (todasReparaciones || [])
-                    .filter(r => r.estado !== 'ENTREGADA')
+                    .filter(r => !esEstadoCerradoTaller(r.estado))
                     .map(enriquecerReparacionFinanzas);
                 misReparacionesCache = reparaciones;
 

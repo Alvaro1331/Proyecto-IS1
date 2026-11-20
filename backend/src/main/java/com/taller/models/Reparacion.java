@@ -58,7 +58,7 @@ public class Reparacion {
     private LocalDate fechaSalida;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30, columnDefinition = "VARCHAR(30)")
     private EstadoReparacion estado;
 
     @Column(nullable = false)
