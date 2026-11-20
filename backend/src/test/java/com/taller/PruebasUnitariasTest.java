@@ -1,6 +1,7 @@
 package com.taller;
 
 import com.taller.dtos.ReparacionRequestDTO;
+import com.taller.dtos.ReparacionResponseDTO;
 import com.taller.dtos.UsuarioResponseDTO;
 import com.taller.dtos.VehiculoRequestDTO;
 import com.taller.models.*;
@@ -23,6 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -1131,5 +1133,278 @@ public class PruebasUnitariasTest {
         assertTrue(clienteExistente.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(101L)));
         assertTrue(clienteExistente.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(102L)));
         verify(clienteRepo, times(1)).save(clienteExistente);
+    }
+
+    // =========================================================================
+    //  NUEVAS PRUEBAS UNITARIAS PARA HHU #7, #8, #19, #20 Y #21 (39 – 43)
+    // =========================================================================
+
+    /**
+     * PRUEBA 39 (HU #7 - Ordenación de prioridad de vehículos según categorías):
+     * Verifica que ordenarReparacionesPorCriterio ordena correctamente por orden de llegada,
+     * tiempo estimado de reparación y uso de piezas.
+     */
+    @Test
+    @DisplayName("Prueba 39 (HU #7): Ordenación por orden de llegada, tiempo estimado y uso de piezas")
+    void test39_OrdenacionPrioridadVehiculosPorCategorias() {
+        ReparacionService service = new ReparacionService();
+
+        ReparacionResponseDTO r1 = new ReparacionResponseDTO();
+        r1.setId(1L);
+        r1.setFechaHoraEntrada("2026-11-18T10:00:00");
+        r1.setDiasEstimados(5);
+        r1.setTotalUnidadesPiezas(1);
+        r1.setCosteMateriales(15.0);
+
+        ReparacionResponseDTO r2 = new ReparacionResponseDTO();
+        r2.setId(2L);
+        r2.setFechaHoraEntrada("2026-11-16T08:30:00");
+        r2.setDiasEstimados(2);
+        r2.setTotalUnidadesPiezas(6);
+        r2.setCosteMateriales(180.0);
+
+        ReparacionResponseDTO r3 = new ReparacionResponseDTO();
+        r3.setId(3L);
+        r3.setFechaHoraEntrada("2026-11-19T12:15:00");
+        r3.setDiasEstimados(1);
+        r3.setTotalUnidadesPiezas(3);
+        r3.setCosteMateriales(65.0);
+
+        List<ReparacionResponseDTO> entrada = List.of(r1, r2, r3);
+
+        // 1) Orden de llegada (más antiguo primero)
+        List<ReparacionResponseDTO> porLlegada = service.ordenarReparacionesPorCriterio(entrada, "LLEGADA_ASC");
+        assertEquals(List.of(2L, 1L, 3L), porLlegada.stream().map(ReparacionResponseDTO::getId).toList());
+
+        // 2) Tiempo estimado (menor duración primero)
+        List<ReparacionResponseDTO> porTiempo = service.ordenarReparacionesPorCriterio(entrada, "TIEMPO_ASC");
+        assertEquals(List.of(3L, 2L, 1L), porTiempo.stream().map(ReparacionResponseDTO::getId).toList());
+
+        // 3) Uso de piezas (mayor consumo primero)
+        List<ReparacionResponseDTO> porPiezas = service.ordenarReparacionesPorCriterio(entrada, "PIEZAS_DESC");
+        assertEquals(List.of(2L, 3L, 1L), porPiezas.stream().map(ReparacionResponseDTO::getId).toList());
+    }
+
+    /**
+     * PRUEBA 40 (HU #8 - Registro cronológico de espera):
+     * Verifica que obtenerRegistroCronologicoEspera devuelve únicamente reparaciones PENDIENTE
+     * ordenadas de la más antigua a la más reciente y calcula su tiempo de estancia.
+     */
+    @Test
+    @DisplayName("Prueba 40 (HU #8): Registro cronológico ordena pendientes por antigüedad y excluye EN_PROCESO")
+    void test40_RegistroCronologicoEsperaYExclusionEnProceso() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+
+        Cliente cliente = new Cliente("Carlos", "600111222");
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "123", "600", Rol.RECEPCIONISTA);
+        Vehiculo v1 = new Vehiculo("1111AAA", "Seat", "Leon", 2020, cliente);
+        Vehiculo v2 = new Vehiculo("2222BBB", "Ford", "Fiesta", 2019, cliente);
+        Vehiculo v3 = new Vehiculo("3333CCC", "Opel", "Corsa", 2021, cliente);
+
+        Reparacion repMasReciente = new Reparacion(v1, recep, "Ruido puerta", 100.0, 2);
+        repMasReciente.setId(10L);
+        repMasReciente.setFechaHoraEntrada(LocalDateTime.now().minusHours(5));
+        repMasReciente.setEstado(EstadoReparacion.PENDIENTE);
+
+        Reparacion repMasAntigua = new Reparacion(v2, recep, "Fallo motor", 250.0, 4);
+        repMasAntigua.setId(11L);
+        repMasAntigua.setFechaHoraEntrada(LocalDateTime.now().minusDays(2).minusHours(4));
+        repMasAntigua.setEstado(EstadoReparacion.PENDIENTE);
+
+        Reparacion repEnProceso = new Reparacion(v3, recep, "Cambio embrague", 400.0, 3);
+        repEnProceso.setId(12L);
+        repEnProceso.setFechaHoraEntrada(LocalDateTime.now().minusDays(4));
+        repEnProceso.setEstado(EstadoReparacion.EN_PROCESO);
+
+        when(reparacionRepo.findAll()).thenReturn(List.of(repMasReciente, repMasAntigua, repEnProceso));
+
+        List<ReparacionResponseDTO> cola = service.obtenerRegistroCronologicoEspera();
+
+        assertEquals(2, cola.size(), "Solo deben figurar los vehículos pendientes de iniciar reparación");
+        assertEquals(11L, cola.get(0).getId(), "El vehículo con mayor estancia debe aparecer primero");
+        assertEquals(10L, cola.get(1).getId(), "El vehículo recién llegado debe ir después");
+        assertTrue(cola.get(0).getTiempoEstanciaTexto().contains("días"), "Debe incluir la estancia en días y horas");
+    }
+
+    /**
+     * PRUEBA 41 (HU #19 - Temporizador de mano de obra):
+     * Verifica iniciar, pausar y terminar el temporizador, y el bloqueo si el mecánico
+     * intenta iniciar otro contador mientras ya tiene uno en marcha.
+     */
+    @Test
+    @DisplayName("Prueba 41 (HU #19): Ciclo Iniciar/Pausar/Terminar temporizador y bloqueo de simultaneidad")
+    void test41_TemporizadorManoDeObraYBloqueoSimultaneo() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        PresupuestoReparacionRepository presupuestoRepo = mock(PresupuestoReparacionRepository.class);
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(service, "presupuestoRepository", presupuestoRepo);
+
+        Cliente cliente = new Cliente("Juan", "611111111");
+        Vehiculo v1 = new Vehiculo("1234ABC", "Toyota", "Corolla", 2019, cliente);
+        Vehiculo v2 = new Vehiculo("5678DEF", "Ford", "Focus", 2021, cliente);
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "123", "600", Rol.RECEPCIONISTA);
+        Usuario mecanico = new Usuario("Pedro", "pedro@taller.com", "123", "600", Rol.MECANICO);
+        mecanico.setId(3L);
+
+        Reparacion rep1 = new Reparacion(v1, recep, "Frenos", 150.0, 2);
+        rep1.setId(1L);
+        rep1.setMecanico(mecanico);
+        rep1.setEstado(EstadoReparacion.EN_PROCESO);
+
+        Reparacion rep2 = new Reparacion(v2, recep, "Aceite", 100.0, 1);
+        rep2.setId(2L);
+        rep2.setMecanico(mecanico);
+        rep2.setEstado(EstadoReparacion.EN_PROCESO);
+
+        PresupuestoReparacion presAceptado = new PresupuestoReparacion(
+                "PRES-2026-100", rep1, "OK", LocalDate.now().plusDays(10), 15.0, 21.0);
+        presAceptado.setEstado("ACEPTADO");
+
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(rep1));
+        when(reparacionRepo.findById(2L)).thenReturn(Optional.of(rep2));
+        when(reparacionRepo.findByMecanicoId(3L)).thenReturn(List.of(rep1, rep2));
+        when(presupuestoRepo.findByReparacionId(1L)).thenReturn(Optional.of(presAceptado));
+        when(presupuestoRepo.findByReparacionId(2L)).thenReturn(Optional.of(presAceptado));
+        when(reparacionRepo.save(any(Reparacion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 1) Iniciar en rep1
+        ReparacionResponseDTO iniciado = service.iniciarTemporizador(1L, 3L);
+        assertEquals("EN_MARCHA", iniciado.getEstadoTemporizador());
+        assertNotNull(iniciado.getInicioTemporizador());
+
+        // 2) Intentar iniciar rep2 mientras rep1 está EN_MARCHA -> debe bloquearse
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                service.iniciarTemporizador(2L, 3L)
+        );
+        assertTrue(ex.getMessage().contains("Pausa la tarea activa"));
+
+        // 3) Simular 30 minutos trabajados, pausar y luego terminar
+        rep1.setInicioTemporizador(LocalDateTime.now().minusMinutes(30));
+        ReparacionResponseDTO pausado = service.pausarTemporizador(1L);
+        assertEquals("PAUSADO", pausado.getEstadoTemporizador());
+        assertTrue(pausado.getSegundosAcumuladosTemporizador() >= 1800L);
+        assertEquals(0.50, pausado.getHorasTrabajoMecanico(), 0.02);
+
+        ReparacionResponseDTO terminado = service.terminarTemporizador(1L);
+        assertEquals("DETENIDO", terminado.getEstadoTemporizador());
+        assertNull(terminado.getInicioTemporizador());
+        assertEquals(0.50, terminado.getHorasTrabajoMecanico(), 0.02);
+    }
+
+    /**
+     * PRUEBA 42 (HU #20 - Supervisión del trabajo de los mecánicos + RBAC):
+     * Verifica la suma de tiempos y desglose por mecánico, el mensaje cuando no hay registros,
+     * y el bloqueo de seguridad RBAC cuando intenta acceder un MECANICO o CLIENTE.
+     */
+    @Test
+    @DisplayName("Prueba 42 (HU #20): Supervisión de tiempos por mecánico, desglose y seguridad RBAC")
+    void test42_SupervisionTiemposMecanicosYSeguridadRBAC() {
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "usuarioRepository", usuarioRepo);
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+
+        Usuario mecPedro = new Usuario("Pedro Ruiz", "pedro@taller.com", "123", "600", Rol.MECANICO);
+        mecPedro.setId(3L);
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "123", "600", Rol.RECEPCIONISTA);
+        Cliente cli = new Cliente("Ana", "612345678");
+        Vehiculo v1 = new Vehiculo("1234ABC", "Toyota", "Corolla", 2019, cli);
+
+        Reparacion rep1 = new Reparacion(v1, recep, "Cambio distribución", 300.0, 3);
+        rep1.setId(50L);
+        rep1.setMecanico(mecPedro);
+        rep1.setEstado(EstadoReparacion.FINALIZADA);
+        rep1.setHorasTrabajoMecanico(2.5);
+        rep1.setSegundosAcumuladosTemporizador(9000L); // 2 h 30 min
+
+        when(usuarioRepo.findByRol(Rol.MECANICO)).thenReturn(List.of(mecPedro));
+        when(reparacionRepo.findByMecanicoId(3L)).thenReturn(List.of(rep1));
+
+        // 1) Acceso denegado a MECANICO y CLIENTE
+        assertThrows(SecurityException.class, () ->
+                service.obtenerSupervisionTiemposMecanicos(null, "TODOS", "MECANICO")
+        );
+        assertThrows(SecurityException.class, () ->
+                service.obtenerSupervisionTiemposMecanicos(null, "TODOS", "CLIENTE")
+        );
+
+        // 2) Consulta válida como ADMIN
+        Map<String, Object> supervision = service.obtenerSupervisionTiemposMecanicos(3L, "MES", "ADMIN");
+        assertEquals(false, supervision.get("sinRegistros"));
+        assertEquals("2 h 30 min", supervision.get("tiempoTotalGlobalFormateado"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> mecs = (List<Map<String, Object>>) supervision.get("mecanicos");
+        assertEquals(1, mecs.size());
+        assertEquals(1, mecs.get(0).get("numeroReparaciones"));
+        assertEquals("2 h 30 min", mecs.get(0).get("tiempoTotalFormateado"));
+
+        // 3) Si el mecánico no tiene reparaciones en el periodo -> sinRegistros = true
+        when(reparacionRepo.findByMecanicoId(3L)).thenReturn(Collections.emptyList());
+        Map<String, Object> vacio = service.obtenerSupervisionTiemposMecanicos(3L, "HOY", "ADMIN");
+        assertEquals(true, vacio.get("sinRegistros"));
+        assertTrue(vacio.get("mensaje").toString().contains("No existen registros"));
+    }
+
+    /**
+     * PRUEBA 43 (HU #21 - Historial de reparaciones para mecánicos y modo solo lectura):
+     * Verifica que solo se devuelven reparaciones pasadas concluidas ordenadas de más reciente
+     * a más antigua, y que se bloquea modificar incidencias/horas en reparaciones ya concluidas.
+     */
+    @Test
+    @DisplayName("Prueba 43 (HU #21): Historial técnico para mecánicos ordenado y protegido en solo lectura")
+    void test43_HistorialVehiculoParaMecanicoYSoloLectura() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        IncidenciaReparacionRepository incidenciaRepo = mock(IncidenciaReparacionRepository.class);
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(service, "incidenciaRepository", incidenciaRepo);
+
+        Cliente cli = new Cliente("María", "622222222");
+        Vehiculo veh = new Vehiculo("9012GHI", "Seat", "Ibiza", 2018, cli);
+        veh.setId(5L);
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "123", "600", Rol.RECEPCIONISTA);
+        Usuario mec = new Usuario("Ana", "ana@taller.com", "123", "600", Rol.MECANICO);
+
+        Reparacion antigua = new Reparacion(veh, recep, "Cambio batería", 120.0, 1);
+        antigua.setId(1L);
+        antigua.setMecanico(mec);
+        antigua.setEstado(EstadoReparacion.ENTREGADA);
+        antigua.setFechaEntrada(LocalDate.now().minusDays(60));
+        antigua.setFechaSalida(LocalDate.now().minusDays(59));
+
+        Reparacion reciente = new Reparacion(veh, recep, "Cambio pastillas", 140.0, 2);
+        reciente.setId(2L);
+        reciente.setMecanico(mec);
+        reciente.setEstado(EstadoReparacion.FINALIZADA);
+        reciente.setFechaEntrada(LocalDate.now().minusDays(10));
+        reciente.setFechaSalida(LocalDate.now().minusDays(9));
+
+        Reparacion activa = new Reparacion(veh, recep, "Revisión actual", 100.0, 1);
+        activa.setId(3L);
+        activa.setEstado(EstadoReparacion.EN_PROCESO);
+
+        when(reparacionRepo.findByVehiculoId(5L)).thenReturn(List.of(antigua, reciente, activa));
+        when(reparacionRepo.findById(1L)).thenReturn(Optional.of(antigua));
+
+        List<ReparacionResponseDTO> historial = service.obtenerHistorialVehiculoParaMecanico(5L, 3L);
+
+        assertEquals(2, historial.size(), "Solo deben aparecer las reparaciones concluidas excluyendo la activa");
+        assertEquals(2L, historial.get(0).getId(), "La reparación más reciente debe ir primero");
+        assertEquals(1L, historial.get(1).getId(), "La reparación más antigua debe ir después");
+
+        // Verificar protección de solo lectura: impedir añadir notas o modificar horas sobre una reparación ENTREGADA
+        IllegalArgumentException exInc = assertThrows(IllegalArgumentException.class, () ->
+                service.registrarIncidencia(1L, "Intento editar pasado", 0.0, null)
+        );
+        assertTrue(exInc.getMessage().contains("concluida"));
+
+        IllegalArgumentException exHoras = assertThrows(IllegalArgumentException.class, () ->
+                service.actualizarHorasTrabajo(1L, 5.0)
+        );
+        assertTrue(exHoras.getMessage().contains("ENTREGADA"));
     }
 }

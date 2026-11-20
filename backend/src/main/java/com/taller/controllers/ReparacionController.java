@@ -37,8 +37,37 @@ public class ReparacionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ReparacionResponseDTO>> obtenerTodas() {
-        return ResponseEntity.ok(reparacionService.obtenerTodas());
+    public ResponseEntity<List<ReparacionResponseDTO>> obtenerTodas(
+            @RequestParam(value = "orden", required = false) String orden) {
+        return ResponseEntity.ok(reparacionService.obtenerTodas(orden));
+    }
+
+    /**
+     * HU #8: Registro cronológico de vehículos pendientes en espera,
+     * ordenados automáticamente desde el que lleva más tiempo en el taller al más reciente.
+     * GET /api/reparaciones/registro-cronologico
+     */
+    @GetMapping("/registro-cronologico")
+    public ResponseEntity<List<ReparacionResponseDTO>> obtenerRegistroCronologicoEspera() {
+        return ResponseEntity.ok(reparacionService.obtenerRegistroCronologicoEspera());
+    }
+
+    /**
+     * HU #20: Supervisión del tiempo invertido por cada mecánico (protegido para rol ADMIN).
+     * GET /api/reparaciones/supervision-tiempos?mecanicoId=...&periodo=TODOS&rol=ADMIN
+     */
+    @GetMapping("/supervision-tiempos")
+    public ResponseEntity<?> obtenerSupervisionTiempos(
+            @RequestParam(value = "mecanicoId", required = false) Long mecanicoId,
+            @RequestParam(value = "periodo", required = false, defaultValue = "TODOS") String periodo,
+            @RequestParam(value = "rol", required = false) String rol) {
+        try {
+            return ResponseEntity.ok(reparacionService.obtenerSupervisionTiemposMecanicos(mecanicoId, periodo, rol));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**
@@ -420,6 +449,64 @@ public class ReparacionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * HU #19: Inicia el temporizador de mano de obra de una reparación EN_PROCESO.
+     * POST /api/reparaciones/{id}/temporizador/iniciar
+     */
+    @PostMapping("/{id}/temporizador/iniciar")
+    public ResponseEntity<?> iniciarTemporizador(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            Long mecanicoId = (body != null && body.get("mecanicoId") != null && !body.get("mecanicoId").toString().isBlank())
+                    ? Long.valueOf(body.get("mecanicoId").toString()) : null;
+            return ResponseEntity.ok(reparacionService.iniciarTemporizador(id, mecanicoId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #19: Pausa el temporizador de mano de obra acumulando los minutos dedicados.
+     * POST /api/reparaciones/{id}/temporizador/pausar
+     */
+    @PostMapping("/{id}/temporizador/pausar")
+    public ResponseEntity<?> pausarTemporizador(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(reparacionService.pausarTemporizador(id));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #19: Detiene definitivamente el temporizador y guarda el total en la ficha de la avería.
+     * POST /api/reparaciones/{id}/temporizador/terminar
+     */
+    @PostMapping("/{id}/temporizador/terminar")
+    public ResponseEntity<?> terminarTemporizador(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(reparacionService.terminarTemporizador(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #21: Historial técnico de reparaciones pasadas concluidas de un vehículo (modo solo lectura para mecánicos).
+     * GET /api/reparaciones/vehiculo/{vehiculoId}/historial-mecanico?excluirReparacionId=...
+     */
+    @GetMapping("/vehiculo/{vehiculoId}/historial-mecanico")
+    public ResponseEntity<List<ReparacionResponseDTO>> obtenerHistorialVehiculoParaMecanico(
+            @PathVariable Long vehiculoId,
+            @RequestParam(value = "excluirReparacionId", required = false) Long excluirReparacionId) {
+        return ResponseEntity.ok(reparacionService.obtenerHistorialVehiculoParaMecanico(vehiculoId, excluirReparacionId));
     }
 
     @GetMapping("/estado/{estado}")

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +60,14 @@ public class DatosPrueba implements CommandLineRunner {
                     r.setFechaEstimadaFin(r.getFechaEntrada().plusDays(r.getDiasEstimados()));
                     modificado = true;
                 }
+                if (r.getFechaHoraEntrada() == null && r.getFechaEntrada() != null) {
+                    r.setFechaHoraEntrada(r.getFechaEntrada().atTime(9, 0));
+                    modificado = true;
+                }
+                if (r.getEstadoTemporizador() == null || r.getEstadoTemporizador().isBlank()) {
+                    r.setEstadoTemporizador("DETENIDO");
+                    modificado = true;
+                }
                 if (r.getHorasTrabajoMecanico() == null
                         || (r.getHorasTrabajoMecanico() == 0.0
                         && r.getEstado() != EstadoReparacion.PENDIENTE
@@ -66,6 +75,11 @@ public class DatosPrueba implements CommandLineRunner {
                     r.setHorasTrabajoMecanico(r.getEstado() == EstadoReparacion.FINALIZADA
                             || r.getEstado() == EstadoReparacion.CONFIRMADA
                             || r.getEstado() == EstadoReparacion.ENTREGADA ? 2.0 : 1.5);
+                    modificado = true;
+                }
+                if ((r.getSegundosAcumuladosTemporizador() == null || r.getSegundosAcumuladosTemporizador() == 0L)
+                        && r.getHorasTrabajoMecanico() != null && r.getHorasTrabajoMecanico() > 0.0) {
+                    r.setSegundosAcumuladosTemporizador(Math.round(r.getHorasTrabajoMecanico() * 3600.0));
                     modificado = true;
                 }
                 if (modificado) {
@@ -128,9 +142,11 @@ public class DatosPrueba implements CommandLineRunner {
         materialRepository.save(new Material("Bujías", "Set de 4 unidades, iridio", 25, 22.00));
 
         // ======== REPARACIONES ========
-        // Reparación 1: Pendiente (con presupuesto desglosado pendiente de aceptación por Juan Pérez)
+        // Reparación 1: Pendiente (con fecha de llegada hace 2 días y 4 horas para registro cronológico HU #8)
         Reparacion rep1 = new Reparacion(v1, recep1, "El motor hace un ruido extraño al acelerar.", 220.00, 4);
         rep1.setMecanico(mec1);
+        rep1.setFechaHoraEntrada(LocalDateTime.now().minusDays(2).minusHours(4));
+        rep1.setFechaEstimadaFin(rep1.getFechaEntrada().plusDays(4));
         reparacionRepository.save(rep1);
 
         // Reparación 2: En proceso (Pedro Ruiz)
@@ -138,6 +154,8 @@ public class DatosPrueba implements CommandLineRunner {
         rep2.setMecanico(mec1);
         rep2.setEstado(EstadoReparacion.EN_PROCESO);
         rep2.setHorasTrabajoMecanico(1.5);
+        rep2.setSegundosAcumuladosTemporizador(5400L);
+        rep2.setEstadoTemporizador("PAUSADO");
         reparacionRepository.save(rep2);
         reparacionMaterialRepository.save(new ReparacionMaterial(rep2, mPastillas, 1));
         incidenciaRepository.save(new IncidenciaReparacion(
@@ -152,6 +170,7 @@ public class DatosPrueba implements CommandLineRunner {
         rep3.setMecanico(mec2);
         rep3.setEstado(EstadoReparacion.FINALIZADA);
         rep3.setHorasTrabajoMecanico(1.5);
+        rep3.setSegundosAcumuladosTemporizador(5400L);
         reparacionRepository.save(rep3);
         reparacionMaterialRepository.save(new ReparacionMaterial(rep3, mFiltro, 1));
         reparacionMaterialRepository.save(new ReparacionMaterial(rep3, mAceite, 1));
@@ -165,6 +184,24 @@ public class DatosPrueba implements CommandLineRunner {
         // Generar factura inicial de muestra para la reparación 3
         reparacionService.generarFactura(rep3.getId(), 1.5);
 
+        // Reparación 4 (Histórica ENTREGADA del Seat Ibiza 9012GHI para probar HU #21 Historial de mecánicos)
+        Reparacion repHistV3 = new Reparacion(v3, recep1, "Fallo de encendido en frío y revisión anual de filtros.", 110.00, 1);
+        repHistV3.setMecanico(mec2);
+        repHistV3.setFechaHoraEntrada(LocalDateTime.now().minusDays(45));
+        repHistV3.setFechaSalida(LocalDate.now().minusDays(44));
+        repHistV3.setEstado(EstadoReparacion.ENTREGADA);
+        repHistV3.setHorasTrabajoMecanico(1.25);
+        repHistV3.setSegundosAcumuladosTemporizador(4500L);
+        reparacionRepository.save(repHistV3);
+        reparacionMaterialRepository.save(new ReparacionMaterial(repHistV3, mFiltro, 1));
+        incidenciaRepository.save(new IncidenciaReparacion(
+                repHistV3,
+                "Sustitución de filtro de aceite y comprobación de bujías y batería. Arranque en frío restablecido.",
+                0.0,
+                null
+        ));
+        reparacionService.generarFactura(repHistV3.getId(), 1.25);
+
         // Vincular reparaciones a las cuentas de los clientes que tienen cuenta
         cliente1.getReparacionesVinculadas().add(rep1);
         clienteRepository.save(cliente1);
@@ -172,7 +209,7 @@ public class DatosPrueba implements CommandLineRunner {
         cliente3.getReparacionesVinculadas().add(rep3);
         clienteRepository.save(cliente3);
 
-        inicializarPresupuestoYCitasMuestra(List.of(rep1, rep2, rep3));
+        inicializarPresupuestoYCitasMuestra(List.of(rep1, rep2, rep3, repHistV3));
 
         System.out.println("=========================================");
         System.out.println("  DATOS DE PRUEBA CARGADOS CORRECTAMENTE");

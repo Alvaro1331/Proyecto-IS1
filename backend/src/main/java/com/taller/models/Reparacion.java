@@ -3,6 +3,7 @@ package com.taller.models;
 import jakarta.persistence.*;
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,6 +88,20 @@ public class Reparacion {
     @Column
     private Double horasTrabajoMecanico = 0.0;
 
+    // Fecha y hora exacta de entrada para el registro cronológico (HU #8)
+    @Column
+    private LocalDateTime fechaHoraEntrada;
+
+    // Estado y marcas de tiempo del temporizador de mano de obra (HU #19)
+    @Column(length = 20)
+    private String estadoTemporizador = "DETENIDO";
+
+    @Column
+    private LocalDateTime inicioTemporizador;
+
+    @Column
+    private Long segundosAcumuladosTemporizador = 0L;
+
     // Materiales usados en esta reparación
     @OneToMany(mappedBy = "reparacion", cascade = CascadeType.ALL)
     private List<ReparacionMaterial> materialesUsados = new ArrayList<>();
@@ -121,6 +136,7 @@ public class Reparacion {
         this.recepcionista = recepcionista;
         this.descripcionAveria = descripcionAveria;
         this.fechaEntrada = LocalDate.now();
+        this.fechaHoraEntrada = LocalDateTime.now();
         this.estado = EstadoReparacion.PENDIENTE;
         double est = (estimacionInicial != null && estimacionInicial > 0) ? estimacionInicial : 150.0;
         int dias = (diasEstimados != null && diasEstimados > 0) ? diasEstimados : 3;
@@ -130,6 +146,8 @@ public class Reparacion {
         this.diasEstimados = dias;
         this.fechaEstimadaFin = this.fechaEntrada.plusDays(dias);
         this.horasTrabajoMecanico = 0.0;
+        this.estadoTemporizador = "DETENIDO";
+        this.segundosAcumuladosTemporizador = 0L;
     }
 
     public Reparacion(Vehiculo vehiculo, Usuario recepcionista, String descripcionAveria,
@@ -167,7 +185,12 @@ public class Reparacion {
     public void setRecepcionista(Usuario recepcionista) { this.recepcionista = recepcionista; }
 
     public LocalDate getFechaEntrada() { return fechaEntrada; }
-    public void setFechaEntrada(LocalDate fechaEntrada) { this.fechaEntrada = fechaEntrada; }
+    public void setFechaEntrada(LocalDate fechaEntrada) {
+        this.fechaEntrada = fechaEntrada;
+        if (fechaEntrada != null && (this.fechaHoraEntrada == null || !this.fechaHoraEntrada.toLocalDate().equals(fechaEntrada))) {
+            this.fechaHoraEntrada = fechaEntrada.atTime(9, 0);
+        }
+    }
 
     public LocalDate getFechaSalida() { return fechaSalida; }
     public void setFechaSalida(LocalDate fechaSalida) { this.fechaSalida = fechaSalida; }
@@ -210,7 +233,36 @@ public class Reparacion {
     public void setFechaEstimadaFin(LocalDate fechaEstimadaFin) { this.fechaEstimadaFin = fechaEstimadaFin; }
 
     public Double getHorasTrabajoMecanico() { return horasTrabajoMecanico != null ? horasTrabajoMecanico : 0.0; }
-    public void setHorasTrabajoMecanico(Double horasTrabajoMecanico) { this.horasTrabajoMecanico = horasTrabajoMecanico; }
+    public void setHorasTrabajoMecanico(Double horasTrabajoMecanico) {
+        this.horasTrabajoMecanico = horasTrabajoMecanico;
+        if (horasTrabajoMecanico != null && (this.segundosAcumuladosTemporizador == null || this.segundosAcumuladosTemporizador == 0L)) {
+            this.segundosAcumuladosTemporizador = Math.round(horasTrabajoMecanico * 3600.0);
+        }
+    }
+
+    public LocalDateTime getFechaHoraEntrada() {
+        if (fechaHoraEntrada != null) {
+            return fechaHoraEntrada;
+        }
+        return fechaEntrada != null ? fechaEntrada.atTime(9, 0) : null;
+    }
+    public void setFechaHoraEntrada(LocalDateTime fechaHoraEntrada) {
+        this.fechaHoraEntrada = fechaHoraEntrada;
+        if (fechaHoraEntrada != null) {
+            this.fechaEntrada = fechaHoraEntrada.toLocalDate();
+        }
+    }
+
+    public String getEstadoTemporizador() { return estadoTemporizador != null ? estadoTemporizador : "DETENIDO"; }
+    public void setEstadoTemporizador(String estadoTemporizador) { this.estadoTemporizador = estadoTemporizador; }
+
+    public LocalDateTime getInicioTemporizador() { return inicioTemporizador; }
+    public void setInicioTemporizador(LocalDateTime inicioTemporizador) { this.inicioTemporizador = inicioTemporizador; }
+
+    public Long getSegundosAcumuladosTemporizador() { return segundosAcumuladosTemporizador != null ? segundosAcumuladosTemporizador : 0L; }
+    public void setSegundosAcumuladosTemporizador(Long segundosAcumuladosTemporizador) {
+        this.segundosAcumuladosTemporizador = segundosAcumuladosTemporizador != null ? segundosAcumuladosTemporizador : 0L;
+    }
 
     public List<ReparacionMaterial> getMaterialesUsados() { return materialesUsados; }
     public void setMaterialesUsados(List<ReparacionMaterial> materialesUsados) { this.materialesUsados = materialesUsados; }
