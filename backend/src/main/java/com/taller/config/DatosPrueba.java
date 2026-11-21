@@ -4,6 +4,7 @@ import com.taller.models.*;
 import com.taller.repositories.*;
 import com.taller.services.CitaPreviaService;
 import com.taller.services.ConfiguracionTallerService;
+import com.taller.services.PasswordSecurityService;
 import com.taller.services.ReparacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -37,6 +38,7 @@ public class DatosPrueba implements CommandLineRunner {
     @Autowired private ConfiguracionTallerService configuracionService;
     @Autowired private ReparacionService reparacionService;
     @Autowired private CitaPreviaService citaService;
+    @Autowired private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
     @Autowired(required = false) private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
@@ -46,8 +48,9 @@ public class DatosPrueba implements CommandLineRunner {
         // 1. Asegurar que exista siempre la Configuración del Taller por defecto (15% margen, 35 €/h, 2000 € fondo)
         ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
 
-        // 2. Si la base de datos MySQL ya tiene usuarios, normalizar datos existentes
+        // 2. Si la base de datos MySQL ya tiene usuarios, normalizar datos existentes y migrar contraseñas heredadas a BCrypt
         if (usuarioRepository.count() > 0) {
+            migrarPasswordsTextoPlano();
             normalizarClientesFiscales();
             List<Reparacion> existentes = reparacionRepository.findAll();
             for (Reparacion r : existentes) {
@@ -102,10 +105,10 @@ public class DatosPrueba implements CommandLineRunner {
         }
 
         // ======== USUARIOS (personal del taller) ========
-        Usuario admin = new Usuario("Antonio García", "admin@taller.com", "admin123", "600000001", Rol.ADMIN);
-        Usuario recep1 = new Usuario("Laura Martínez", "laura@taller.com", "laura123", "600000002", Rol.RECEPCIONISTA);
-        Usuario mec1 = new Usuario("Pedro Ruiz", "pedro@taller.com", "pedro123", "600000003", Rol.MECANICO);
-        Usuario mec2 = new Usuario("Ana López", "ana@taller.com", "ana123", "600000004", Rol.MECANICO);
+        Usuario admin = new Usuario("Antonio García", "admin@taller.com", passwordSecurityService.hashear("admin123"), "600000001", Rol.ADMIN);
+        Usuario recep1 = new Usuario("Laura Martínez", "laura@taller.com", passwordSecurityService.hashear("laura123"), "600000002", Rol.RECEPCIONISTA);
+        Usuario mec1 = new Usuario("Pedro Ruiz", "pedro@taller.com", passwordSecurityService.hashear("pedro123"), "600000003", Rol.MECANICO);
+        Usuario mec2 = new Usuario("Ana López", "ana@taller.com", passwordSecurityService.hashear("ana123"), "600000004", Rol.MECANICO);
 
         usuarioRepository.save(admin);
         usuarioRepository.save(recep1);
@@ -113,9 +116,9 @@ public class DatosPrueba implements CommandLineRunner {
         usuarioRepository.save(mec2);
 
         // ======== CLIENTES ========
-        Cliente cliente1 = new Cliente("Juan Pérez", "611111111", "juan@email.com", "juan123", "12345678Z", "Calle Alcalá 45, 28014 Madrid");
+        Cliente cliente1 = new Cliente("Juan Pérez", "611111111", "juan@email.com", passwordSecurityService.hashear("juan123"), "12345678Z", "Calle Alcalá 45, 28014 Madrid");
         Cliente cliente2 = new Cliente("María Sánchez", "622222222", null, null, "45678912M", "Avenida de América 18, 28028 Madrid");
-        Cliente cliente3 = new Cliente("Carlos Fernández", "633333333", "carlos@email.com", "carlos123", "87654321X", "Paseo de la Castellana 120, 28046 Madrid");
+        Cliente cliente3 = new Cliente("Carlos Fernández", "633333333", "carlos@email.com", passwordSecurityService.hashear("carlos123"), "87654321X", "Paseo de la Castellana 120, 28046 Madrid");
 
         clienteRepository.save(cliente1);
         clienteRepository.save(cliente2);
@@ -219,6 +222,31 @@ public class DatosPrueba implements CommandLineRunner {
         System.out.println("  Localizador Rep 2 (Seat):    " + rep2.getLocalizador());
         System.out.println("  Localizador Rep 3 (VW Golf): " + rep3.getLocalizador());
         System.out.println("=========================================");
+    }
+
+    /**
+     * Migra automáticamente a hash BCrypt las contraseñas heredadas que aún estuvieran en texto plano
+     * en empleados o clientes con cuenta, manteniendo exactamente las mismas credenciales de acceso.
+     */
+    public int migrarPasswordsTextoPlano() {
+        int migradas = 0;
+        for (Usuario u : usuarioRepository.findAll()) {
+            String pwd = u.getPassword();
+            if (pwd != null && !pwd.isBlank() && !passwordSecurityService.estaHasheada(pwd)) {
+                u.setPassword(passwordSecurityService.hashear(pwd));
+                usuarioRepository.save(u);
+                migradas++;
+            }
+        }
+        for (Cliente c : clienteRepository.findAll()) {
+            String pwd = c.getPassword();
+            if (pwd != null && !pwd.isBlank() && !passwordSecurityService.estaHasheada(pwd)) {
+                c.setPassword(passwordSecurityService.hashear(pwd));
+                clienteRepository.save(c);
+                migradas++;
+            }
+        }
+        return migradas;
     }
 
     private void normalizarClientesFiscales() {

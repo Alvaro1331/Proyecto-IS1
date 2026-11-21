@@ -62,6 +62,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- Cifrado seguro de contraseñas (BCryptPasswordEncoder) sin activar filtros HTTP -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <!-- Tests (viene por defecto) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

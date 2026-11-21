@@ -149,12 +149,12 @@
         <div class="meta-box">
             <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
             <strong>Fecha:</strong> Noviembre 2026 &nbsp;|&nbsp; 
-            <strong>Estado:</strong> 100% Operativo y Verificado (43/43 Pruebas Exitosas)
+            <strong>Estado:</strong> 100% Operativo y Verificado (51/51 Pruebas Exitosas)
         </div>
     </div>
 
     <div class="alert alert-success">
-        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>43 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Ordenación por Prioridad HU #7, Registro Cronológico de Espera HU #8, Temporizador de Mano de Obra HU #19, Supervisión de Mecánicos HU #20 e Historial Técnico de Solo Lectura HU #21)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>51 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Seguridad y Cifrado BCrypt de Contraseñas HU #64, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Ordenación por Prioridad HU #7, Registro Cronológico de Espera HU #8, Temporizador de Mano de Obra HU #19, Supervisión de Mecánicos HU #20 e Historial Técnico de Solo Lectura HU #21)</strong> se encuentran completamente configurados y funcionando con un 100% de éxito (0 fallos, 0 errores).
     </div>
 
     <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
@@ -328,7 +328,7 @@
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">5. Catálogo Completo de las 43 Pruebas Unitarias Implementadas</h2>
+    <h2 class="section-title">5. Catálogo Completo de las 51 Pruebas Unitarias Implementadas</h2>
     <p>
         La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable, de gestión y de seguridad del taller:
     </p>
@@ -601,6 +601,54 @@
                 <td><strong>INTEGRIDAD DE SOLO LECTURA E HISTORIAL TÉCNICO (HU #21):</strong> Verifica que el historial devuelve solo reparaciones concluidas ordenadas de más reciente a más antigua (excluyendo la activa) y bloquea añadir incidencias o modificar horas sobre reparaciones ya concluidas.</td>
                 <td><code>assertEquals(2, historial.size())</code><br><code>assertEquals(2L, get(0).getId())</code><br><code>assertThrows(IllegalArgumentException.class, ...)</code></td>
             </tr>
+            <tr class="security-row">
+                <td><strong>44</strong></td>
+                <td><code>PasswordSecurityService</code><br><code>hashear()</code><br><code>coincide()</code><br><code>estaHasheada()</code></td>
+                <td><strong>(HU #64) HASH CRIPTOGRÁFICO BCRYPT CON SALT ÚNICO:</strong> Verifica que la contraseña nunca se almacena en texto plano, cumple el formato BCrypt (<code>$2a$/$2b$/$2y$</code>), genera hashes distintos para dos claves idénticas (salt único) y valida correctamente mediante <code>coincide()</code>.</td>
+                <td><code>assertNotEquals("Segura2026", hash1)</code><br><code>assertNotEquals(hash1, hash2)</code><br><code>assertTrue(coincide(...))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>45</strong></td>
+                <td><code>PasswordSecurityService</code><br><code>validarFortaleza()</code></td>
+                <td><strong>(HU #64) POLÍTICA MÍNIMA DE CONTRASEÑAS:</strong> Rechaza contraseñas nulas, en blanco, menores de 8 caracteres o compuestas únicamente por letras o únicamente por números, aceptando claves que cumplan la política mínima.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(msg.contains("8 caracteres"))</code><br><code>assertDoesNotThrow(...)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>46</strong></td>
+                <td><code>UsuarioService</code><br><code>crearUsuario()</code><br><code>login()</code></td>
+                <td><strong>(HU #64) ALTA Y LOGIN SEGURO DE EMPLEADOS:</strong> Impide crear empleados con contraseñas débiles, guarda la clave hasheada en BCrypt (<code>$2...</code>) en lugar de texto plano y verifica que <code>login()</code> valida frente al hash rechazando claves incorrectas.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(pwd.startsWith("$2"))</code><br><code>assertEquals("MECANICO", ok.getRol())</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>47</strong></td>
+                <td><code>ClienteService</code><br><code>registrarCliente()</code><br><code>loginCliente()</code></td>
+                <td><strong>(HU #64) REGISTRO Y LOGIN SEGURO DE CLIENTES:</strong> Exige fortaleza mínima en el alta web del cliente, almacena el hash BCrypt y comprueba el inicio de sesión tanto por correo electrónico como por teléfono frente al hash almacenado.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(pwd.startsWith("$2"))</code><br><code>assertNotNull(loginCliente(...))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>48</strong></td>
+                <td><code>RecuperacionPasswordService</code><br><code>restablecerPassword()</code></td>
+                <td><strong>(HU #64) RECUPERACIÓN SEGURA DE CONTRASEÑA:</strong> Verifica que al restablecer la clave tras validar el código de 6 dígitos se exige la política de 8 caracteres con letras y números y la nueva contraseña se guarda hasheada en BCrypt.</td>
+                <td><code>assertThrows(IllegalArgumentException.class, ...)</code><br><code>assertTrue(estaHasheada(pwd))</code><br><code>assertTrue(coincide("NuevaClave2026", pwd))</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>49</strong></td>
+                <td><code>ReparacionService</code><br><code>responderPresupuestoCliente()</code></td>
+                <td><strong>(HU #64) CONFIRMACIÓN DE PRESUPUESTO CONTRA HASH:</strong> Verifica que al aceptar o rechazar un presupuesto formal con contraseña del cliente, el sistema valida la credencial frente al hash BCrypt almacenado y rechaza claves erróneas con <code>SecurityException</code>.</td>
+                <td><code>assertThrows(SecurityException.class, ...)</code><br><code>assertEquals("ACEPTADO", estado)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>50</strong></td>
+                <td><code>DatosPrueba</code><br><code>migrarPasswordsTextoPlano()</code><br><code>UsuarioService.login()</code></td>
+                <td><strong>(HU #64) MIGRACIÓN SIN PÉRDIDA DE ACCESO:</strong> Comprueba que las cuentas heredadas en texto plano (<code>admin123</code>, <code>juan123</code>) se migran automáticamente a hash BCrypt al arrancar manteniendo intacto el acceso, sin tocar cuentas sin contraseña ni ya hasheadas, y re-hasheando en el login si quedara alguna.</td>
+                <td><code>assertEquals(2, migradas)</code><br><code>assertTrue(coincide("juan123", pwd))</code><br><code>verify(usuarioRepo, times(1)).save(...)</code></td>
+            </tr>
+            <tr class="security-row">
+                <td><strong>51</strong></td>
+                <td><code>Usuario</code> / <code>Cliente</code><br>Serialización JSON (<code>@JsonIgnore</code>)</td>
+                <td><strong>(HU #64) PRIVACIDAD EN RESPUESTAS API:</strong> Comprueba mediante <code>ObjectMapper</code> que al serializar cuentas de empleados o clientes a JSON nunca se expone ni la contraseña en texto plano ni el hash BCrypt almacenado.</td>
+                <td><code>assertFalse(json.contains("password"))</code><br><code>assertFalse(json.contains(hash))</code><br><code>assertFalse(json.contains("Segura2026"))</code></td>
+            </tr>
         </tbody>
     </table>
 
@@ -613,29 +661,29 @@
         <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
         <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
         <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
-        <li>En el panel inferior de IntelliJ se mostrarán los <strong>43 tests con el check verde de aprobación</strong>.</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>51 tests con el check verde de aprobación</strong>.</li>
     </ol>
 
     <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
     <p>Desde una terminal de PowerShell en la carpeta <code>backend</code>, ejecuta el comando de pruebas:</p>
     <div class="code-block">.\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest</div>
 
-    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 1.84 s):</h3>
+    <h3 class="subsection-title">Salida oficial obtenida en consola (100% de éxito en 6.60 s):</h3>
     <div class="code-block">[INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running com.taller.PruebasUnitariasTest
-[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.835 s -- in com.taller.PruebasUnitariasTest
+[INFO] Tests run: 51, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.603 s -- in com.taller.PruebasUnitariasTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  4.464 s
-[INFO] Finished at: 2026-11-20T16:58:45+01:00
+[INFO] Total time:  14.361 s
+[INFO] Finished at: 2026-11-21T19:59:52+01:00
 [INFO] ------------------------------------------------------------------------</div>
 
     <h2 class="section-title">7. Pasos para Crear una Nueva Prueba Unitaria de Seguridad (Checklist Rápido)</h2>
@@ -649,9 +697,9 @@
     <div class="alert alert-info">
         <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
         <ul>
-            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 43 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 51 pruebas y módulo de seguridad.</li>
             <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
-            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 43 pruebas unitarias listo para copiar.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 51 pruebas unitarias listo para copiar.</li>
         </ul>
     </div>
 

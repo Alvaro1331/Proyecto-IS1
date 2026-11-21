@@ -119,6 +119,9 @@ public class ReparacionService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
+
     /**
      * Crea una nueva reparación en Recepción con una estimación inicial orientativa (no bloqueante)
      * y los días estimados de trabajo.
@@ -913,15 +916,23 @@ public class ReparacionService {
 
         Cliente cliente = reparacion.getVehiculo().getCliente();
         boolean passwordValida = false;
-        if (cliente.getPassword() != null && cliente.getPassword().equals(password)) {
+        if (cliente.getPassword() != null && passwordSecurityService.coincide(password, cliente.getPassword())) {
             passwordValida = true;
+            if (!passwordSecurityService.estaHasheada(cliente.getPassword())) {
+                cliente.setPassword(passwordSecurityService.hashear(password));
+                clienteRepository.save(cliente);
+            }
         } else {
             // También comprobar si la reparación está vinculada a otro perfil de cliente con cuenta
             for (Cliente c : clienteRepository.findAll()) {
                 if (c.getReparacionesVinculadas() != null
                         && c.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(reparacionId))
-                        && c.getPassword() != null && c.getPassword().equals(password)) {
+                        && c.getPassword() != null && passwordSecurityService.coincide(password, c.getPassword())) {
                     passwordValida = true;
+                    if (!passwordSecurityService.estaHasheada(c.getPassword())) {
+                        c.setPassword(passwordSecurityService.hashear(password));
+                        clienteRepository.save(c);
+                    }
                     break;
                 }
             }

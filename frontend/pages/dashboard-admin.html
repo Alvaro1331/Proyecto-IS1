@@ -477,7 +477,7 @@
                         </div>
                         <div class="form-group">
                             <label>Contraseña</label>
-                            <input type="password" id="usu-password" required>
+                            <input type="password" id="usu-password" placeholder="Mín. 8 caracteres (letras y números)" minlength="8" required>
                         </div>
                         <div class="form-group">
                             <label>Teléfono</label>
@@ -1577,9 +1577,16 @@
         document.getElementById('form-crear-usuario').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-usuario');
+            const alertCont = document.getElementById('alert-container');
+            const pwd = document.getElementById('usu-password').value;
+
+            if (pwd.length < 8 || !/[A-Za-zÀ-ÿ]/.test(pwd) || !/\d/.test(pwd)) {
+                mostrarAlerta('La contraseña debe tener al menos 8 caracteres y combinar letras y números.', 'error', alertCont);
+                return;
+            }
+
             toggleLoading(btn, true);
 
-            const pwd = document.getElementById('usu-password').value;
             const data = {
                 nombre: document.getElementById('usu-nombre').value,
                 email: document.getElementById('usu-email').value,
@@ -1591,7 +1598,7 @@
 
             try {
                 await apiFetch('/usuarios', { method: 'POST', silent: true, body: JSON.stringify(data) });
-                mostrarAlerta('Usuario creado exitosamente.', 'success', document.getElementById('alert-container'));
+                mostrarAlerta('Usuario creado exitosamente.', 'success', alertCont);
                 e.target.reset();
                 cargarUsuarios();
                 cargarStats();

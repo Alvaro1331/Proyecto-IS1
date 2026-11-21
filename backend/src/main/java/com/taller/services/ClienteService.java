@@ -35,6 +35,9 @@ public class ClienteService {
     @Autowired
     private ReparacionService reparacionService;
 
+    @Autowired
+    private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
+
     @Transactional
     public Map<String, Object> registrarCliente(String nombre, String telefono, String email, String password) {
         String emailLimpio = email != null ? email.trim() : "";
@@ -52,8 +55,9 @@ public class ClienteService {
             if (cliente.tieneCuenta()) {
                 throw new IllegalArgumentException("Ya existe una cuenta asociada a este teléfono.");
             }
+            passwordSecurityService.validarFortaleza(password);
             cliente.setEmail(emailLimpio);
-            cliente.setPassword(password);
+            cliente.setPassword(passwordSecurityService.hashear(password));
             cliente.setNombre(nombreLimpio);
             int nuevasVinculadas = vincularReparacionesDeVehiculosPropios(cliente);
             clienteRepository.save(cliente);
@@ -69,7 +73,8 @@ public class ClienteService {
             );
         }
 
-        Cliente nuevoCliente = new Cliente(nombreLimpio, telefonoLimpio, emailLimpio, password);
+        passwordSecurityService.validarFortaleza(password);
+        Cliente nuevoCliente = new Cliente(nombreLimpio, telefonoLimpio, emailLimpio, passwordSecurityService.hashear(password));
         clienteRepository.save(nuevoCliente);
         return Map.of(
             "id", nuevoCliente.getId(),
@@ -84,27 +89,27 @@ public class ClienteService {
     public Map<String, Object> loginCliente(String emailOrPhone, String password) {
         var porEmail = clienteRepository.findByEmail(emailOrPhone);
         if (porEmail.isPresent()) {
-            Cliente c = porEmail.get();
-            if (!c.tieneCuenta()) {
-                throw new IllegalArgumentException("Este cliente no tiene cuenta. Regístrate primero.");
-            }
-            if (!c.getPassword().equals(password)) {
-                throw new IllegalArgumentException("Contraseña incorrecta.");
-            }
-            return clienteToLoginResponse(c);
+            return autenticarCliente(porEmail.get(), password);
         }
         var porTelefono = clienteRepository.findByTelefono(emailOrPhone);
         if (porTelefono.isPresent()) {
-            Cliente c = porTelefono.get();
-            if (!c.tieneCuenta()) {
-                throw new IllegalArgumentException("Este cliente no tiene cuenta. Regístrate primero.");
-            }
-            if (!c.getPassword().equals(password)) {
-                throw new IllegalArgumentException("Contraseña incorrecta.");
-            }
-            return clienteToLoginResponse(c);
+            return autenticarCliente(porTelefono.get(), password);
         }
         throw new IllegalArgumentException("Usuario no encontrado: no existe ninguna cuenta con ese correo o teléfono.");
+    }
+
+    private Map<String, Object> autenticarCliente(Cliente c, String password) {
+        if (!c.tieneCuenta()) {
+            throw new IllegalArgumentException("Este cliente no tiene cuenta. Regístrate primero.");
+        }
+        if (!passwordSecurityService.coincide(password, c.getPassword())) {
+            throw new IllegalArgumentException("Contraseña incorrecta.");
+        }
+        if (!passwordSecurityService.estaHasheada(c.getPassword())) {
+            c.setPassword(passwordSecurityService.hashear(password));
+            clienteRepository.save(c);
+        }
+        return clienteToLoginResponse(c);
     }
 
     @Transactional

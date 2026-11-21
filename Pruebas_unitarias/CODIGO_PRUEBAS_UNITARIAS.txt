@@ -1407,4 +1407,312 @@ public class PruebasUnitariasTest {
         );
         assertTrue(exHoras.getMessage().contains("ENTREGADA"));
     }
+
+    // =========================================================================
+    //  HU #64 — SEGURIDAD EN CONTRASEÑAS (BCrypt + política mínima) — PRUEBAS 44 – 51
+    //  Escritas siguiendo TDD (Red → Green → Refactor) antes de la implementación.
+    // =========================================================================
+
+    /**
+     * PRUEBA 44 (PasswordSecurityService - Hash BCrypt irreversible con salt):
+     * Verifica que la contraseña nunca se guarda en texto plano, que el hash tiene formato BCrypt,
+     * que la verificación funciona y que dos contraseñas iguales producen hashes distintos (salt único).
+     */
+    @Test
+    @DisplayName("Prueba 44 (HU #64): Hash BCrypt irreversible con salt único y verificación segura")
+    void test44_HashBCryptConSaltUnicoYVerificacion() {
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+
+        String hash1 = seguridad.hashear("Segura2026");
+        String hash2 = seguridad.hashear("Segura2026");
+
+        assertNotEquals("Segura2026", hash1, "La contraseña nunca debe almacenarse en texto plano");
+        assertTrue(seguridad.estaHasheada(hash1), "El valor almacenado debe tener formato BCrypt ($2a$/$2b$/$2y$)");
+        assertNotEquals(hash1, hash2, "Dos contraseñas iguales deben generar hashes distintos gracias al salt");
+        assertTrue(seguridad.coincide("Segura2026", hash1));
+        assertTrue(seguridad.coincide("Segura2026", hash2));
+        assertFalse(seguridad.coincide("Incorrecta99", hash1));
+        assertFalse(seguridad.coincide(null, hash1));
+        assertFalse(seguridad.coincide("Segura2026", null));
+    }
+
+    /**
+     * PRUEBA 45 (PasswordSecurityService - Política mínima de fortaleza):
+     * Verifica que se rechazan contraseñas vacías, de menos de 8 caracteres, sin números o sin letras,
+     * y que se acepta una contraseña que cumple la política.
+     */
+    @Test
+    @DisplayName("Prueba 45 (HU #64): Política mínima de contraseña (8 caracteres, letras y números)")
+    void test45_PoliticaMinimaFortalezaContrasena() {
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+
+        assertThrows(IllegalArgumentException.class, () -> seguridad.validarFortaleza(null));
+        assertThrows(IllegalArgumentException.class, () -> seguridad.validarFortaleza("   "));
+        IllegalArgumentException corta = assertThrows(IllegalArgumentException.class,
+                () -> seguridad.validarFortaleza("abc12"));
+        assertTrue(corta.getMessage().contains("8 caracteres"));
+        assertThrows(IllegalArgumentException.class, () -> seguridad.validarFortaleza("soloLetras"));
+        assertThrows(IllegalArgumentException.class, () -> seguridad.validarFortaleza("12345678"));
+
+        assertDoesNotThrow(() -> seguridad.validarFortaleza("Segura2026"));
+    }
+
+    /**
+     * PRUEBA 46 (UsuarioService - Alta de empleado con hash y login contra el hash):
+     * Verifica que al crear un empleado la contraseña se persiste como hash BCrypt, que se rechazan
+     * contraseñas débiles y que el login valida correctamente contra el hash almacenado.
+     */
+    @Test
+    @DisplayName("Prueba 46 (HU #64): Alta de empleado guarda hash BCrypt y login valida contra el hash")
+    void test46_CrearEmpleadoGuardaHashYLoginContraHash() {
+        UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        UsuarioService usuarioService = new UsuarioService();
+        ReflectionTestUtils.setField(usuarioService, "usuarioRepository", usuarioRepository);
+        ReflectionTestUtils.setField(usuarioService, "passwordSecurityService", new PasswordSecurityService());
+
+        when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Contraseña débil -> rechazada
+        com.taller.dtos.UsuarioRequestDTO debil = new com.taller.dtos.UsuarioRequestDTO();
+        debil.setNombre("Nuevo Mecánico");
+        debil.setEmail("nuevo@taller.com");
+        debil.setPassword("1234");
+        debil.setTelefono("600999999");
+        debil.setRol("MECANICO");
+        assertThrows(IllegalArgumentException.class, () -> usuarioService.crearUsuario(debil));
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+
+        // Contraseña robusta -> guardada como hash
+        com.taller.dtos.UsuarioRequestDTO dto = new com.taller.dtos.UsuarioRequestDTO();
+        dto.setNombre("Nuevo Mecánico");
+        dto.setEmail("nuevo@taller.com");
+        dto.setPassword("Taller2026");
+        dto.setTelefono("600999999");
+        dto.setRol("MECANICO");
+        usuarioService.crearUsuario(dto);
+
+        org.mockito.ArgumentCaptor<Usuario> captor = org.mockito.ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository, times(1)).save(captor.capture());
+        Usuario guardado = captor.getValue();
+        assertNotEquals("Taller2026", guardado.getPassword(), "La contraseña no puede guardarse en texto plano");
+        assertTrue(guardado.getPassword().startsWith("$2"), "Debe almacenarse como hash BCrypt");
+
+        // Login contra el hash almacenado
+        when(usuarioRepository.findByEmail("nuevo@taller.com")).thenReturn(Optional.of(guardado));
+        UsuarioResponseDTO ok = usuarioService.login("nuevo@taller.com", "Taller2026");
+        assertEquals("MECANICO", ok.getRol());
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> usuarioService.login("nuevo@taller.com", "Otra2026"));
+        assertEquals("Contraseña incorrecta.", ex.getMessage());
+    }
+
+    /**
+     * PRUEBA 47 (ClienteService - Registro de cliente con hash y login por email/teléfono):
+     * Verifica que el registro de un cliente guarda la contraseña hasheada, rechaza contraseñas débiles
+     * y permite iniciar sesión por correo o teléfono comparando contra el hash.
+     */
+    @Test
+    @DisplayName("Prueba 47 (HU #64): Registro de cliente guarda hash BCrypt y login por email/teléfono")
+    void test47_RegistroClienteGuardaHashYLogin() {
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ClienteService clienteService = new ClienteService();
+        ReflectionTestUtils.setField(clienteService, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(clienteService, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(clienteService, "reparacionService", mock(ReparacionService.class));
+        ReflectionTestUtils.setField(clienteService, "passwordSecurityService", new PasswordSecurityService());
+
+        when(clienteRepo.findByEmail("lucia@email.com")).thenReturn(Optional.empty());
+        when(clienteRepo.findByTelefono("677000111")).thenReturn(Optional.empty());
+        when(clienteRepo.save(any(Cliente.class))).thenAnswer(inv -> {
+            Cliente c = inv.getArgument(0);
+            if (c.getId() == null) c.setId(99L);
+            return c;
+        });
+
+        // Contraseña débil -> rechazada
+        IllegalArgumentException exDebil = assertThrows(IllegalArgumentException.class, () ->
+                clienteService.registrarCliente("Lucía Gómez", "677000111", "lucia@email.com", "lucia")
+        );
+        assertTrue(exDebil.getMessage().contains("8 caracteres"));
+
+        clienteService.registrarCliente("Lucía Gómez", "677000111", "lucia@email.com", "Lucia2026");
+
+        org.mockito.ArgumentCaptor<Cliente> captor = org.mockito.ArgumentCaptor.forClass(Cliente.class);
+        verify(clienteRepo, atLeastOnce()).save(captor.capture());
+        Cliente guardado = captor.getValue();
+        assertNotEquals("Lucia2026", guardado.getPassword());
+        assertTrue(guardado.getPassword().startsWith("$2"));
+
+        when(clienteRepo.findByEmail("lucia@email.com")).thenReturn(Optional.of(guardado));
+        when(clienteRepo.findByTelefono("677000111")).thenReturn(Optional.of(guardado));
+        assertNotNull(clienteService.loginCliente("lucia@email.com", "Lucia2026"));
+        assertNotNull(clienteService.loginCliente("677000111", "Lucia2026"));
+        IllegalArgumentException exMal = assertThrows(IllegalArgumentException.class,
+                () -> clienteService.loginCliente("lucia@email.com", "Erronea2026"));
+        assertEquals("Contraseña incorrecta.", exMal.getMessage());
+    }
+
+    /**
+     * PRUEBA 48 (RecuperacionPasswordService - Restablecimiento con política y hash):
+     * Verifica que la nueva contraseña del flujo de recuperación con código de 6 dígitos
+     * debe cumplir la política mínima y se persiste hasheada con BCrypt.
+     */
+    @Test
+    @DisplayName("Prueba 48 (HU #64): Restablecer contraseña exige política mínima y guarda hash BCrypt")
+    @SuppressWarnings("unchecked")
+    void test48_RestablecerPasswordConPoliticaYHash() {
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        RecuperacionPasswordService recuperacion = new RecuperacionPasswordService();
+        ReflectionTestUtils.setField(recuperacion, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(recuperacion, "passwordSecurityService", new PasswordSecurityService());
+
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+        Cliente cliente = new Cliente("Juan Pérez", "611111111", "juan@email.com", seguridad.hashear("juan123"));
+        when(clienteRepo.findByEmail("juan@email.com")).thenReturn(Optional.of(cliente));
+
+        recuperacion.solicitarCodigo("juan@email.com");
+        Map<String, Object> pendientes = (Map<String, Object>) ReflectionTestUtils.getField(recuperacion, "codigosPendientes");
+        String codigo = (String) ReflectionTestUtils.invokeMethod(pendientes.get("juan@email.com"), "getCodigo");
+
+        // Contraseña débil (antes bastaban 4 caracteres) -> rechazada
+        assertThrows(IllegalArgumentException.class, () ->
+                recuperacion.restablecerPassword("juan@email.com", codigo, "abcd", "abcd")
+        );
+
+        recuperacion.restablecerPassword("juan@email.com", codigo, "NuevaClave2026", "NuevaClave2026");
+
+        assertNotEquals("NuevaClave2026", cliente.getPassword());
+        assertTrue(seguridad.estaHasheada(cliente.getPassword()));
+        assertTrue(seguridad.coincide("NuevaClave2026", cliente.getPassword()));
+        verify(clienteRepo, times(1)).save(cliente);
+    }
+
+    /**
+     * PRUEBA 49 (ReparacionService - Confirmación de presupuesto validando contra el hash):
+     * Verifica que la aceptación/rechazo de un presupuesto por el cliente valida la contraseña
+     * contra el hash BCrypt almacenado, rechazando contraseñas incorrectas.
+     */
+    @Test
+    @DisplayName("Prueba 49 (HU #64): Confirmar presupuesto con contraseña valida contra el hash BCrypt")
+    void test49_ConfirmarPresupuestoValidaContraHash() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        PresupuestoReparacionRepository presupuestoRepo = mock(PresupuestoReparacionRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        IncidenciaReparacionRepository incidenciaRepo = mock(IncidenciaReparacionRepository.class);
+
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(service, "presupuestoRepository", presupuestoRepo);
+        ReflectionTestUtils.setField(service, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(service, "incidenciaRepository", incidenciaRepo);
+        ReflectionTestUtils.setField(service, "eventPublisher", mock(ApplicationEventPublisher.class));
+        ReflectionTestUtils.setField(service, "passwordSecurityService", new PasswordSecurityService());
+
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+        Cliente cliente = new Cliente("Juan Pérez", "611111111", "juan@email.com", seguridad.hashear("Juan2026"));
+        Vehiculo vehiculo = new Vehiculo("1234ABC", "Toyota", "Corolla", 2019, cliente);
+        Usuario recep = new Usuario("Laura", "laura@taller.com", "x", "600", Rol.RECEPCIONISTA);
+        Reparacion reparacion = new Reparacion(vehiculo, recep, "Ruido motor", 200.0, 3);
+        reparacion.setId(30L);
+
+        PresupuestoReparacion presupuesto = new PresupuestoReparacion(
+                "PRES-2026-030", reparacion, "Distribución", LocalDate.now().plusDays(10), 15.0, 21.0
+        );
+        presupuesto.getLineas().add(new LineaPresupuesto(presupuesto, "PIEZA", "Kit correa", 1.0, 120.0, null));
+        presupuesto.recalcularTotales();
+
+        when(reparacionRepo.findById(30L)).thenReturn(Optional.of(reparacion));
+        when(presupuestoRepo.findByReparacionId(30L)).thenReturn(Optional.of(presupuesto));
+        when(clienteRepo.findAll()).thenReturn(List.of(cliente));
+
+        // Contraseña incorrecta -> bloqueado, presupuesto sin cambios
+        assertThrows(SecurityException.class, () ->
+                service.responderPresupuestoCliente(30L, "ACEPTAR", "Juan2025", null)
+        );
+        assertEquals("PENDIENTE_ACEPTACION", presupuesto.getEstado());
+
+        // Contraseña correcta comparada contra el hash -> ACEPTADO
+        Map<String, Object> res = service.responderPresupuestoCliente(30L, "ACEPTAR", "Juan2026", null);
+        assertEquals("ACEPTADO", res.get("estado"));
+    }
+
+    /**
+     * PRUEBA 50 (Migración de contraseñas heredadas en texto plano):
+     * Verifica que las cuentas antiguas (p. ej. juan123 / admin123) se migran a hash BCrypt al arrancar
+     * sin dejar de ser válidas, y que un login con contraseña heredada la re-hashea de forma transparente.
+     */
+    @Test
+    @DisplayName("Prueba 50 (HU #64): Migración de contraseñas heredadas a BCrypt sin perder el acceso")
+    void test50_MigracionPasswordsHeredadasSinPerderAcceso() {
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        ClienteRepository clienteRepo = mock(ClienteRepository.class);
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+
+        Usuario admin = new Usuario("Antonio", "admin@taller.com", "admin123", "600000001", Rol.ADMIN);
+        Cliente juan = new Cliente("Juan Pérez", "611111111", "juan@email.com", "juan123");
+        Cliente sinCuenta = new Cliente("María", "622222222");
+        Cliente yaHasheado = new Cliente("Carlos", "633333333", "carlos@email.com", seguridad.hashear("carlos123"));
+        String hashPrevioCarlos = yaHasheado.getPassword();
+
+        when(usuarioRepo.findAll()).thenReturn(List.of(admin));
+        when(clienteRepo.findAll()).thenReturn(List.of(juan, sinCuenta, yaHasheado));
+
+        com.taller.config.DatosPrueba datos = new com.taller.config.DatosPrueba();
+        ReflectionTestUtils.setField(datos, "usuarioRepository", usuarioRepo);
+        ReflectionTestUtils.setField(datos, "clienteRepository", clienteRepo);
+        ReflectionTestUtils.setField(datos, "passwordSecurityService", seguridad);
+
+        int migradas = datos.migrarPasswordsTextoPlano();
+
+        assertEquals(2, migradas, "Solo deben migrarse las 2 contraseñas que estaban en texto plano");
+        assertTrue(seguridad.estaHasheada(admin.getPassword()));
+        assertTrue(seguridad.estaHasheada(juan.getPassword()));
+        assertTrue(seguridad.coincide("admin123", admin.getPassword()), "admin123 debe seguir siendo válida");
+        assertTrue(seguridad.coincide("juan123", juan.getPassword()), "juan123 debe seguir siendo válida");
+        assertNull(sinCuenta.getPassword(), "Los clientes sin cuenta no deben recibir contraseña");
+        assertEquals(hashPrevioCarlos, yaHasheado.getPassword(), "Un hash existente no debe re-hashearse");
+        verify(usuarioRepo, times(1)).save(admin);
+        verify(clienteRepo, times(1)).save(juan);
+        verify(clienteRepo, never()).save(yaHasheado);
+
+        // Login transparente de una cuenta heredada aún en texto plano: entra y queda re-hasheada
+        UsuarioRepository repoLogin = mock(UsuarioRepository.class);
+        UsuarioService usuarioService = new UsuarioService();
+        ReflectionTestUtils.setField(usuarioService, "usuarioRepository", repoLogin);
+        ReflectionTestUtils.setField(usuarioService, "passwordSecurityService", seguridad);
+        Usuario pedro = new Usuario("Pedro", "pedro@taller.com", "pedro123", "600000003", Rol.MECANICO);
+        when(repoLogin.findByEmail("pedro@taller.com")).thenReturn(Optional.of(pedro));
+
+        assertNotNull(usuarioService.login("pedro@taller.com", "pedro123"));
+        assertTrue(seguridad.estaHasheada(pedro.getPassword()), "Tras el login la contraseña heredada queda hasheada");
+        verify(repoLogin, times(1)).save(pedro);
+    }
+
+    /**
+     * PRUEBA 51 (Privacidad en la API - JSON sin contraseñas ni hashes):
+     * Verifica que al serializar a JSON las entidades Usuario y Cliente (respuestas de la API),
+     * nunca se incluye la contraseña en texto plano ni su hash almacenado.
+     */
+    @Test
+    @DisplayName("Prueba 51 (HU #64): Las respuestas JSON nunca exponen contraseñas ni hashes")
+    void test51_JsonNoExponePasswordNiHash() throws Exception {
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+        String hash = seguridad.hashear("Segura2026");
+
+        Usuario usuario = new Usuario("Antonio", "admin@taller.com", hash, "600000001", Rol.ADMIN);
+        Cliente cliente = new Cliente("Juan Pérez", "611111111", "juan@email.com", hash);
+
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        mapper.findAndRegisterModules();
+        String jsonUsuario = mapper.writeValueAsString(usuario);
+        String jsonCliente = mapper.writeValueAsString(cliente);
+
+        assertFalse(jsonUsuario.contains("password"), "El JSON del empleado no debe incluir el campo password");
+        assertFalse(jsonUsuario.contains(hash), "El JSON del empleado no debe incluir el hash");
+        assertFalse(jsonCliente.contains("password"), "El JSON del cliente no debe incluir el campo password");
+        assertFalse(jsonCliente.contains(hash), "El JSON del cliente no debe incluir el hash");
+        assertFalse(jsonCliente.contains("Segura2026"));
+    }
 }

@@ -16,6 +16,9 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
+
     /**
      * Crea un nuevo usuario en el sistema.
      * Solo el ADMIN puede crear usuarios (eso se controlará en el Controller).
@@ -35,10 +38,13 @@ public class UsuarioService {
                     + ". Los roles válidos son: ADMIN, RECEPCIONISTA, MECANICO, CLIENTE");
         }
 
+        passwordSecurityService.validarFortaleza(dto.getPassword());
+        String passwordHash = passwordSecurityService.hashear(dto.getPassword());
+
         Usuario usuario = new Usuario(
                 dto.getNombre(),
                 dto.getEmail().toLowerCase(),
-                dto.getPassword(), // En un proyecto real, aquí se cifraría la contraseña
+                passwordHash,
                 dto.getTelefono(),
                 rol
         );
@@ -82,16 +88,20 @@ public class UsuarioService {
     }
 
     /**
-     * Login básico: busca un usuario por email y comprueba la contraseña.
-     * NOTA: En un proyecto real se usaría Spring Security con BCrypt.
-     * Para este proyecto académico, usamos una comparación directa.
+     * Login seguro: busca un usuario por email y comprueba la contraseña frente al hash BCrypt.
+     * Si la cuenta tuviera una clave heredada en texto plano, la migra a BCrypt tras autenticar.
      */
     public UsuarioResponseDTO login(String email, String password) {
         Usuario usuario = usuarioRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: no existe ningún empleado con ese correo."));
 
-        if (!usuario.getPassword().equals(password)) {
+        if (!passwordSecurityService.coincide(password, usuario.getPassword())) {
             throw new IllegalArgumentException("Contraseña incorrecta.");
+        }
+
+        if (!passwordSecurityService.estaHasheada(usuario.getPassword())) {
+            usuario.setPassword(passwordSecurityService.hashear(password));
+            usuarioRepository.save(usuario);
         }
 
         return convertirAResponseDTO(usuario, "Login correcto. Bienvenido, " + usuario.getNombre() + ".");
