@@ -279,7 +279,7 @@
         <div class="meta-box">
             <strong>Asignatura:</strong> Ingeniería del Software I (Proyecto-IS1) &nbsp;|&nbsp;
             <strong>Documento para:</strong> Revisiones Técnicas Formales (RRTTFF) &nbsp;|&nbsp;
-            <strong>Total HU:</strong> 38 historias
+            <strong>Total HU:</strong> 40 historias
         </div>
         <div class="team-list">
             <strong>Equipo de desarrollo:</strong> Marta Barbero Fuentes · Nicolás Rodríguez Torrevejano · Marcos Arévalo Garrido · Marcos Martín Clemente · Álvaro Sánchez Camacho
@@ -288,25 +288,25 @@
 
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-num">38</div>
-            <div class="stat-lbl">Historias de Usuario Totales<br>(37 HU + 1 Épica #14)</div>
+            <div class="stat-num">40</div>
+            <div class="stat-lbl">Historias de Usuario Totales<br>(39 HU + 1 Épica #14)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color: #166534;">33 / 5</div>
-            <div class="stat-lbl">Estado en el Proyecto<br>(33 Done · 5 Sin iniciar)</div>
+            <div class="stat-num" style="color: #166534;">33 / 7</div>
+            <div class="stat-lbl">Estado en el Proyecto<br>(33 Done · 7 Pendientes)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color: #9a3412;">12 / 21 / 5</div>
-            <div class="stat-lbl">Prioridad<br>(12 Alta · 21 Media · 5 Baja)</div>
+            <div class="stat-num" style="color: #9a3412;">13 / 22 / 5</div>
+            <div class="stat-lbl">Prioridad<br>(13 Alta · 22 Media · 5 Baja)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color: #6b21a8;">6 / 18 / 14</div>
-            <div class="stat-lbl">Tamaño<br>(6 Grande · 18 Media · 14 Pequeño)</div>
+            <div class="stat-num" style="color: #6b21a8;">7 / 19 / 14</div>
+            <div class="stat-lbl">Tamaño<br>(7 Grande · 19 Media · 14 Pequeño)</div>
         </div>
     </div>
 
     <div class="alert alert-info">
-        <strong>Propósito de este documento (RRTTFF):</strong> Recopila en un único documento de consulta rápida las <strong>38 Historias de Usuario</strong> del proyecto <strong>MotorFlow</strong> registradas en el tablero <em>HISTORIAS DE USUARIO</em> de GitHub, incluyendo para cada una su enunciado, la justificación detallada bajo los seis criterios <strong>INVEST</strong>, sus <strong>Criterios de Aceptación</strong> verificables, su <strong>Prioridad</strong>, su <strong>Tamaño</strong> estimado y su <strong>estado real verificado</strong> frente al código fuente actual.
+        <strong>Propósito de este documento (RRTTFF):</strong> Recopila en un único documento de consulta rápida las <strong>40 Historias de Usuario</strong> del proyecto <strong>MotorFlow</strong> registradas en el tablero <em>HISTORIAS DE USUARIO</em> de GitHub y en el backlog de seguridad y despliegue, incluyendo para cada una su enunciado, la justificación detallada bajo los seis criterios <strong>INVEST</strong>, sus <strong>Criterios de Aceptación</strong> verificables, su <strong>Prioridad</strong>, su <strong>Tamaño</strong> estimado y su <strong>estado real verificado</strong> frente al código fuente actual.
     </div>
 
     <h2 class="section-title">1. Marco Metodológico y Criterios de Evaluación</h2>
@@ -326,7 +326,7 @@
     <ul>
         <li><strong>Prioridad:</strong> <strong>Alta</strong> (imprescindible para el núcleo operativo y seguridad del taller), <strong>Media</strong> (importante para la gestión diaria y experiencia de usuario, no bloqueante al arranque) y <strong>Baja</strong> (mejora operativa o visual complementaria).</li>
         <li><strong>Tamaño:</strong> <strong>Pequeño</strong> (~1 día de desarrollo), <strong>Medio</strong> (2–3 días) y <strong>Grande</strong> (+3 días dentro de un mismo sprint).</li>
-        <li><strong>Estado Verificado:</strong> <strong>Done (33 historias)</strong> implementadas y verificadas en el repositorio; <strong>Sin iniciar (5 historias: #58, #59, #60, #61, #64)</strong> pendientes en el Product Backlog.</li>
+        <li><strong>Estado Verificado:</strong> <strong>Done (33 historias)</strong> implementadas y verificadas en el repositorio; <strong>Pendientes / Sin iniciar (7 historias: #58, #59, #60, #61, #64, #65/HU-02 y #66/HU-03)</strong> registradas en el Product Backlog.</li>
     </ul>
 
     <h2 class="section-title">2. Índice Rápido de Historias de Usuario (Resumen RRTTFF)</h2>
@@ -646,16 +646,32 @@
                 <td><span class="badge badge-tmedia">MEDIA</span></td>
                 <td><span class="badge badge-todo">Sin iniciar</span></td>
             </tr>
+            <tr>
+                <td><strong>HU #65</strong><br><small style="color:#64748b;">(HU-02)</small></td>
+                <td><a href="#hu-65" style="color:#0f172a; text-decoration:none; font-weight:600;">Autenticaci&#243;n y control de accesos en el servidor</a></td>
+                <td>Todos los Roles</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-todo">Pendiente</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #66</strong><br><small style="color:#64748b;">(HU-03)</small></td>
+                <td><a href="#hu-66" style="color:#0f172a; text-decoration:none; font-weight:600;">Guardado permanente de fotos de incidencias en la nube (Azure)</a></td>
+                <td>Mec&#225;nico / Recepcionista</td>
+                <td><span class="badge badge-media">MEDIA</span></td>
+                <td><span class="badge badge-tmedia">MEDIA</span></td>
+                <td><span class="badge badge-todo">Pendiente</span></td>
+            </tr>
         </tbody>
     </table>
 
     <div class="alert alert-success">
-        <strong>Verificación frente al código:</strong> Las <strong>33 historias en estado Done</strong> corresponden a funcionalidades verificadas en <code>backend/</code> y <code>frontend/</code> (incluyendo acceso por roles, clientes, vehículos, órdenes, ordenación por prioridad, registro cronológico de espera, presupuestos desglosados, aceptación/rechazo con contraseña o presencial, cancelación tras rechazo, temporizador de mano de obra, supervisión de mecánicos, historial técnico para mecánicos, incidencias con fotos, almacén y alertas de stock bajo, citas, calendario, facturas en PDF y notificaciones). Las <strong>5 historias en Sin iniciar</strong> (<code>#58</code>, <code>#59</code>, <code>#60</code>, <code>#61</code>, <code>#64</code>) permanecen en el backlog para futuros sprints.
+        <strong>Verificación frente al código:</strong> Las <strong>33 historias en estado Done</strong> corresponden a funcionalidades verificadas en <code>backend/</code> y <code>frontend/</code> (incluyendo acceso por roles, clientes, vehículos, órdenes, ordenación por prioridad, registro cronológico de espera, presupuestos desglosados, aceptación/rechazo con contraseña o presencial, cancelación tras rechazo, temporizador de mano de obra, supervisión de mecánicos, historial técnico para mecánicos, incidencias con fotos, almacén y alertas de stock bajo, citas, calendario, facturas en PDF y notificaciones). Las <strong>7 historias pendientes</strong> (<code>#58</code>, <code>#59</code>, <code>#60</code>, <code>#61</code>, <code>#64</code>, <code>#65/HU-02</code>, <code>#66/HU-03</code>) permanecen registradas en el backlog para los próximos sprints de seguridad y despliegue.
     </div>
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">3. Catálogo Detallado de las 38 Historias de Usuario</h2>
+    <h2 class="section-title">3. Catálogo Detallado de las 40 Historias de Usuario</h2>
     <div class="hu-card" id="hu-2">
         <div class="hu-header">
             <div class="hu-title-wrap">
@@ -2455,6 +2471,102 @@
                 <div class="hu-meta-box">
                     <div class="hu-meta-box-title">Tamaño: Medio</div>
                     <p>Supone un esfuerzo moderado (2–3 d&#237;as) que incluye a&#241;adir la librer&#237;a de codificaci&#243;n BCrypt en el backend (spring-security-crypto), adaptar los servicios de alta, login, recuperaci&#243;n de clave y confirmaci&#243;n de presupuestos (UsuarioService, ClienteService, RecuperacionPasswordService, ReparacionService y DatosPrueba), a&#241;adir la validaci&#243;n de fortaleza m&#237;nima y cubrir todos los casos con pruebas unitarias.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-65">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #65</span> Autenticaci&#243;n y control de accesos en el servidor <small style="color:#64748b; font-size:9pt; font-weight:normal;">(Ref. Auditor&#237;a: HU-02)</small>
+            </div>
+            <div class="hu-badges">
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-grande">Tamaño: GRANDE</span>
+                <span class="badge badge-todo">Pendiente</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como usuario autenticado del taller (recepcionista, mec&#225;nico, cliente o administrador), quiero que el servidor compruebe mi identidad y mis permisos en cada consulta o cambio que solicito (a trav&#233;s de una sesi&#243;n segura o clave digital temporal), y no solo fi&#225;ndose de lo que muestra el navegador, para impedir que personas no autorizadas puedan espiar, descargar o borrar datos confidenciales (como fichas de clientes, facturas o gastos de reparaciones) salt&#225;ndose la p&#225;gina web.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario (INVEST)</div>
+                <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST con un lenguaje cercano y accesible para todo el equipo:</p>
+                <ul>
+                    <li><strong>Independiente (I):</strong> Se centra en colocar un control de seguridad con llave en el servidor sobre las funciones que ya tenemos operativas, sin necesidad de rehacer la l&#243;gica de trabajo de los m&#243;dulos de taller, facturaci&#243;n ni clientes.</li>
+                    <li><strong>Negociable (N):</strong> Permite acordar con el equipo la soluci&#243;n m&#225;s pr&#225;ctica y c&#243;moda para identificar al usuario (como sesiones de usuario o tokens de acceso tipo JWT) y acordar con claridad qu&#233; zonas son de entrada libre (como iniciar sesi&#243;n o registrarse) frente a las que requieren permiso estricto.</li>
+                    <li><strong>Valiosa (V):</strong> Resuelve un riesgo prioritario detectado en la auditor&#237;a: hasta ahora el control se apoyaba sobre todo en el navegador o en comprobaciones puntuales de identificador en las peticiones, lo que permit&#237;a que alguien con conocimientos t&#233;cnicos pudiera saltarse la interfaz web y pedir directamente datos privados (clientes, facturas) o borrar gastos usando herramientas externas como Postman o curl. Con esta mejora blindamos la privacidad del taller y de los clientes.</li>
+                    <li><strong>Estimable (E):</strong> Tiene un trabajo t&#233;cnico muy bien delimitado en el servidor: a&#241;adir un filtro vigilante de seguridad que revise el rol del usuario antes de darle paso, entregar una credencial o sesi&#243;n v&#225;lida al entrar y adaptar la web para que la env&#237;e autom&#225;ticamente en cada acci&#243;n.</li>
+                    <li><strong>Peque&#241;a (S):</strong> Est&#225; perfectamente acotada para completarse en un Sprint protegiendo las rutas principales de lectura, modificaci&#243;n y borrado, sin necesidad de montar complicados proveedores externos ni sistemas de identificaci&#243;n empresarial innecesarios.</li>
+                    <li><strong>Testeable (T):</strong> Es muy f&#225;cil de verificar con pruebas de integraci&#243;n: intentamos solicitar datos protegidos sin haber iniciado sesi&#243;n o con un perfil que no tiene permisos suficientes y comprobamos que el servidor rechaza la acci&#243;n con un c&#243;digo de acceso denegado (401 o 403), y comprobamos que cuando entramos con una cuenta autorizada todo funciona con normalidad.</li>
+                </ul>
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Criterios de Aceptaci&#243;n</div>
+                <ol>
+                    <li>Si una persona o petici&#243;n sin sesi&#243;n v&#225;lida ni identificaci&#243;n intenta acceder a apartados protegidos (como consultar clientes, ver facturas o borrar gastos y reparaciones), entonces el servidor rechaza la operaci&#243;n al instante con un c&#243;digo de acceso no autorizado o prohibido (401/403) y no devuelve ni modifica ning&#250;n dato.</li>
+                    <li>Si un usuario inicia sesi&#243;n correctamente con sus credenciales, entonces el servidor genera una sesi&#243;n segura o clave digital vinculada a su identidad y a su rol, que la aplicaci&#243;n web env&#237;a de forma transparente en las siguientes operaciones.</li>
+                    <li>Si un usuario autenticado intenta realizar una operaci&#243;n fuera de sus funciones permitidas (por ejemplo, un perfil sin permiso de borrado o intentando manipular la informaci&#243;n de otro usuario), entonces el servidor valida sus permisos reales en el backend y deniega la operaci&#243;n.</li>
+                    <li>Si el usuario cierra sesi&#243;n voluntariamente o su tiempo de conexi&#243;n caduca, entonces cualquier llamada posterior a zonas protegidas es rechazada de inmediato por el servidor hasta que vuelva a identificarse.</li>
+                </ol>
+            </div>
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es indispensable para la seguridad y privacidad: impide que cualquier usuario o herramienta externa pueda extraer datos sensibles o alterar registros del taller directamente a trav&#233;s de la API sin autorizaci&#243;n.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande</div>
+                    <p>Abarca incorporar el filtro/interceptor de seguridad en el backend, blindar los endpoints sensibles (clientes, facturas y reparaciones/gastos) y adaptar la comunicaci&#243;n desde el frontend para transmitir las credenciales de sesi&#243;n.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hu-card" id="hu-66">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #66</span> Almacenamiento permanente de fotos de incidencias en despliegue <small style="color:#64748b; font-size:9pt; font-weight:normal;">(Ref. Auditor&#237;a: HU-03)</small>
+            </div>
+            <div class="hu-badges">
+                <span class="badge badge-media">Prioridad: MEDIA</span>
+                <span class="badge badge-tmedia">Tamaño: MEDIA</span>
+                <span class="badge badge-todo">Pendiente</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como usuario del taller (mec&#225;nico, recepcionista o cliente), quiero que las fotograf&#237;as de aver&#237;as e incidencias subidas a la aplicaci&#243;n se guarden de forma duradera y permanente (y no solo en una carpeta temporal del servidor), para que las im&#225;genes nunca se pierdan tras actualizar la aplicaci&#243;n o reiniciarse el servicio en la nube en Azure App Service.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario (INVEST)</div>
+                <p>Esta historia de usuario cumple de forma completa y pr&#225;ctica con los criterios INVEST:</p>
+                <ul>
+                    <li><strong>Independiente (I):</strong> A&#237;sla por completo la forma de guardar y recuperar las im&#225;genes de aver&#237;as respecto a los dem&#225;s flujos y procesos del taller.</li>
+                    <li><strong>Negociable (N):</strong> Permite acordar con el equipo la mejor estrategia de conservaci&#243;n (como usar un servicio de almacenamiento en la nube permanente o guardar las im&#225;genes optimizadas en la base de datos, valorando costes y tama&#241;o) y ajustar la configuraci&#243;n del servidor seg&#250;n convenga.</li>
+                    <li><strong>Valiosa (V):</strong> Evita la p&#233;rdida inadvertida de las pruebas fotogr&#225;ficas de aver&#237;as: en plataformas como Azure App Service, cada vez que se publica una actualizaci&#243;n o se reinicia el contenedor, las carpetas locales temporales se eliminan. Con esta historia aseguramos que las evidencias visuales sigan existiendo siempre.</li>
+                    <li><strong>Estimable (E):</strong> Su alcance est&#225; claramente acotado: revisar c&#243;mo se guardan y sirven actualmente las fotos en el c&#243;digo, cambiar el destino a un almacenamiento permanente y garantizar que las im&#225;genes se muestren correctamente en la pantalla.</li>
+                    <li><strong>Peque&#241;a (S):</strong> Se puede completar y probar en uno o dos d&#237;as dentro de un Sprint sin necesidad de alterar los m&#243;dulos principales del taller.</li>
+                    <li><strong>Testeable (T):</strong> Se comprueba de manera r&#225;pida y directa: subimos una foto de aver&#237;a, forzamos un reinicio o redespliegue de la aplicaci&#243;n en el entorno de pruebas y verificamos que la imagen sigue intacta y visible en la ficha de la reparaci&#243;n.</li>
+                </ul>
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Criterios de Aceptaci&#243;n</div>
+                <ol>
+                    <li>Si un usuario sube una fotograf&#237;a asociada a una aver&#237;a o incidencia en la aplicaci&#243;n en producci&#243;n, entonces la imagen queda guardada en un almacenamiento permanente y seguro que no depende del disco temporal del contenedor.</li>
+                    <li>Si se produce un redespliegue, actualizaci&#243;n o reinicio de la aplicaci&#243;n en Azure App Service, entonces todas las fotograf&#237;as subidas anteriormente contin&#250;an estando disponibles y se muestran correctamente al abrir la consulta de la incidencia.</li>
+                    <li>Si se solicita una imagen que no existe o a la que el usuario no tiene permiso para acceder, entonces la aplicaci&#243;n responde con un aviso controlado y limpio, sin mostrar errores internos ni destapar rutas privadas del servidor.</li>
+                </ol>
+            </div>
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Media</div>
+                    <p>Garantiza la fiabilidad del servicio en internet: asegura que las pruebas gr&#225;ficas de las aver&#237;as, fundamentales para la aceptaci&#243;n de presupuestos y la transparencia con el cliente, no desaparezcan con el mantenimiento t&#233;cnico de la nube.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Pequeño / Medio</div>
+                    <p>Requiere adaptar la configuraci&#243;n de almacenamiento en el backend (WebConfig / servicio de subidas) para dirigir las fotos al medio persistente elegido y verificar que la lectura se realice de forma fluida.</p>
                 </div>
             </div>
         </div>
