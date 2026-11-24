@@ -1715,4 +1715,49 @@ public class PruebasUnitariasTest {
         assertFalse(jsonCliente.contains(hash), "El JSON del cliente no debe incluir el hash");
         assertFalse(jsonCliente.contains("Segura2026"));
     }
+
+    /**
+     * PRUEBA 52 (Tesorería - Prevención de doble contabilidad de piezas en caja):
+     * Verifica que obtenerCuentaTaller() descuenta del saldo de caja únicamente las compras
+     * de stock del almacén (gastosComprasStock) y no vuelve a restar de la caja el coste de
+     * las piezas del almacén instaladas en reparaciones (gastosPiezasUsadas).
+     */
+    @Test
+    @DisplayName("Prueba 52: El saldo de Tesorería solo descuenta compras de stock y no cobra dos veces las piezas usadas")
+    void test52_TesoreriaNoDescuentaDobleLasPiezasUsadasEnReparaciones() {
+        ReparacionRepository reparacionRepo = mock(ReparacionRepository.class);
+        ReparacionMaterialRepository repMatRepo = mock(ReparacionMaterialRepository.class);
+        FacturaRepository facturaRepo = mock(FacturaRepository.class);
+        ConfiguracionTallerService configService = mock(ConfiguracionTallerService.class);
+
+        ReparacionService service = new ReparacionService();
+        ReflectionTestUtils.setField(service, "reparacionRepository", reparacionRepo);
+        ReflectionTestUtils.setField(service, "reparacionMaterialRepository", repMatRepo);
+        ReflectionTestUtils.setField(service, "facturaRepository", facturaRepo);
+        ReflectionTestUtils.setField(service, "configuracionService", configService);
+
+        when(configService.obtenerConfiguracion()).thenReturn(new ConfiguracionTaller(15.0, 35.0, 2000.0));
+        when(reparacionRepo.findAll()).thenReturn(Collections.emptyList());
+        when(facturaRepo.findAll()).thenReturn(Collections.emptyList());
+
+        // 1) El administrador compra 10 filtros a 10.00 € = 100.00 € de salida real de caja
+        service.registrarGastoCompraStock(1L, "Filtro de aceite", 10, 10.00, 0, "COMPRA_STOCK");
+
+        // 2) El mecánico instala 2 de esos filtros del almacén (20.00 €) en una reparación
+        Material filtro = new Material("Filtro de aceite", "Filtro motor", 8, 10.00);
+        filtro.setId(1L);
+        Reparacion rep = new Reparacion();
+        rep.setId(1L);
+        ReparacionMaterial uso = new ReparacionMaterial(rep, filtro, 2);
+        uso.setId(1L);
+        when(repMatRepo.findAll()).thenReturn(List.of(uso));
+
+        Map<String, Object> cuenta = service.obtenerCuentaTaller();
+
+        assertEquals(2000.00, (Double) cuenta.get("fondoInicial"), 0.001);
+        assertEquals(100.00, (Double) cuenta.get("gastosComprasStock"), 0.001, "Las compras de stock son 100.00 €");
+        assertEquals(20.00, (Double) cuenta.get("gastosPiezasUsadas"), 0.001, "El coste analítico de piezas usadas es 20.00 €");
+        assertEquals(100.00, (Double) cuenta.get("gastosMateriales"), 0.001, "El gasto de caja en materiales solo debe ser la compra de stock (100.00 €)");
+        assertEquals(1900.00, (Double) cuenta.get("saldoActual"), 0.001, "El saldo de caja debe ser 2000 - 100 = 1900.00 € (sin restar otra vez los 20 €)");
+    }
 }

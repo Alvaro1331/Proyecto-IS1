@@ -702,8 +702,15 @@ public class ReparacionService {
         Factura factura;
         if (existente.isPresent()) {
             factura = existente.get();
-            factura.setFechaEmision(LocalDate.now());
-            factura.recalcularImportes(costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
+            if (reparacion.getEstado() == EstadoReparacion.ENTREGADA) {
+                throw new IllegalArgumentException(
+                        "La factura " + factura.getNumeroFactura()
+                                + " ya está cerrada y entregada; sus importes son inmutables y no pueden modificarse.");
+            }
+            if (reparacion.getEstado() != EstadoReparacion.CONFIRMADA) {
+                factura.setFechaEmision(LocalDate.now());
+                factura.recalcularImportes(costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
+            }
         } else {
             String numeroFactura = generarNumeroFacturaUnico();
             factura = new Factura(numeroFactura, reparacion, costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
@@ -1532,10 +1539,13 @@ public class ReparacionService {
                 .sum() * 100.0) / 100.0;
         this.gastosComprasStock = totalComprasStock;
 
+        // Coste analítico/imputado de piezas instaladas en reparaciones (informativo: no vuelve a restar de la caja)
         double gastosPiezasUsadas = Math.round(todosUsos.stream()
                 .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
                 .sum() * 100.0) / 100.0;
-        double gastosMateriales = Math.round((gastosPiezasUsadas + totalComprasStock) * 100.0) / 100.0;
+
+        // El flujo de salida de caja real corresponde únicamente a las compras/reposiciones de stock del almacén
+        double gastosMateriales = totalComprasStock;
 
         // Ingresos cobrados: suma del totalFactura de reparaciones entregadas o facturadas
         double ingresosCobrados = facturas.stream()
@@ -1622,6 +1632,7 @@ public class ReparacionService {
             item.put("cantidad", g.getCantidad());
             item.put("precioUnitario", g.getPrecioUnitario());
             item.put("importe", Math.round((g.getImporte() != null ? g.getImporte() : 0.0) * 100.0) / 100.0);
+            item.put("descuentaCaja", true);
             item.put("eliminable", true);
             resultado.add(item);
         }
@@ -1657,6 +1668,7 @@ public class ReparacionService {
             item.put("cantidad", u.getCantidad());
             item.put("precioUnitario", precioUnit);
             item.put("importe", imp);
+            item.put("descuentaCaja", false);
             item.put("eliminable", true);
             resultado.add(item);
         }

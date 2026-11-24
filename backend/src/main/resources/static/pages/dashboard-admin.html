@@ -104,7 +104,7 @@
                     <div class="detail-kv-grid">
                         <div>
                             <span id="cuenta-fondo-sub">Fondo inicial: 2.000,00 €</span>
-                            <span>Gastos en stock y piezas</span>
+                            <span>Gastos en compras de stock (Caja)</span>
                             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.1rem;">
                                 <strong id="cuenta-gastos" style="color: var(--err);">0,00 €</strong>
                                 <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="abrirModalHistorialGastos()">Ver / Eliminar gastos</button>
@@ -583,7 +583,7 @@
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
                     <div style="background: color-mix(in srgb, var(--text) 7%, transparent); padding: 0.75rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Total Gastos Tesorería</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Total Gastos Tesorería (Caja)</div>
                         <strong id="hist-gasto-total" style="font-size: 1.2rem; color: var(--err);">-0,00 €</strong>
                     </div>
                     <div style="background: color-mix(in srgb, var(--text) 7%, transparent); padding: 0.75rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
@@ -591,8 +591,8 @@
                         <strong id="hist-gasto-compras" style="font-size: 1.2rem; color: var(--err);">-0,00 €</strong>
                     </div>
                     <div style="background: color-mix(in srgb, var(--text) 7%, transparent); padding: 0.75rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Piezas en Reparaciones</div>
-                        <strong id="hist-gasto-piezas" style="font-size: 1.2rem; color: var(--text-light);">-0,00 €</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Piezas en Reparaciones (Imputado, no resta caja)</div>
+                        <strong id="hist-gasto-piezas" style="font-size: 1.2rem; color: var(--text-light);">0,00 €</strong>
                     </div>
                 </div>
 
@@ -764,7 +764,7 @@
                     method: 'PUT',
                     body: JSON.stringify({ precioHoraManoObra, margenBeneficioPorcentaje, fondoInicial })
                 });
-                mostrarAlerta(res.mensaje || 'Tarifas y tesorería recalculadas correctamente.', 'success', document.getElementById('alert-container'));
+                mostrarAlerta(res.mensaje || 'Tarifas actualizadas correctamente para operaciones abiertas y futuras (las facturas ya emitidas se mantienen inmutables).', 'success', document.getElementById('alert-container'));
                 await cargarConfiguracionTaller();
                 await cargarStats();
                 await cargarReparaciones();
@@ -836,7 +836,7 @@
                     if (subGastosEl) {
                         const comprasSt = Number(cuenta.gastosComprasStock || 0);
                         const piezasUs = Number(cuenta.gastosPiezasUsadas || 0);
-                        subGastosEl.textContent = `Compras stock: -${formatearEuros(comprasSt)} · Piezas reparaciones: -${formatearEuros(piezasUs)}`;
+                        subGastosEl.textContent = `Compras stock (caja): -${formatearEuros(comprasSt)} · Piezas en reparaciones (informativo): ${formatearEuros(piezasUs)}`;
                     }
                     document.getElementById('cuenta-ingresos').textContent = '+' + formatearEuros(cuenta.totalFacturado ?? cuenta.ingresosCobrados);
                     document.getElementById('cuenta-ingresos-sub').textContent = `Previsión en curso (sin facturar): ${formatearEuros(cuenta.ingresosEnCurso)}`;
@@ -1851,13 +1851,13 @@
                     : await apiFetch('/reparaciones/gastos').catch(() => []);
                 historialGastosCache = lista || [];
 
-                const totalGastos = Number(cuenta?.gastosMateriales ?? historialGastosCache.reduce((a, g) => a + Number(g.importe || 0), 0));
                 const totalCompras = Number(cuenta?.gastosComprasStock ?? historialGastosCache.filter(g => g.origen === 'COMPRA').reduce((a, g) => a + Number(g.importe || 0), 0));
+                const totalGastos = Number(cuenta?.gastosMateriales ?? totalCompras);
                 const totalPiezas = Number(cuenta?.gastosPiezasUsadas ?? historialGastosCache.filter(g => g.origen === 'USO_REPARACION').reduce((a, g) => a + Number(g.importe || 0), 0));
 
                 document.getElementById('hist-gasto-total').textContent = '-' + formatearEuros(totalGastos);
                 document.getElementById('hist-gasto-compras').textContent = '-' + formatearEuros(totalCompras);
-                document.getElementById('hist-gasto-piezas').textContent = '-' + formatearEuros(totalPiezas);
+                document.getElementById('hist-gasto-piezas').textContent = formatearEuros(totalPiezas);
 
                 filtrarHistorialGastosModal();
             } catch (error) {
@@ -1909,7 +1909,10 @@
                             <div style="font-size: 0.75rem; color: var(--text-muted);">${formatearEuros(g.precioUnitario)}/ud</div>
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
-                            <strong style="color: var(--err);">-${formatearEuros(g.importe)}</strong>
+                            ${esCompra
+                                ? `<strong style="color: var(--err);">-${formatearEuros(g.importe)}</strong>`
+                                : `<strong style="color: var(--text-light);">${formatearEuros(g.importe)}</strong><div style="font-size: 0.72rem; color: var(--text-muted);">Imputado (no resta caja)</div>`
+                            }
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
                             <button type="button" class="btn btn-danger" style="padding: 0.28rem 0.65rem; font-size: 0.78rem;" onclick="confirmarEliminarGastoTesoreria('${g.id}')">
