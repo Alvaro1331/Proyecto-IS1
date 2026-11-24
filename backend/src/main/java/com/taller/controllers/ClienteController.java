@@ -182,4 +182,71 @@ public class ClienteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * HU #61: Actualiza datos de contacto y fiscales de un cliente desde recepción/admin.
+     * PUT /api/clientes/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarCliente(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+            String telefono = body.get("telefono") != null ? body.get("telefono").toString() : null;
+            String email = body.get("email") != null ? body.get("email").toString() : null;
+            String dniCif = body.get("dniCif") != null ? body.get("dniCif").toString() : null;
+            String direccionFiscal = body.get("direccionFiscal") != null ? body.get("direccionFiscal").toString() : null;
+            return ResponseEntity.ok(clienteService.actualizarCliente(id, nombre, telefono, email, dniCif, direccionFiscal));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #61: Elimina un cliente si no tiene historial de reparaciones, citas ni vehículos asociados.
+     * DELETE /api/clientes/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarCliente(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(clienteService.eliminarCliente(id));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #67: Permite al cliente editar su propio perfil (contacto y datos fiscales).
+     * PUT /api/clientes/{id}/perfil
+     */
+    @PutMapping("/{id}/perfil")
+    public ResponseEntity<?> actualizarPerfil(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+            String email = body.get("email") != null ? body.get("email").toString() : null;
+            String telefono = body.get("telefono") != null ? body.get("telefono").toString() : null;
+            String dniCif = body.get("dniCif") != null ? body.get("dniCif").toString() : null;
+            String direccionFiscal = body.get("direccionFiscal") != null ? body.get("direccionFiscal").toString() : null;
+            return ResponseEntity.ok(clienteService.actualizarPerfilCliente(id, nombre, email, telefono, dniCif, direccionFiscal));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #67: Permite al cliente cambiar su contraseña verificando la contraseña actual.
+     * PUT /api/clientes/{id}/password
+     */
+    @PutMapping("/{id}/password")
+    public ResponseEntity<?> cambiarPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        try {
+            String passwordActual = body.get("passwordActual");
+            String nuevaPassword = body.get("nuevaPassword");
+            String confirmarPassword = body.get("confirmarPassword");
+            return ResponseEntity.ok(clienteService.cambiarPasswordCliente(id, passwordActual, nuevaPassword, confirmarPassword));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

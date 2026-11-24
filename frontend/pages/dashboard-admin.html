@@ -449,6 +449,7 @@
                                 <th>Stock Disponible</th>
                                 <th>Precio</th>
                                 <th>Modificar Stock (Unidades)</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-materiales"></tbody>
@@ -517,6 +518,7 @@
                                 <th>Email</th>
                                 <th>Teléfono</th>
                                 <th>Rol</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-usuarios"></tbody>
@@ -623,6 +625,93 @@
 
                 <div class="modal-actions" style="margin-top: 1rem;">
                     <button type="button" class="btn btn-secondary" onclick="cerrarModalHistorialGastos()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal HU #59: Editar empleado del taller -->
+        <div id="modal-editar-usuario" class="modal-overlay" onclick="if (event.target === this) cerrarModalEditarUsuario()">
+            <div class="modal card" style="max-width: 560px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="margin: 0; color: var(--primary);">Editar Empleado</h3>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditarUsuario()">✕</button>
+                </div>
+                <div id="edit-usu-alert"></div>
+                <form id="form-editar-usuario" onsubmit="guardarEdicionUsuario(event)">
+                    <input type="hidden" id="edit-usu-id">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-nombre">Nombre *</label>
+                            <input type="text" id="edit-usu-nombre" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-email">Correo electrónico *</label>
+                            <input type="email" id="edit-usu-email" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-telefono">Teléfono *</label>
+                            <input type="text" id="edit-usu-telefono" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-rol">Rol *</label>
+                            <select id="edit-usu-rol" required>
+                                <option value="ADMIN">ADMIN</option>
+                                <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                                <option value="MECANICO">MECANICO</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                            <label for="edit-usu-password">Nueva contraseña (opcional)</label>
+                            <input type="password" id="edit-usu-password" placeholder="Dejar vacío para mantener la actual (mín. 8 caracteres, letras y números)">
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarUsuario()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-edit-usuario">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal HU #60: Editar datos comerciales de material -->
+        <div id="modal-editar-material" class="modal-overlay" onclick="if (event.target === this) cerrarModalEditarMaterial()">
+            <div class="modal card" style="max-width: 520px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="margin: 0; color: var(--primary);">Editar Material del Inventario</h3>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditarMaterial()">✕</button>
+                </div>
+                <div id="edit-mat-alert"></div>
+                <form id="form-editar-material" onsubmit="guardarEdicionMaterial(event)">
+                    <input type="hidden" id="edit-mat-id">
+                    <div class="form-group">
+                        <label for="edit-mat-nombre">Nombre del Material *</label>
+                        <input type="text" id="edit-mat-nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-mat-desc">Descripción Técnica</label>
+                        <textarea id="edit-mat-desc" rows="2"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="edit-mat-precio">Precio Unitario (€) *</label>
+                        <input type="number" id="edit-mat-precio" step="0.01" min="0.01" required>
+                        <small style="color: var(--text-muted); font-size: 0.78rem;">Actualizar el precio o la descripción no genera gastos de compra de stock en Tesorería.</small>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarMaterial()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-edit-material">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación de baja (HU #59 / HU #60) -->
+        <div id="modal-confirmar-eliminacion-admin" class="modal-overlay" onclick="if (event.target === this) cerrarModalConfirmarEliminacionAdmin()">
+            <div class="modal card" style="max-width: 460px; width: 95%;">
+                <h3 id="confirm-elim-admin-titulo" style="margin: 0 0 0.5rem 0; color: var(--err);">Confirmar Eliminación</h3>
+                <p id="confirm-elim-admin-texto" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalConfirmarEliminacionAdmin()">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirmar-elim-admin" onclick="ejecutarEliminacionAdmin(this)">Eliminar</button>
                 </div>
             </div>
         </div>
@@ -1609,6 +1698,10 @@
             }
         });
 
+        let usuariosAdminCache = {};
+        let materialesAdminCache = {};
+        let eliminacionAdminPendiente = null;
+
         async function cargarUsuarios() {
             const rol = document.getElementById('filter-rol').value;
             const endpoint = rol ? `/usuarios/rol/${rol}` : '/usuarios';
@@ -1616,28 +1709,193 @@
                 const usuarios = await apiFetch(endpoint);
                 const tbody = document.getElementById('tabla-usuarios');
                 tbody.innerHTML = '';
+                usuariosAdminCache = {};
                 if (!usuarios || usuarios.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No se encontraron usuarios</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron usuarios</td></tr>';
                     return;
                 }
+                const adminActual = getUsuarioActual();
                 usuarios.forEach(u => {
+                    usuariosAdminCache[u.id] = u;
                     let rolBadgeClass = 'badge';
                     if (u.rol === 'ADMIN') rolBadgeClass = 'badge badge-entregada';
                     else if (u.rol === 'MECANICO') rolBadgeClass = 'badge badge-process';
                     else if (u.rol === 'RECEPCIONISTA') rolBadgeClass = 'badge badge-finished';
 
+                    const esMismoAdmin = adminActual && Number(adminActual.id) === Number(u.id);
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${u.id}</td>
-                            <td>${u.nombre}</td>
+                            <td>${u.nombre}${esMismoAdmin ? ' <span class="badge" style="font-size: 0.7rem;">Tú</span>' : ''}</td>
                             <td>${u.email}</td>
                             <td>${u.telefono || '-'}</td>
                             <td><span class="${rolBadgeClass}">${u.rol}</span></td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;" onclick="abrirModalEditarUsuario(${u.id})">Editar</button>
+                                    <button type="button" class="btn btn-danger" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;${esMismoAdmin ? ' opacity: 0.5; cursor: not-allowed;' : ''}" ${esMismoAdmin ? 'disabled title="No puedes eliminar tu propia cuenta"' : `onclick="solicitarEliminarUsuario(${u.id})"`}>Eliminar</button>
+                                </div>
+                            </td>
                         </tr>
                     `;
                 });
             } catch (error) {
                 console.error(error);
+            }
+        }
+
+        function abrirModalEditarUsuario(id) {
+            const u = usuariosAdminCache[id];
+            if (!u) return;
+            document.getElementById('edit-usu-alert').innerHTML = '';
+            document.getElementById('edit-usu-id').value = u.id;
+            document.getElementById('edit-usu-nombre').value = u.nombre || '';
+            document.getElementById('edit-usu-email').value = u.email || '';
+            document.getElementById('edit-usu-telefono').value = u.telefono || '';
+            document.getElementById('edit-usu-rol').value = u.rol || 'MECANICO';
+            document.getElementById('edit-usu-password').value = '';
+            document.getElementById('modal-editar-usuario').style.display = 'flex';
+        }
+
+        function cerrarModalEditarUsuario() {
+            document.getElementById('modal-editar-usuario').style.display = 'none';
+        }
+
+        async function guardarEdicionUsuario(e) {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-usu-id').value);
+            const btn = document.getElementById('btn-guardar-edit-usuario');
+            const alertBox = document.getElementById('edit-usu-alert');
+            const adminActual = getUsuarioActual();
+
+            const payload = {
+                nombre: document.getElementById('edit-usu-nombre').value.trim(),
+                email: document.getElementById('edit-usu-email').value.trim(),
+                telefono: document.getElementById('edit-usu-telefono').value.trim(),
+                rol: document.getElementById('edit-usu-rol').value,
+                password: document.getElementById('edit-usu-password').value,
+                adminActualId: adminActual ? adminActual.id : null
+            };
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch(`/usuarios/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                cerrarModalEditarUsuario();
+                if (adminActual && Number(adminActual.id) === id) {
+                    const actualizado = { ...adminActual, nombre: res.nombre, email: res.email, telefono: res.telefono, rol: res.rol };
+                    sessionStorage.setItem('usuario', JSON.stringify(actualizado));
+                    pintarCabeceraUsuario(actualizado);
+                }
+                mostrarAlerta(res.mensaje || 'Empleado actualizado correctamente.', 'success', document.getElementById('alert-container'));
+                await Promise.all([cargarUsuarios(), cargarStats(), cargarReparaciones()]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        function solicitarEliminarUsuario(id) {
+            const u = usuariosAdminCache[id];
+            if (!u) return;
+            eliminacionAdminPendiente = { tipo: 'USUARIO', id, nombre: u.nombre };
+            document.getElementById('confirm-elim-admin-titulo').textContent = 'Confirmar Baja de Empleado';
+            document.getElementById('confirm-elim-admin-texto').innerHTML =
+                `¿Seguro que deseas dar de baja a <strong>${u.nombre}</strong> (${u.rol})? Si es mecánico con reparaciones asignadas, pasarán automáticamente a <strong>Sin asignar</strong>.`;
+            document.getElementById('modal-confirmar-eliminacion-admin').style.display = 'flex';
+        }
+
+        function abrirModalEditarMaterial(id) {
+            const m = materialesAdminCache[id];
+            if (!m) return;
+            document.getElementById('edit-mat-alert').innerHTML = '';
+            document.getElementById('edit-mat-id').value = m.id;
+            document.getElementById('edit-mat-nombre').value = m.nombre || '';
+            document.getElementById('edit-mat-desc').value = m.descripcion || '';
+            document.getElementById('edit-mat-precio').value = Number(m.precioUnitario || 0).toFixed(2);
+            document.getElementById('modal-editar-material').style.display = 'flex';
+        }
+
+        function cerrarModalEditarMaterial() {
+            document.getElementById('modal-editar-material').style.display = 'none';
+        }
+
+        async function guardarEdicionMaterial(e) {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-mat-id').value);
+            const btn = document.getElementById('btn-guardar-edit-material');
+            const alertBox = document.getElementById('edit-mat-alert');
+            const nombre = document.getElementById('edit-mat-nombre').value.trim();
+            const descripcion = document.getElementById('edit-mat-desc').value.trim();
+            const precioUnitario = parseFloat(document.getElementById('edit-mat-precio').value);
+
+            if (!nombre) {
+                mostrarAlerta('El nombre del material no puede estar vacío.', 'error', alertBox);
+                return;
+            }
+            if (isNaN(precioUnitario) || precioUnitario <= 0) {
+                mostrarAlerta('El precio unitario debe ser mayor que 0,00 €.', 'error', alertBox);
+                return;
+            }
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch(`/materiales/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ nombre, descripcion, precioUnitario })
+                });
+                cerrarModalEditarMaterial();
+                mostrarAlerta(res.mensaje || 'Material actualizado correctamente.', 'success', document.getElementById('alert-container'));
+                await Promise.all([cargarMateriales(), cargarStats()]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        function solicitarEliminarMaterial(id) {
+            const m = materialesAdminCache[id];
+            if (!m) return;
+            eliminacionAdminPendiente = { tipo: 'MATERIAL', id, nombre: m.nombre };
+            document.getElementById('confirm-elim-admin-titulo').textContent = 'Confirmar Baja de Material';
+            document.getElementById('confirm-elim-admin-texto').innerHTML =
+                `¿Seguro que deseas eliminar <strong>${m.nombre}</strong> del inventario? Si esta pieza ya fue consumida en reparaciones históricas, el sistema bloqueará el borrado para proteger el historial.`;
+            document.getElementById('modal-confirmar-eliminacion-admin').style.display = 'flex';
+        }
+
+        function cerrarModalConfirmarEliminacionAdmin() {
+            document.getElementById('modal-confirmar-eliminacion-admin').style.display = 'none';
+            eliminacionAdminPendiente = null;
+        }
+
+        async function ejecutarEliminacionAdmin(btn) {
+            if (!eliminacionAdminPendiente) return;
+            const { tipo, id } = eliminacionAdminPendiente;
+            toggleLoading(btn, true);
+            try {
+                if (tipo === 'USUARIO') {
+                    const adminActual = getUsuarioActual();
+                    const qs = adminActual && adminActual.id ? `?adminActualId=${adminActual.id}` : '';
+                    const res = await apiFetch(`/usuarios/${id}${qs}`, { method: 'DELETE' });
+                    cerrarModalConfirmarEliminacionAdmin();
+                    mostrarAlerta(res.mensaje || 'Empleado eliminado correctamente.', 'success', document.getElementById('alert-container'));
+                    await Promise.all([cargarUsuarios(), cargarStats(), cargarReparaciones()]);
+                } else if (tipo === 'MATERIAL') {
+                    const res = await apiFetch(`/materiales/${id}`, { method: 'DELETE' });
+                    cerrarModalConfirmarEliminacionAdmin();
+                    mostrarAlerta(res.mensaje || 'Material eliminado correctamente.', 'success', document.getElementById('alert-container'));
+                    await Promise.all([cargarMateriales(), cargarStats()]);
+                }
+            } catch (error) {
+                cerrarModalConfirmarEliminacionAdmin();
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+            } finally {
+                toggleLoading(btn, false);
             }
         }
 
@@ -1684,13 +1942,15 @@
                 const materiales = await apiFetch(endpoint);
                 const tbody = document.getElementById('tabla-materiales');
                 tbody.innerHTML = '';
+                materialesAdminCache = {};
 
                 if (!materiales || materiales.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron materiales</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron materiales</td></tr>';
                     return;
                 }
 
                 materiales.forEach(m => {
+                    materialesAdminCache[m.id] = m;
                     const stockActual = m.stockDisponible ?? m.stock ?? 0;
                     const precioUnit = Number(m.precioUnitario || 0);
                     const isBajo = stockActual < 5;
@@ -1712,6 +1972,12 @@
                                     <input type="number" id="stock-${m.id}" value="${stockActual}" min="0" style="width: 75px; padding: 0.3rem; text-align: center; font-weight: bold;">
                                     <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.55rem;" onclick="ajustarInputStock(${m.id}, 1)">+</button>
                                     <button type="button" class="btn btn-primary" style="padding: 0.3rem 0.75rem;" onclick="actualizarStock(${m.id}, '${m.nombre.replace(/'/g, "\\'")}', ${stockActual}, ${precioUnit})">Guardar Stock</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;" onclick="abrirModalEditarMaterial(${m.id})">Editar</button>
+                                    <button type="button" class="btn btn-danger" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;" onclick="solicitarEliminarMaterial(${m.id})">Eliminar</button>
                                 </div>
                             </td>
                         </tr>

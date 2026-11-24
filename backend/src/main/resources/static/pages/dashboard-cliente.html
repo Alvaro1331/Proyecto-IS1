@@ -70,6 +70,9 @@
             <button type="button" class="tab-btn" id="btn-cli-notifs" onclick="mostrarSeccionCliente('sec-notificaciones', this)">
                 Avisos y Notificaciones <span id="badge-notif-tab" class="badge" style="display: none; background: #dc2626; color: #fff; margin-left: 0.35rem; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px;">0</span>
             </button>
+            <button type="button" class="tab-btn" id="btn-cli-perfil" onclick="mostrarSeccionCliente('sec-mi-perfil', this)">
+                Mi Perfil / Datos Fiscales
+            </button>
         </div>
 
         <!-- SECCIÓN 1: REPARACIONES, PRESUPUESTOS Y FACTURAS -->
@@ -221,6 +224,73 @@
             </div>
         </div>
 
+        <!-- SECCIÓN 4: MI PERFIL, CONTRASEÑA Y DATOS FISCALES (HU #67) -->
+        <div id="sec-mi-perfil" class="tab-content">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+                <!-- Datos de Contacto y Fiscales -->
+                <div class="card">
+                    <h2 style="margin: 0 0 0.35rem 0;">Datos Personales y Datos Fiscales</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.15rem;">
+                        Mantén al día tu información de contacto y deja preparados tu DNI/CIF y dirección fiscal para agilizar la emisión de tus facturas.
+                    </p>
+                    <div id="alerta-perfil-cliente"></div>
+                    <form id="form-perfil-cliente" onsubmit="guardarPerfilCliente(event)">
+                        <div class="form-group">
+                            <label for="perfil-nombre">Nombre completo *</label>
+                            <input type="text" id="perfil-nombre" required placeholder="Tu nombre y apellidos">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                            <div class="form-group">
+                                <label for="perfil-email">Correo electrónico *</label>
+                                <input type="email" id="perfil-email" required placeholder="tu@correo.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="perfil-telefono">Teléfono *</label>
+                                <input type="text" id="perfil-telefono" required placeholder="Ej. 611223344">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-dni">DNI / CIF Fiscal</label>
+                            <input type="text" id="perfil-dni" placeholder="Ej. 12345678Z o B12345678" style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-direccion">Dirección Fiscal Completa</label>
+                            <input type="text" id="perfil-direccion" placeholder="Ej. Calle Alcalá 45, 28014 Madrid">
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-perfil-cliente" style="width: 100%;">
+                            Guardar Datos de Perfil y Facturación
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Cambio Seguro de Contraseña -->
+                <div class="card">
+                    <h2 style="margin: 0 0 0.35rem 0;">Seguridad y Contraseña</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.15rem;">
+                        Para cambiar tu contraseña debes verificar tu clave actual. La nueva clave debe tener al menos 8 caracteres combinando letras y números.
+                    </p>
+                    <div id="alerta-password-cliente"></div>
+                    <form id="form-password-cliente" onsubmit="cambiarPasswordPerfilCliente(event)">
+                        <div class="form-group">
+                            <label for="perfil-pass-actual">Contraseña actual *</label>
+                            <input type="password" id="perfil-pass-actual" required placeholder="Introduce tu contraseña actual">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-pass-nueva">Nueva contraseña *</label>
+                            <input type="password" id="perfil-pass-nueva" required minlength="8" placeholder="Mín. 8 caracteres (letras y números)">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-pass-confirmar">Confirmar nueva contraseña *</label>
+                            <input type="password" id="perfil-pass-confirmar" required minlength="8" placeholder="Repite la nueva contraseña">
+                        </div>
+                        <button type="submit" class="btn btn-secondary" id="btn-cambiar-password-cliente" style="width: 100%;">
+                            Actualizar Contraseña
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Emergente de Confirmación de Presupuesto con Contraseña (Historia de Usuario 3) -->
         <div id="modal-confirmar-presupuesto-cliente" class="modal-overlay">
             <div class="modal card" style="max-width: 480px; width: 95%;">
@@ -296,6 +366,103 @@
                 cargarMisCitasCliente();
             } else if (secId === 'sec-notificaciones') {
                 cargarNotificacionesCliente();
+            } else if (secId === 'sec-mi-perfil') {
+                cargarPerfilCliente();
+            }
+        }
+
+        async function cargarPerfilCliente() {
+            const user = getUsuarioActual();
+            if (!user || !user.id) return;
+            try {
+                const cli = await apiFetch(`/clientes/${user.id}`);
+                document.getElementById('perfil-nombre').value = cli.nombre || user.nombre || '';
+                document.getElementById('perfil-email').value = cli.email || user.email || '';
+                document.getElementById('perfil-telefono').value = cli.telefono || user.telefono || '';
+                document.getElementById('perfil-dni').value = cli.dniCif || '';
+                document.getElementById('perfil-direccion').value = cli.direccionFiscal || '';
+            } catch (error) {
+                document.getElementById('perfil-nombre').value = user.nombre || '';
+                document.getElementById('perfil-email').value = user.email || '';
+                document.getElementById('perfil-telefono').value = user.telefono || '';
+            }
+        }
+
+        async function guardarPerfilCliente(e) {
+            e.preventDefault();
+            const user = getUsuarioActual();
+            if (!user || !user.id) return;
+            const alertBox = document.getElementById('alerta-perfil-cliente');
+            const btn = document.getElementById('btn-guardar-perfil-cliente');
+
+            const payload = {
+                nombre: document.getElementById('perfil-nombre').value.trim(),
+                email: document.getElementById('perfil-email').value.trim(),
+                telefono: document.getElementById('perfil-telefono').value.trim(),
+                dniCif: document.getElementById('perfil-dni').value.trim().toUpperCase(),
+                direccionFiscal: document.getElementById('perfil-direccion').value.trim()
+            };
+
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+            try {
+                const res = await apiFetch(`/clientes/${user.id}/perfil`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                const sesionActualizada = {
+                    ...user,
+                    nombre: res.nombre,
+                    email: res.email,
+                    telefono: res.telefono,
+                    dniCif: res.dniCif,
+                    direccionFiscal: res.direccionFiscal
+                };
+                sessionStorage.setItem('usuario', JSON.stringify(sesionActualizada));
+                pintarCabeceraUsuario(sesionActualizada, 'CLIENTE');
+                document.getElementById('profile-email').textContent = sesionActualizada.email || 'Sin correo registrado';
+                document.getElementById('profile-phone').textContent = sesionActualizada.telefono || 'Sin teléfono';
+                mostrarAlerta(res.mensaje || 'Perfil y datos fiscales actualizados correctamente.', 'success', alertBox);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
+            }
+        }
+
+        async function cambiarPasswordPerfilCliente(e) {
+            e.preventDefault();
+            const user = getUsuarioActual();
+            if (!user || !user.id) return;
+            const alertBox = document.getElementById('alerta-password-cliente');
+            const btn = document.getElementById('btn-cambiar-password-cliente');
+
+            const passwordActual = document.getElementById('perfil-pass-actual').value;
+            const nuevaPassword = document.getElementById('perfil-pass-nueva').value;
+            const confirmarPassword = document.getElementById('perfil-pass-confirmar').value;
+
+            if (nuevaPassword !== confirmarPassword) {
+                mostrarAlerta('La nueva contraseña y su confirmación no coinciden.', 'error', alertBox);
+                return;
+            }
+
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Actualizando...';
+            try {
+                const res = await apiFetch(`/clientes/${user.id}/password`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ passwordActual, nuevaPassword, confirmarPassword })
+                });
+                e.target.reset();
+                mostrarAlerta(res.mensaje || 'Contraseña actualizada correctamente.', 'success', alertBox);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
             }
         }
 

@@ -114,4 +114,39 @@ public class MaterialController {
             @RequestParam(defaultValue = "5") Integer umbral) {
         return ResponseEntity.ok(materialService.obtenerStockBajo(umbral));
     }
+
+    /**
+     * HU #60: Actualiza nombre, descripción y precio unitario de un material sin tocar stock ni tesorería.
+     * PUT /api/materiales/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarMaterial(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+            String descripcion = body.get("descripcion") != null ? body.get("descripcion").toString() : "";
+            Double precioUnitario = body.get("precioUnitario") != null && !body.get("precioUnitario").toString().isBlank()
+                    ? Double.valueOf(body.get("precioUnitario").toString()) : null;
+            MaterialResponseDTO respuesta = materialService.actualizarMaterial(id, nombre, descripcion, precioUnitario);
+            return ResponseEntity.ok(respuesta);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El precio unitario debe ser un número válido."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #60: Elimina un material del catálogo si no tiene usos en reparaciones históricas.
+     * DELETE /api/materiales/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarMaterial(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(materialService.eliminarMaterial(id));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

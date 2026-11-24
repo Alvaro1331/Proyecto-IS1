@@ -2,8 +2,10 @@ package com.taller.services;
 
 import com.taller.dtos.ReparacionResponseDTO;
 import com.taller.models.*;
+import com.taller.repositories.CitaPreviaRepository;
 import com.taller.repositories.ClienteRepository;
 import com.taller.repositories.ReparacionRepository;
+import com.taller.repositories.VehiculoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,6 +37,12 @@ public class ClienteService {
 
     @Autowired
     private ReparacionService reparacionService;
+
+    @Autowired(required = false)
+    private VehiculoRepository vehiculoRepository;
+
+    @Autowired(required = false)
+    private CitaPreviaRepository citaPreviaRepository;
 
     @Autowired
     private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
@@ -234,5 +243,197 @@ public class ClienteService {
             "telefono", c.getTelefono(),
             "rol", "CLIENTE"
         );
+    }
+
+    /**
+     * HU #61: Actualiza los datos de contacto y fiscales de la ficha de un cliente
+     * desde recepción o administración, garantizando unicidad de teléfono y correo.
+     */
+    @Transactional
+    public Map<String, Object> actualizarCliente(Long id, String nombre, String telefono,
+                                                 String email, String dniCif, String direccionFiscal) {
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente con ID: " + id));
+
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre del cliente no puede estar vacío.");
+        }
+        if (telefono == null || telefono.trim().isEmpty()) {
+            throw new IllegalArgumentException("El teléfono del cliente no puede estar vacío.");
+        }
+
+        String telLimpio = telefono.trim();
+        Optional<Cliente> otroConTel = clienteRepository.findByTelefono(telLimpio);
+        if (otroConTel.isPresent() && !otroConTel.get().getId().equals(id)) {
+            throw new IllegalArgumentException("Ya existe otro cliente registrado con el teléfono: " + telLimpio);
+        }
+
+        if (email != null && !email.trim().isEmpty()) {
+            String emailLimpio = email.trim().toLowerCase();
+            if (!emailLimpio.contains("@") || emailLimpio.contains(" ")) {
+                throw new IllegalArgumentException("El formato del correo electrónico no es válido.");
+            }
+            Optional<Cliente> otroConEmail = clienteRepository.findByEmail(emailLimpio);
+            if (otroConEmail.isPresent() && !otroConEmail.get().getId().equals(id)) {
+                throw new IllegalArgumentException("Ya existe otro cliente registrado con el correo: " + emailLimpio);
+            }
+            cliente.setEmail(emailLimpio);
+        } else if (email != null && !cliente.tieneCuenta()) {
+            cliente.setEmail(null);
+        }
+
+        cliente.setNombre(nombre.trim());
+        cliente.setTelefono(telLimpio);
+        if (dniCif != null) {
+            cliente.setDniCif(dniCif.trim().isEmpty() ? null : dniCif.trim().toUpperCase());
+        }
+        if (direccionFiscal != null) {
+            cliente.setDireccionFiscal(direccionFiscal.trim().isEmpty() ? null : direccionFiscal.trim());
+        }
+
+        clienteRepository.save(cliente);
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("id", cliente.getId());
+        res.put("nombre", cliente.getNombre());
+        res.put("telefono", cliente.getTelefono());
+        res.put("email", cliente.getEmail() != null ? cliente.getEmail() : "");
+        res.put("dniCif", cliente.getDniCif() != null ? cliente.getDniCif() : "");
+        res.put("direccionFiscal", cliente.getDireccionFiscal() != null ? cliente.getDireccionFiscal() : "");
+        res.put("mensaje", "Ficha del cliente actualizada correctamente.");
+        return res;
+    }
+
+    /**
+     * HU #61: Elimina una ficha de cliente siempre que no tenga historial de reparaciones,
+     * citas previas ni vehículos registrados en el sistema.
+     */
+    @Transactional
+    public Map<String, Object> eliminarCliente(Long id) {
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente con ID: " + id));
+
+        if (reparacionRepository != null) {
+            List<Reparacion> reps = reparacionRepository.findByVehiculoClienteId(id);
+            if (reps != null && !reps.isEmpty()) {
+                throw new IllegalStateException("No se puede eliminar al cliente '" + cliente.getNombre()
+                        + "' porque tiene " + reps.size() + " orden(es) de reparación asociadas en el historial del taller.");
+            }
+        }
+        if (cliente.getReparacionesVinculadas() != null && !cliente.getReparacionesVinculadas().isEmpty()) {
+            throw new IllegalStateException("No se puede eliminar al cliente '" + cliente.getNombre()
+                    + "' porque tiene reparaciones vinculadas en su historial.");
+        }
+        if (citaPreviaRepository != null) {
+            List<CitaPrevia> citas = citaPreviaRepository.findByClienteIdOrderByFechaDescFranjaHorariaAsc(id);
+            if (citas != null && !citas.isEmpty()) {
+                throw new IllegalStateException("No se puede eliminar al cliente '" + cliente.getNombre()
+                        + "' porque tiene " + citas.size() + " cita(s) previa(s) registrada(s) en el sistema.");
+            }
+        }
+        if (vehiculoRepository != null) {
+            List<Vehiculo> vehiculos = vehiculoRepository.findByClienteId(id);
+            if (vehiculos != null && !vehiculos.isEmpty()) {
+                throw new IllegalStateException("No se puede eliminar al cliente '" + cliente.getNombre()
+                        + "' porque tiene " + vehiculos.size() + " vehículo(s) asociado(s). Elimina primero sus vehículos.");
+            }
+        }
+
+        clienteRepository.delete(cliente);
+        return Map.of(
+                "id", id,
+                "mensaje", "Cliente '" + cliente.getNombre() + "' eliminado correctamente."
+        );
+    }
+
+    /**
+     * HU #67: Permite al propio cliente actualizar sus datos de contacto (nombre, email, teléfono)
+     * y sus datos fiscales (dniCif en mayúsculas y direccionFiscal) desde su área personal.
+     */
+    @Transactional
+    public Map<String, Object> actualizarPerfilCliente(Long id, String nombre, String email,
+                                                       String telefono, String dniCif,
+                                                       String direccionFiscal) {
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente con ID: " + id));
+
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre no puede estar vacío.");
+        }
+        if (telefono == null || telefono.trim().isEmpty()) {
+            throw new IllegalArgumentException("El teléfono no puede estar vacío.");
+        }
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("El correo electrónico es obligatorio.");
+        }
+
+        String emailLimpio = email.trim().toLowerCase();
+        int at = emailLimpio.indexOf('@');
+        if (emailLimpio.contains(" ") || at <= 0 || at != emailLimpio.lastIndexOf('@')
+                || emailLimpio.substring(at + 1).indexOf('.') <= 0 || emailLimpio.endsWith(".")) {
+            throw new IllegalArgumentException("El formato del correo electrónico no es válido.");
+        }
+
+        String telLimpio = telefono.trim();
+        Optional<Cliente> otroConEmail = clienteRepository.findByEmail(emailLimpio);
+        if (otroConEmail.isPresent() && !otroConEmail.get().getId().equals(id)) {
+            throw new IllegalArgumentException("Ya existe otro cliente registrado con el correo: " + emailLimpio);
+        }
+
+        Optional<Cliente> otroConTel = clienteRepository.findByTelefono(telLimpio);
+        if (otroConTel.isPresent() && !otroConTel.get().getId().equals(id)) {
+            throw new IllegalArgumentException("Ya existe otro cliente registrado con el teléfono: " + telLimpio);
+        }
+
+        cliente.setNombre(nombre.trim());
+        cliente.setEmail(emailLimpio);
+        cliente.setTelefono(telLimpio);
+        cliente.setDniCif(dniCif != null && !dniCif.trim().isEmpty() ? dniCif.trim().toUpperCase() : null);
+        cliente.setDireccionFiscal(direccionFiscal != null && !direccionFiscal.trim().isEmpty() ? direccionFiscal.trim() : null);
+        clienteRepository.save(cliente);
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("id", cliente.getId());
+        res.put("nombre", cliente.getNombre());
+        res.put("email", cliente.getEmail());
+        res.put("telefono", cliente.getTelefono());
+        res.put("dniCif", cliente.getDniCif() != null ? cliente.getDniCif() : "");
+        res.put("direccionFiscal", cliente.getDireccionFiscal() != null ? cliente.getDireccionFiscal() : "");
+        res.put("rol", "CLIENTE");
+        res.put("mensaje", "Perfil y datos fiscales actualizados correctamente.");
+        return res;
+    }
+
+    /**
+     * HU #67: Permite al cliente cambiar su contraseña de acceso verificando su contraseña actual,
+     * validando la política mínima de seguridad (HU #64) y almacenando el nuevo hash BCrypt.
+     */
+    @Transactional
+    public Map<String, Object> cambiarPasswordCliente(Long id, String passwordActual,
+                                                      String nuevaPassword, String confirmarPassword) {
+        Cliente cliente = clienteRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el cliente con ID: " + id));
+
+        if (!cliente.tieneCuenta()) {
+            throw new IllegalArgumentException("Este cliente no dispone de cuenta web activa.");
+        }
+        if (passwordActual == null || passwordActual.isBlank()) {
+            throw new IllegalArgumentException("Debes introducir tu contraseña actual.");
+        }
+        if (!passwordSecurityService.coincide(passwordActual, cliente.getPassword())) {
+            throw new IllegalArgumentException("La contraseña actual introducida es incorrecta.");
+        }
+        if (nuevaPassword == null || nuevaPassword.isBlank()) {
+            throw new IllegalArgumentException("Debes introducir la nueva contraseña.");
+        }
+        if (!nuevaPassword.equals(confirmarPassword)) {
+            throw new IllegalArgumentException("La nueva contraseña y su confirmación no coinciden.");
+        }
+
+        passwordSecurityService.validarFortaleza(nuevaPassword);
+        cliente.setPassword(passwordSecurityService.hashear(nuevaPassword));
+        clienteRepository.save(cliente);
+
+        return Map.of("mensaje", "Contraseña actualizada correctamente.");
     }
 }

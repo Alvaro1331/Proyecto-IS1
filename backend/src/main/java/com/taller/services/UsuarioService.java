@@ -2,12 +2,17 @@ package com.taller.services;
 
 import com.taller.dtos.UsuarioRequestDTO;
 import com.taller.dtos.UsuarioResponseDTO;
+import com.taller.models.Reparacion;
 import com.taller.models.Rol;
 import com.taller.models.Usuario;
+import com.taller.repositories.ReparacionRepository;
 import com.taller.repositories.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -15,6 +20,9 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired(required = false)
+    private ReparacionRepository reparacionRepository;
 
     @Autowired
     private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
@@ -105,6 +113,117 @@ public class UsuarioService {
         }
 
         return convertirAResponseDTO(usuario, "Login correcto. Bienvenido, " + usuario.getNombre() + ".");
+    }
+
+    /**
+     * HU #59: Modifica los datos personales, rol y (opcionalmente) contraseña de un empleado.
+     */
+    @Transactional
+    public UsuarioResponseDTO actualizarUsuario(Long id, String nombre, String email,
+                                                String telefono, String rolStr,
+                                                String nuevaPassword, Long adminActualId) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario con ID: " + id));
+
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre del empleado no puede estar vacío.");
+        }
+        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
+            throw new IllegalArgumentException("Debes introducir un correo electrónico válido.");
+        }
+        if (telefono == null || telefono.trim().isEmpty()) {
+            throw new IllegalArgumentException("El teléfono del empleado no puede estar vacío.");
+        }
+
+        String emailNorm = email.trim().toLowerCase();
+        Optional<Usuario> otroConEmail = usuarioRepository.findByEmail(emailNorm);
+        if (otroConEmail.isPresent() && !otroConEmail.get().getId().equals(id)) {
+            throw new IllegalArgumentException("Ya existe otro empleado registrado con el correo: " + emailNorm);
+        }
+
+        Rol nuevoRol;
+        try {
+            nuevoRol = Rol.valueOf(rolStr.trim().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Rol no válido: " + rolStr
+                    + ". Los roles válidos son: ADMIN, RECEPCIONISTA, MECANICO.");
+        }
+
+        if (adminActualId != null && adminActualId.equals(id) && nuevoRol != Rol.ADMIN) {
+            throw new IllegalStateException("No puedes quitarte a ti mismo el rol de ADMIN mientras tienes la sesión iniciada.");
+        }
+
+        if (usuario.getRol() == Rol.ADMIN && nuevoRol != Rol.ADMIN) {
+            List<Usuario> admins = usuarioRepository.findByRol(Rol.ADMIN);
+            if (admins != null && admins.size() <= 1) {
+                throw new IllegalStateException("No se puede cambiar el rol del único administrador del taller.");
+            }
+        }
+
+        usuario.setNombre(nombre.trim());
+        usuario.setEmail(emailNorm);
+        usuario.setTelefono(telefono.trim());
+        usuario.setRol(nuevoRol);
+
+        if (nuevaPassword != null && !nuevaPassword.isBlank()) {
+            passwordSecurityService.validarFortaleza(nuevaPassword);
+            usuario.setPassword(passwordSecurityService.hashear(nuevaPassword));
+        }
+
+        usuarioRepository.save(usuario);
+        return convertirAResponseDTO(usuario, "Datos del empleado actualizados correctamente.");
+    }
+
+    /**
+     * HU #59: Da de baja a un empleado del taller, protegiendo contra autoborrado del admin
+     * y desasignando de forma segura cualquier reparación en la que figure como mecánico.
+     */
+    @Transactional
+    public Map<String, Object> eliminarUsuario(Long id, Long adminActualId) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario con ID: " + id));
+
+        if (adminActualId != null && adminActualId.equals(id)) {
+            throw new IllegalStateException("No puedes eliminar tu propia cuenta de administrador mientras tienes la sesión iniciada.");
+        }
+
+        if (usuario.getRol() == Rol.ADMIN) {
+            List<Usuario> admins = usuarioRepository.findByRol(Rol.ADMIN);
+            if (admins != null && admins.size() <= 1) {
+                throw new IllegalStateException("No se puede eliminar al único administrador del taller.");
+            }
+        }
+
+        int reparacionesDesasignadas = 0;
+        if (reparacionRepository != null) {
+            List<Reparacion> comoRecep = reparacionRepository.findByRecepcionistaId(id);
+            if (comoRecep != null && !comoRecep.isEmpty()) {
+                throw new IllegalStateException("No se puede eliminar a " + usuario.getNombre()
+                        + " porque figura como recepcionista en " + comoRecep.size()
+                        + " reparación(es) del historial.");
+            }
+
+            List<Reparacion> comoMecanico = reparacionRepository.findByMecanicoId(id);
+            if (comoMecanico != null && !comoMecanico.isEmpty()) {
+                for (Reparacion rep : comoMecanico) {
+                    rep.setMecanico(null);
+                    reparacionRepository.save(rep);
+                    reparacionesDesasignadas++;
+                }
+            }
+        }
+
+        usuarioRepository.delete(usuario);
+
+        String msg = "Empleado " + usuario.getNombre() + " eliminado correctamente.";
+        if (reparacionesDesasignadas > 0) {
+            msg += " Se han desasignado " + reparacionesDesasignadas + " reparación(es) (quedaron como 'Sin asignar').";
+        }
+        return Map.of(
+                "id", id,
+                "reparacionesDesasignadas", reparacionesDesasignadas,
+                "mensaje", msg
+        );
     }
 
     // --- Método auxiliar para convertir entidad a DTO ---

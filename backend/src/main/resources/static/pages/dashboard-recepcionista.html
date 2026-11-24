@@ -245,6 +245,9 @@
                                 <th>ID</th>
                                 <th>Nombre</th>
                                 <th>Teléfono</th>
+                                <th>Email</th>
+                                <th>DNI / CIF</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -269,6 +272,7 @@
                                 <th>Cliente</th>
                                 <th>Mecánico</th>
                                 <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -368,6 +372,136 @@
                     <button type="button" class="btn btn-primary" id="btn-confirmar-emision-factura" onclick="confirmarEmisionFacturaFiscal(this)">
                         Confirmar Emisión y Generar PDF
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal HU #58: Recepcionar cita previa y abrir orden de reparación -->
+        <div id="modal-recepcionar-cita" class="modal-overlay" onclick="if (event.target === this) cerrarModalRecepcionarCita()">
+            <div class="modal card" style="max-width: 580px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+                    <div>
+                        <h3 style="margin: 0; color: var(--primary);">Recepcionar Vehículo y Abrir Reparación</h3>
+                        <p id="recep-cita-subtitulo" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);"></p>
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalRecepcionarCita()">✕</button>
+                </div>
+
+                <div id="recep-cita-alert"></div>
+
+                <div style="background: color-mix(in srgb, var(--text) 8%, transparent); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem; margin-bottom: 1rem; font-size: 0.86rem;">
+                    <div id="recep-cita-resumen"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="recep-cita-descripcion" style="font-size: 0.84rem;">Descripción de la Avería (autocompletada desde la cita) *</label>
+                    <textarea id="recep-cita-descripcion" rows="3" placeholder="Motivo y observaciones de la cita..."></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="recep-cita-estimacion" style="font-size: 0.84rem;">Estimación Inicial Orientativa (€) *</label>
+                        <input type="number" id="recep-cita-estimacion" min="1" step="0.01" value="150">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="recep-cita-dias" style="font-size: 0.84rem;">Días Estimados de Trabajo *</label>
+                        <input type="number" id="recep-cita-dias" min="1" step="1" value="3">
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 1.1rem;">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalRecepcionarCita()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btn-confirmar-recepcion-cita" onclick="confirmarRecepcionCita(this)">
+                        Confirmar Recepción y Abrir Reparación
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal HU #61: Editar ficha de cliente -->
+        <div id="modal-editar-cliente-recep" class="modal-overlay" onclick="if (event.target === this) cerrarModalEditarClienteRecep()">
+            <div class="modal card" style="max-width: 560px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="margin: 0; color: var(--primary);">Editar Ficha de Cliente</h3>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditarClienteRecep()">✕</button>
+                </div>
+                <div id="edit-cli-alert"></div>
+                <form id="form-editar-cliente-recep" onsubmit="guardarEdicionClienteRecep(event)">
+                    <input type="hidden" id="edit-cli-id">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-cli-nombre">Nombre *</label>
+                            <input type="text" id="edit-cli-nombre" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-cli-telefono">Teléfono *</label>
+                            <input type="text" id="edit-cli-telefono" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-cli-email">Correo electrónico</label>
+                            <input type="email" id="edit-cli-email" placeholder="cliente@ejemplo.com">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-cli-dni">DNI / CIF Fiscal</label>
+                            <input type="text" id="edit-cli-dni" placeholder="Ej. 12345678Z" style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                            <label for="edit-cli-direccion">Dirección Fiscal</label>
+                            <input type="text" id="edit-cli-direccion" placeholder="Ej. Calle Alcalá 45, 28014 Madrid">
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarClienteRecep()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-edit-cliente">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal HU #61: Editar ficha de vehículo -->
+        <div id="modal-editar-vehiculo-recep" class="modal-overlay" onclick="if (event.target === this) cerrarModalEditarVehiculoRecep()">
+            <div class="modal card" style="max-width: 520px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="margin: 0; color: var(--primary);">Editar Ficha de Vehículo</h3>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditarVehiculoRecep()">✕</button>
+                </div>
+                <div id="edit-veh-alert"></div>
+                <form id="form-editar-vehiculo-recep" onsubmit="guardarEdicionVehiculoRecep(event)">
+                    <input type="hidden" id="edit-veh-id">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-veh-matricula">Matrícula *</label>
+                            <input type="text" id="edit-veh-matricula" style="text-transform: uppercase;" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-veh-ano">Año de Fabricación *</label>
+                            <input type="number" id="edit-veh-ano" min="1900" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-veh-marca">Marca *</label>
+                            <input type="text" id="edit-veh-marca" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-veh-modelo">Modelo *</label>
+                            <input type="text" id="edit-veh-modelo" required>
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarVehiculoRecep()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-edit-vehiculo">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación de baja (HU #61) -->
+        <div id="modal-confirmar-eliminacion-recep" class="modal-overlay" onclick="if (event.target === this) cerrarModalConfirmarEliminacionRecep()">
+            <div class="modal card" style="max-width: 460px; width: 95%;">
+                <h3 id="confirm-elim-recep-titulo" style="margin: 0 0 0.5rem 0; color: var(--err);">Confirmar Eliminación</h3>
+                <p id="confirm-elim-recep-texto" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalConfirmarEliminacionRecep()">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirmar-elim-recep" onclick="ejecutarEliminacionRecep(this)">Eliminar</button>
                 </div>
             </div>
         </div>
@@ -924,21 +1058,35 @@
             if (f) abrirModalFacturaObjeto(f);
         }
 
+        let clientesRecepCache = {};
+        let vehiculosRecepCache = {};
+        let eliminacionRecepPendiente = null;
+
         async function loadClientes() {
             try {
                 const clientes = await apiFetch('/clientes');
                 const tbody = document.querySelector('#tabla-clientes tbody');
                 tbody.innerHTML = '';
+                clientesRecepCache = {};
                 if (!clientes || clientes.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No hay clientes</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay clientes</td></tr>';
                     return;
                 }
                 clientes.forEach(c => {
+                    clientesRecepCache[c.id] = c;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${c.id}</td>
-                        <td>${c.nombre}</td>
+                        <td><strong>${c.nombre}</strong></td>
                         <td>${c.telefono}</td>
+                        <td>${c.email || '<span class="text-muted">Sin correo</span>'}</td>
+                        <td>${c.dniCif ? `<span style="font-family: monospace;">${c.dniCif}</span>` : '<span class="text-muted">—</span>'}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.76rem;" onclick="abrirModalEditarClienteRecep(${c.id})">Editar</button>
+                                <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.55rem; font-size: 0.76rem;" onclick="solicitarEliminarClienteRecep(${c.id})">Eliminar</button>
+                            </div>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -955,6 +1103,8 @@
                 ]);
                 const tbody = document.querySelector('#tabla-vehiculos tbody');
                 tbody.innerHTML = '';
+                vehiculosRecepCache = {};
+                (vehiculos || []).forEach(v => { vehiculosRecepCache[v.id] = v; });
 
                 const reparacionesEnriquecidas = Array.isArray(reparaciones)
                     ? reparaciones.map(enriquecerReparacionFinanzas)
@@ -967,7 +1117,7 @@
                 });
 
                 if (vehiculosEnTaller.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No hay vehículos actualmente en el taller</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No hay vehículos actualmente en el taller</td></tr>';
                     return;
                 }
 
@@ -996,11 +1146,161 @@
                         <td>${clienteVal}</td>
                         <td>${mecanicoHtml}</td>
                         <td>${estadoHtml}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.76rem;" onclick="abrirModalEditarVehiculoRecep(${v.id})">Editar</button>
+                                <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.55rem; font-size: 0.76rem;" onclick="solicitarEliminarVehiculoRecep(${v.id})">Eliminar</button>
+                            </div>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (error) {
                 console.error("Error loading vehiculos", error);
+            }
+        }
+
+        function abrirModalEditarClienteRecep(id) {
+            const c = clientesRecepCache[id];
+            if (!c) return;
+            document.getElementById('edit-cli-alert').innerHTML = '';
+            document.getElementById('edit-cli-id').value = c.id;
+            document.getElementById('edit-cli-nombre').value = c.nombre || '';
+            document.getElementById('edit-cli-telefono').value = c.telefono || '';
+            document.getElementById('edit-cli-email').value = c.email || '';
+            document.getElementById('edit-cli-dni').value = c.dniCif || '';
+            document.getElementById('edit-cli-direccion').value = c.direccionFiscal || '';
+            document.getElementById('modal-editar-cliente-recep').style.display = 'flex';
+        }
+
+        function cerrarModalEditarClienteRecep() {
+            document.getElementById('modal-editar-cliente-recep').style.display = 'none';
+        }
+
+        async function guardarEdicionClienteRecep(e) {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-cli-id').value);
+            const btn = document.getElementById('btn-guardar-edit-cliente');
+            const alertBox = document.getElementById('edit-cli-alert');
+            const payload = {
+                nombre: document.getElementById('edit-cli-nombre').value.trim(),
+                telefono: document.getElementById('edit-cli-telefono').value.trim(),
+                email: document.getElementById('edit-cli-email').value.trim(),
+                dniCif: document.getElementById('edit-cli-dni').value.trim().toUpperCase(),
+                direccionFiscal: document.getElementById('edit-cli-direccion').value.trim()
+            };
+
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+            try {
+                const res = await apiFetch(`/clientes/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                cerrarModalEditarClienteRecep();
+                mostrarAlerta(res.mensaje || 'Ficha de cliente actualizada correctamente.', 'success', document.getElementById('alerts-container'));
+                await Promise.all([loadClientes(), loadVehiculos(), loadVehiculosParaSelect(), loadStats(), loadReparaciones()]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
+            }
+        }
+
+        function solicitarEliminarClienteRecep(id) {
+            const c = clientesRecepCache[id];
+            if (!c) return;
+            eliminacionRecepPendiente = { tipo: 'CLIENTE', id };
+            document.getElementById('confirm-elim-recep-titulo').textContent = 'Confirmar Baja de Cliente';
+            document.getElementById('confirm-elim-recep-texto').innerHTML =
+                `¿Seguro que deseas eliminar la ficha de <strong>${c.nombre}</strong> (${c.telefono})? Si tiene vehículos, reparaciones o citas asociadas, el sistema bloqueará el borrado para proteger el historial.`;
+            document.getElementById('modal-confirmar-eliminacion-recep').style.display = 'flex';
+        }
+
+        function abrirModalEditarVehiculoRecep(id) {
+            const v = vehiculosRecepCache[id];
+            if (!v) return;
+            document.getElementById('edit-veh-alert').innerHTML = '';
+            document.getElementById('edit-veh-id').value = v.id;
+            document.getElementById('edit-veh-matricula').value = v.matricula || '';
+            document.getElementById('edit-veh-marca').value = v.marca || '';
+            document.getElementById('edit-veh-modelo').value = v.modelo || '';
+            const inputAno = document.getElementById('edit-veh-ano');
+            inputAno.max = new Date().getFullYear();
+            inputAno.value = v.ano ?? v.anio ?? new Date().getFullYear();
+            document.getElementById('modal-editar-vehiculo-recep').style.display = 'flex';
+        }
+
+        function cerrarModalEditarVehiculoRecep() {
+            document.getElementById('modal-editar-vehiculo-recep').style.display = 'none';
+        }
+
+        async function guardarEdicionVehiculoRecep(e) {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-veh-id').value);
+            const btn = document.getElementById('btn-guardar-edit-vehiculo');
+            const alertBox = document.getElementById('edit-veh-alert');
+            const payload = {
+                matricula: document.getElementById('edit-veh-matricula').value.trim().toUpperCase(),
+                marca: document.getElementById('edit-veh-marca').value.trim(),
+                modelo: document.getElementById('edit-veh-modelo').value.trim(),
+                ano: parseInt(document.getElementById('edit-veh-ano').value, 10)
+            };
+
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+            try {
+                const res = await apiFetch(`/vehiculos/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                cerrarModalEditarVehiculoRecep();
+                mostrarAlerta(res.mensaje || 'Vehículo actualizado correctamente.', 'success', document.getElementById('alerts-container'));
+                await Promise.all([loadVehiculos(), loadVehiculosParaSelect(), loadStats(), loadReparaciones()]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
+            }
+        }
+
+        function solicitarEliminarVehiculoRecep(id) {
+            const v = vehiculosRecepCache[id];
+            if (!v) return;
+            eliminacionRecepPendiente = { tipo: 'VEHICULO', id };
+            document.getElementById('confirm-elim-recep-titulo').textContent = 'Confirmar Baja de Vehículo';
+            document.getElementById('confirm-elim-recep-texto').innerHTML =
+                `¿Seguro que deseas eliminar el vehículo <strong>${v.matricula}</strong> (${v.marca} ${v.modelo})? Si tiene reparaciones o citas previas en el historial, el sistema bloqueará el borrado.`;
+            document.getElementById('modal-confirmar-eliminacion-recep').style.display = 'flex';
+        }
+
+        function cerrarModalConfirmarEliminacionRecep() {
+            document.getElementById('modal-confirmar-eliminacion-recep').style.display = 'none';
+            eliminacionRecepPendiente = null;
+        }
+
+        async function ejecutarEliminacionRecep(btn) {
+            if (!eliminacionRecepPendiente) return;
+            const { tipo, id } = eliminacionRecepPendiente;
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Eliminando...';
+            try {
+                const url = tipo === 'CLIENTE' ? `/clientes/${id}` : `/vehiculos/${id}`;
+                const res = await apiFetch(url, { method: 'DELETE' });
+                cerrarModalConfirmarEliminacionRecep();
+                mostrarAlerta(res.mensaje || 'Registro eliminado correctamente.', 'success', document.getElementById('alerts-container'));
+                await Promise.all([loadClientes(), loadVehiculos(), loadVehiculosParaSelect(), loadStats()]);
+            } catch (error) {
+                cerrarModalConfirmarEliminacionRecep();
+                mostrarAlerta(error.message, 'error', document.getElementById('alerts-container'));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
             }
         }
 
@@ -1306,6 +1606,12 @@
                 const citasDia = ((estadoCalendarioRecep.datos && estadoCalendarioRecep.datos.citas) || [])
                     .filter(c => c.fecha === fechaIso);
 
+                citasRecepPorId = {};
+                citasDia.forEach(c => { citasRecepPorId[c.id] = c; });
+                ((estadoCalendarioRecep.datos && estadoCalendarioRecep.datos.todasLasCitas) || []).forEach(c => {
+                    citasRecepPorId[c.id] = c;
+                });
+
                 const ocupadas = disp.ocupadasDia || 0;
                 const capMax = disp.capacidadMaximaDiaria || 8;
                 const completo = ocupadas >= capMax;
@@ -1313,7 +1619,10 @@
 
                 const filasCitas = citasDia.length === 0
                     ? `<tr><td colspan="6" class="empty-state" style="padding: 1.2rem;">No hay citas registradas para el día ${formatearFecha(fechaIso)} con el filtro seleccionado.</td></tr>`
-                    : citasDia.map(c => `
+                    : citasDia.map(c => {
+                        const puedeRecepcionar = (c.estado === 'PENDIENTE' || c.estado === 'CONFIRMADA') && !c.reparacionId;
+                        const yaRecepcionada = c.estado === 'RECEPCIONADA' || !!c.reparacionId;
+                        return `
                         <tr>
                             <td><strong style="color: var(--primary-light); font-size: 0.95rem;">${c.franjaHoraria}</strong><div style="font-size:0.75rem; font-family:monospace; color:var(--text-muted);">${c.codigoCita}</div></td>
                             <td>
@@ -1327,9 +1636,15 @@
                                 <span class="badge ${c.estado === 'CONFIRMADA' || c.estado === 'RECEPCIONADA' ? 'badge-confirmed' : (c.estado === 'CANCELADA' ? 'badge-delivered' : 'badge-pending')}">
                                     ${c.estado}
                                 </span>
+                                ${c.reparacionId ? `<div style="font-size:0.74rem; color:var(--info); margin-top:0.25rem; font-weight:600;">Reparación #${c.reparacionId}</div>` : ''}
                             </td>
                             <td>
                                 <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                    ${puedeRecepcionar ? `
+                                        <button type="button" class="btn btn-primary" style="padding: 0.28rem 0.58rem; font-size: 0.74rem;" onclick="abrirModalRecepcionarCita(${c.id})">Recepcionar y Abrir Reparación</button>
+                                    ` : (yaRecepcionada ? `
+                                        <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.74rem; opacity: 0.7; cursor: not-allowed;" disabled>${c.reparacionId ? `Reparación #${c.reparacionId} abierta` : 'Ya recepcionada'}</button>
+                                    ` : '')}
                                     ${c.estado === 'PENDIENTE' ? `
                                         <button type="button" class="btn btn-success" style="padding: 0.25rem 0.5rem; font-size: 0.74rem;" onclick="cambiarEstadoCitaRecepcion(${c.id}, 'CONFIRMADA')">Confirmar</button>
                                         <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.74rem;" onclick="abrirModalRechazoCitaRecepcion(${c.id}, '${c.codigoCita}', '${(c.emailContacto || '').replace(/'/g, "\\'")}')">Rechazar</button>
@@ -1344,7 +1659,8 @@
                                 </div>
                             </td>
                         </tr>
-                    `).join('');
+                    `;
+                    }).join('');
 
                 const opcionesFranja = (disp.franjas || []).map(f =>
                     `<option value="${f.franja}" ${!f.disponible ? 'disabled' : ''}>${f.franja} (${f.ocupadas}/${f.capacidad} ocupadas ${!f.disponible ? '- COMPLETO/NO DISP.' : ''})</option>`
@@ -1507,6 +1823,104 @@
         }
 
         let citaRechazoPendienteId = null;
+        let citasRecepPorId = {};
+        let citaRecepcionActivaId = null;
+
+        function abrirModalRecepcionarCita(citaId) {
+            const cita = citasRecepPorId[citaId];
+            if (!cita) {
+                mostrarAlerta('No se encontraron los datos de la cita seleccionada.', 'error', document.getElementById('alerts-container'));
+                return;
+            }
+            if (cita.estado === 'CANCELADA') {
+                mostrarAlerta('No se puede recepcionar una cita cancelada.', 'error', document.getElementById('alerts-container'));
+                return;
+            }
+            if (cita.estado === 'RECEPCIONADA' || cita.reparacionId) {
+                mostrarAlerta('Esta cita ya tiene una orden de reparación abierta.', 'error', document.getElementById('alerts-container'));
+                return;
+            }
+
+            citaRecepcionActivaId = citaId;
+            document.getElementById('recep-cita-alert').innerHTML = '';
+            document.getElementById('recep-cita-subtitulo').textContent =
+                `Cita ${cita.codigoCita} · ${formatearFecha(cita.fecha)} a las ${cita.franjaHoraria}`;
+            document.getElementById('recep-cita-resumen').innerHTML = `
+                <div><strong>Cliente:</strong> ${cita.nombreCliente || '—'} (${cita.telefonoCliente || 'Sin teléfono'})</div>
+                <div style="margin-top: 0.25rem;"><strong>Vehículo:</strong> <span style="font-family: monospace; font-weight: 700;">${cita.matriculaVehiculo || '—'}</span> · ${cita.marcaVehiculo || ''} ${cita.modeloVehiculo || ''}</div>
+            `;
+
+            const motivo = (cita.motivo || '').trim();
+            const obs = (cita.observaciones || '').trim();
+            document.getElementById('recep-cita-descripcion').value = obs ? `${motivo} — ${obs}` : motivo;
+            document.getElementById('recep-cita-estimacion').value = '150';
+            document.getElementById('recep-cita-dias').value = '3';
+            document.getElementById('modal-recepcionar-cita').style.display = 'flex';
+        }
+
+        function cerrarModalRecepcionarCita() {
+            const modal = document.getElementById('modal-recepcionar-cita');
+            if (modal) modal.style.display = 'none';
+            citaRecepcionActivaId = null;
+        }
+
+        async function confirmarRecepcionCita(btn) {
+            if (!citaRecepcionActivaId) return;
+            const alertBox = document.getElementById('recep-cita-alert');
+            const descripcionAveria = document.getElementById('recep-cita-descripcion').value.trim();
+            const estimacionInicial = parseFloat(document.getElementById('recep-cita-estimacion').value);
+            const diasEstimados = parseInt(document.getElementById('recep-cita-dias').value, 10);
+
+            if (!descripcionAveria) {
+                mostrarAlerta('La descripción de la avería no puede estar vacía.', 'error', alertBox);
+                return;
+            }
+            if (isNaN(estimacionInicial) || estimacionInicial <= 0) {
+                mostrarAlerta('La estimación inicial orientativa debe ser mayor que 0 €.', 'error', alertBox);
+                return;
+            }
+            if (isNaN(diasEstimados) || diasEstimados <= 0) {
+                mostrarAlerta('Los días estimados deben ser al menos 1 día.', 'error', alertBox);
+                return;
+            }
+
+            const user = getUsuarioActual();
+            if (!user || !user.id) {
+                mostrarAlerta('No se pudo identificar al recepcionista con sesión activa.', 'error', alertBox);
+                return;
+            }
+
+            const textoOriginal = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Abriendo reparación...';
+            try {
+                const res = await apiFetch(`/citas/${citaRecepcionActivaId}/recepcionar`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        recepcionistaId: user.id,
+                        estimacionInicial,
+                        diasEstimados,
+                        descripcionAveria
+                    })
+                });
+                cerrarModalRecepcionarCita();
+                mostrarAlerta(
+                    `Cita recepcionada y Reparación #${res.reparacionId} abierta correctamente. Código localizador para el cliente: ${res.localizador}`,
+                    'success',
+                    document.getElementById('alerts-container')
+                );
+                await Promise.all([
+                    cargarCalendarioRecepcion(),
+                    loadReparaciones(),
+                    loadStats()
+                ]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = textoOriginal;
+            }
+        }
 
         function abrirModalRechazoCitaRecepcion(citaId, codigoCita, emailContacto) {
             citaRechazoPendienteId = citaId;

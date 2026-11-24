@@ -1,12 +1,15 @@
 package com.taller;
 
+import com.taller.dtos.MaterialResponseDTO;
 import com.taller.dtos.ReparacionRequestDTO;
 import com.taller.dtos.ReparacionResponseDTO;
 import com.taller.dtos.UsuarioResponseDTO;
 import com.taller.dtos.VehiculoRequestDTO;
+import com.taller.dtos.VehiculoResponseDTO;
 import com.taller.models.*;
 import com.taller.repositories.ClienteRepository;
 import com.taller.repositories.CitaPreviaRepository;
+import com.taller.repositories.ConfiguracionTallerRepository;
 import com.taller.repositories.FacturaRepository;
 import com.taller.repositories.IncidenciaReparacionRepository;
 import com.taller.repositories.MaterialRepository;
@@ -1759,5 +1762,391 @@ public class PruebasUnitariasTest {
         assertEquals(20.00, (Double) cuenta.get("gastosPiezasUsadas"), 0.001, "El coste analítico de piezas usadas es 20.00 €");
         assertEquals(100.00, (Double) cuenta.get("gastosMateriales"), 0.001, "El gasto de caja en materiales solo debe ser la compra de stock (100.00 €)");
         assertEquals(1900.00, (Double) cuenta.get("saldoActual"), 0.001, "El saldo de caja debe ser 2000 - 100 = 1900.00 € (sin restar otra vez los 20 €)");
+    }
+
+    /**
+     * PRUEBA 53 (Bug 2.2 - Inmutabilidad de facturas históricas al cambiar tarifas):
+     * Verifica que actualizar la configuración del taller (precio/hora y margen %) no recalcula
+     * facturas ya emitidas, que generarFactura() bloquea modificaciones en reparaciones ENTREGADAS
+     * y que en estado CONFIRMADA congela los importes permitiendo solo completar datos fiscales.
+     */
+    @Test
+    @DisplayName("Prueba 53 (Bug 2.2): El cambio de tarifas no recalcula facturas históricas y las cerradas son inmutables")
+    void test53_CambioDeTarifasNoRecalculaFacturasHistoricasYEntregadaEsInmutable() {
+        // 1) ConfiguracionTallerService actualiza tarifas sin tocar facturas históricas
+        ConfiguracionTallerRepository configRepo = mock(ConfiguracionTallerRepository.class);
+        ConfiguracionTallerService configService = new ConfiguracionTallerService();
+        ReflectionTestUtils.setField(configService, "configuracionRepository", configRepo);
+
+        ConfiguracionTaller configInicial = new ConfiguracionTaller(15.0, 35.0, 2000.0);
+        when(configRepo.findAll()).thenReturn(List.of(configInicial));
+        when(configRepo.save(any(ConfiguracionTaller.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ConfiguracionTaller actualizada = configService.actualizarConfiguracion(25.0, 50.0, 2500.0);
+        assertEquals(25.0, actualizada.getMargenBeneficioPorcentaje(), 0.001);
+        assertEquals(50.0, actualizada.getPrecioHoraManoObra(), 0.001);
+        assertEquals(2500.0, actualizada.getFondoInicial(), 0.001);
+
+        // 2) En ReparacionService.generarFactura: ENTREGADA bloquea modificación; CONFIRMADA congela importes
+        ReparacionRepository repRepo = mock(ReparacionRepository.class);
+        FacturaRepository factRepo = mock(FacturaRepository.class);
+        ClienteRepository cliRepo = mock(ClienteRepository.class);
+        ReparacionMaterialRepository repMatRepo = mock(ReparacionMaterialRepository.class);
+        ConfiguracionTallerService cfgSvcMock = mock(ConfiguracionTallerService.class);
+
+        ReparacionService repService = new ReparacionService();
+        ReflectionTestUtils.setField(repService, "reparacionRepository", repRepo);
+        ReflectionTestUtils.setField(repService, "facturaRepository", factRepo);
+        ReflectionTestUtils.setField(repService, "clienteRepository", cliRepo);
+        ReflectionTestUtils.setField(repService, "reparacionMaterialRepository", repMatRepo);
+        ReflectionTestUtils.setField(repService, "configuracionService", cfgSvcMock);
+
+        Cliente cliente = new Cliente("Laura Gómez", "600112233");
+        cliente.setId(1L);
+        Vehiculo vehiculo = new Vehiculo("5555FFF", "Seat", "León", 2021, cliente);
+        vehiculo.setId(1L);
+        Reparacion rep = new Reparacion();
+        rep.setId(10L);
+        rep.setVehiculo(vehiculo);
+        rep.setHorasTrabajoMecanico(2.0);
+        rep.setEstado(EstadoReparacion.ENTREGADA);
+
+        // Factura histórica emitida con las tarifas antiguas (35 €/h, 15% margen)
+        Factura facturaHistorica = new Factura("FAC-2026-0001", rep, 100.0, 2.0, 35.0, 15.0, 21.0);
+        facturaHistorica.setId(100L);
+        double totalOriginal = facturaHistorica.getTotalFactura();
+
+        when(repRepo.findById(10L)).thenReturn(Optional.of(rep));
+        when(factRepo.findByReparacionId(10L)).thenReturn(Optional.of(facturaHistorica));
+        when(repMatRepo.findByReparacionId(10L)).thenReturn(Collections.emptyList());
+        when(cfgSvcMock.obtenerConfiguracion()).thenReturn(actualizada); // Tarifas nuevas: 50 €/h y 25%
+        when(factRepo.save(any(Factura.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(cliRepo.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 2a) ENTREGADA: prohibido modificar/recalcular la factura
+        IllegalArgumentException exEntregada = assertThrows(IllegalArgumentException.class,
+                () -> repService.generarFactura(10L, null, "12345678Z", "Calle Mayor 1", false));
+        assertTrue(exEntregada.getMessage().contains("inmutables"));
+        assertEquals(totalOriginal, facturaHistorica.getTotalFactura(), 0.001);
+
+        // 2b) CONFIRMADA: se permiten completar datos fiscales pero las tarifas/totales permanecen congelados
+        rep.setEstado(EstadoReparacion.CONFIRMADA);
+        repService.generarFactura(10L, null, "12345678z", "Calle Mayor 1, Madrid", true);
+        assertEquals(totalOriginal, facturaHistorica.getTotalFactura(), 0.001, "Los importes deben permanecer congelados");
+        assertEquals(35.0, facturaHistorica.getPrecioHora(), 0.001, "La tarifa por hora original no debe alterarse");
+        assertEquals("12345678Z", facturaHistorica.getDniCifCliente());
+        assertEquals("Calle Mayor 1, Madrid", facturaHistorica.getDireccionFiscalCliente());
+    }
+
+    /**
+     * PRUEBA 54 (HU #58 - Recepción directa de cita previa y apertura automática de reparación):
+     * Verifica que recepcionarYAbrirReparacion() convierte una cita CONFIRMADA en RECEPCIONADA,
+     * crea la reparación autocompletando avería (motivo + observaciones), guarda reparacionId,
+     * y bloquea duplicidades (ya recepcionada) y citas CANCELADAS.
+     */
+    @Test
+    @DisplayName("Prueba 54 (HU #58): Recepción de cita previa abre reparación, vincula reparacionId y bloquea duplicados/canceladas")
+    void test54_RecepcionCitaPreviaAbreReparacionYVinculaBloqueandoDuplicadosYCanceladas() {
+        CitaPreviaRepository citaRepo = mock(CitaPreviaRepository.class);
+        ReparacionService repService = mock(ReparacionService.class);
+
+        CitaPreviaService citaService = new CitaPreviaService();
+        ReflectionTestUtils.setField(citaService, "citaRepository", citaRepo);
+        ReflectionTestUtils.setField(citaService, "reparacionService", repService);
+
+        Cliente cli = new Cliente("Carlos Ruiz", "611223344");
+        cli.setId(5L);
+        Vehiculo veh = new Vehiculo("7777GGG", "Ford", "Focus", 2020, cli);
+        veh.setId(8L);
+        CitaPrevia cita = new CitaPrevia(cli, veh, LocalDate.now().plusDays(1), "10:00",
+                "Frenos y suspensión", "Chirrido al frenar en frío", "CONFIRMADA");
+        cita.setId(30L);
+
+        when(citaRepo.findById(30L)).thenReturn(Optional.of(cita));
+        when(citaRepo.save(any(CitaPrevia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReparacionResponseDTO repMock = new ReparacionResponseDTO();
+        repMock.setId(99L);
+        repMock.setLocalizador("AB12CD34");
+        when(repService.crearReparacion(any(ReparacionRequestDTO.class))).thenAnswer(inv -> {
+            ReparacionRequestDTO dto = inv.getArgument(0);
+            assertEquals(8L, dto.getVehiculoId());
+            assertEquals(2L, dto.getRecepcionistaId());
+            assertTrue(dto.getDescripcionAveria().contains("Frenos y suspensión"));
+            assertTrue(dto.getDescripcionAveria().contains("Chirrido al frenar en frío"));
+            return repMock;
+        });
+
+        Map<String, Object> res = citaService.recepcionarYAbrirReparacion(30L, 2L, 180.0, 2, null);
+
+        assertEquals("RECEPCIONADA", cita.getEstado());
+        assertEquals(99L, cita.getReparacionId());
+        assertEquals("AB12CD34", res.get("localizador"));
+        verify(repService, times(1)).crearReparacion(any(ReparacionRequestDTO.class));
+
+        // Bloqueo contra duplicidad: volver a recepcionar la misma cita debe fallar
+        assertThrows(IllegalStateException.class,
+                () -> citaService.recepcionarYAbrirReparacion(30L, 2L, 180.0, 2, null));
+
+        // Restricción en citas canceladas
+        CitaPrevia cancelada = new CitaPrevia(cli, veh, LocalDate.now().plusDays(2), "11:00", "Pre-ITV", "", "CANCELADA");
+        cancelada.setId(31L);
+        when(citaRepo.findById(31L)).thenReturn(Optional.of(cancelada));
+        assertThrows(IllegalStateException.class,
+                () -> citaService.recepcionarYAbrirReparacion(31L, 2L, 150.0, 1, null));
+    }
+
+    /**
+     * PRUEBA 55 (HU #59 - Edición, cambio de rol y baja segura de empleados):
+     * Verifica la edición de datos/rol/contraseña (BCrypt), rechazo de email duplicado,
+     * protección contra auto-degradación y autoborrado del administrador, y desasignación
+     * automática de reparaciones al eliminar un mecánico.
+     */
+    @Test
+    @DisplayName("Prueba 55 (HU #59): Edición y baja de empleados con protección admin y desasignación de mecánico")
+    void test55_EdicionYBajaEmpleadosConProteccionAdminYDesasignacionMecanico() {
+        UsuarioRepository usuarioRepo = mock(UsuarioRepository.class);
+        ReparacionRepository repRepo = mock(ReparacionRepository.class);
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+
+        UsuarioService usuarioService = new UsuarioService();
+        ReflectionTestUtils.setField(usuarioService, "usuarioRepository", usuarioRepo);
+        ReflectionTestUtils.setField(usuarioService, "reparacionRepository", repRepo);
+        ReflectionTestUtils.setField(usuarioService, "passwordSecurityService", seguridad);
+
+        Usuario admin = new Usuario("Admin Principal", "admin@taller.com", seguridad.hashear("Admin2026"), "600000001", Rol.ADMIN);
+        admin.setId(1L);
+        Usuario mecanico = new Usuario("Pedro Mecánico", "pedro@taller.com", seguridad.hashear("Pedro2026"), "600000002", Rol.MECANICO);
+        mecanico.setId(2L);
+
+        when(usuarioRepo.findById(1L)).thenReturn(Optional.of(admin));
+        when(usuarioRepo.findById(2L)).thenReturn(Optional.of(mecanico));
+        when(usuarioRepo.findByEmail("admin@taller.com")).thenReturn(Optional.of(admin));
+        when(usuarioRepo.findByEmail("pedro.nuevo@taller.com")).thenReturn(Optional.empty());
+        when(usuarioRepo.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 1) Email duplicado rechazado
+        assertThrows(IllegalArgumentException.class,
+                () -> usuarioService.actualizarUsuario(2L, "Pedro", "admin@taller.com", "600000002", "MECANICO", null, 1L));
+
+        // 2) Admin no puede quitarse a sí mismo el rol ADMIN ni autoborrarse
+        assertThrows(IllegalStateException.class,
+                () -> usuarioService.actualizarUsuario(1L, "Admin", "admin@taller.com", "600000001", "MECANICO", null, 1L));
+        assertThrows(IllegalStateException.class,
+                () -> usuarioService.eliminarUsuario(1L, 1L));
+
+        // 3) Edición válida con cambio de email y nueva contraseña hasheada con BCrypt
+        UsuarioResponseDTO editado = usuarioService.actualizarUsuario(
+                2L, "Pedro Sánchez", "pedro.nuevo@taller.com", "699888777", "MECANICO", "NuevaClave2026", 1L);
+        assertEquals("Pedro Sánchez", editado.getNombre());
+        assertEquals("pedro.nuevo@taller.com", editado.getEmail());
+        assertTrue(seguridad.estaHasheada(mecanico.getPassword()));
+        assertTrue(seguridad.coincide("NuevaClave2026", mecanico.getPassword()));
+
+        // 4) Baja de mecánico desasigna sus reparaciones activas (mecanico = null)
+        Reparacion repAsignada = new Reparacion();
+        repAsignada.setId(50L);
+        repAsignada.setMecanico(mecanico);
+        when(repRepo.findByRecepcionistaId(2L)).thenReturn(Collections.emptyList());
+        when(repRepo.findByMecanicoId(2L)).thenReturn(List.of(repAsignada));
+
+        Map<String, Object> baja = usuarioService.eliminarUsuario(2L, 1L);
+        assertNull(repAsignada.getMecanico(), "La reparación debe quedar sin mecánico asignado");
+        assertEquals(1, baja.get("reparacionesDesasignadas"));
+        verify(usuarioRepo, times(1)).delete(mecanico);
+    }
+
+    /**
+     * PRUEBA 56 (HU #60 - Edición comercial y baja protegida de materiales):
+     * Verifica que actualizar nombre/descripción/precio rechaza valores inválidos,
+     * no registra ningún gasto de stock en Tesorería, y que eliminar un material
+     * con historial en reparacion_materiales se bloquea con IllegalStateException.
+     */
+    @Test
+    @DisplayName("Prueba 56 (HU #60): Edición comercial de material sin gasto en Tesorería y baja protegida por historial")
+    void test56_EdicionComercialMaterialSinGastoTesoreriaYBajaProtegidaPorHistorial() {
+        MaterialRepository matRepo = mock(MaterialRepository.class);
+        ReparacionMaterialRepository repMatRepo = mock(ReparacionMaterialRepository.class);
+        ReparacionService repService = mock(ReparacionService.class);
+
+        MaterialService materialService = new MaterialService();
+        ReflectionTestUtils.setField(materialService, "materialRepository", matRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionMaterialRepository", repMatRepo);
+        ReflectionTestUtils.setField(materialService, "reparacionService", repService);
+
+        Material bateria = new Material("Batería 12V", "Batería estándar", 6, 85.00);
+        bateria.setId(4L);
+        when(matRepo.findById(4L)).thenReturn(Optional.of(bateria));
+        when(matRepo.save(any(Material.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 1) Validaciones de nombre vacío y precio <= 0
+        assertThrows(IllegalArgumentException.class,
+                () -> materialService.actualizarMaterial(4L, "   ", "Desc", 90.0));
+        assertThrows(IllegalArgumentException.class,
+                () -> materialService.actualizarMaterial(4L, "Batería 12V", "Desc", 0.0));
+        assertThrows(IllegalArgumentException.class,
+                () -> materialService.actualizarMaterial(4L, "Batería 12V", "Desc", -10.0));
+
+        // 2) Edición válida sin impacto en Tesorería
+        MaterialResponseDTO actualizado = materialService.actualizarMaterial(4L, "Batería AGM 70Ah", "Alta capacidad", 112.50);
+        assertEquals("Batería AGM 70Ah", actualizado.getNombre());
+        assertEquals(112.50, actualizado.getPrecioUnitario(), 0.001);
+        verifyNoInteractions(repService);
+
+        // 3) Baja bloqueada si tiene historial en reparacion_materiales
+        ReparacionMaterial usoHistorico = new ReparacionMaterial(new Reparacion(), bateria, 1);
+        when(repMatRepo.findByMaterialId(4L)).thenReturn(List.of(usoHistorico));
+        assertThrows(IllegalStateException.class, () -> materialService.eliminarMaterial(4L));
+        verify(matRepo, never()).delete(bateria);
+
+        // 4) Baja permitida si no tiene usos vinculados
+        when(repMatRepo.findByMaterialId(4L)).thenReturn(Collections.emptyList());
+        materialService.eliminarMaterial(4L);
+        verify(matRepo, times(1)).delete(bateria);
+    }
+
+    /**
+     * PRUEBA 57 (HU #61 - Edición y baja de clientes y vehículos con unicidad e integridad):
+     * Verifica validaciones de teléfono/email único en cliente, matrícula única y año válido
+     * en vehículo, y bloqueo de borrado cuando existen reparaciones o citas asociadas.
+     */
+    @Test
+    @DisplayName("Prueba 57 (HU #61): Edición y baja de clientes y vehículos con unicidad e integridad histórica")
+    void test57_EdicionYBajaClientesYVehiculosConUnicidadEIntegridad() {
+        // --- Parte A: ClienteService ---
+        ClienteRepository cliRepo = mock(ClienteRepository.class);
+        ReparacionRepository repRepo = mock(ReparacionRepository.class);
+        VehiculoRepository vehRepo = mock(VehiculoRepository.class);
+        CitaPreviaRepository citaRepo = mock(CitaPreviaRepository.class);
+
+        ClienteService clienteService = new ClienteService();
+        ReflectionTestUtils.setField(clienteService, "clienteRepository", cliRepo);
+        ReflectionTestUtils.setField(clienteService, "reparacionRepository", repRepo);
+        ReflectionTestUtils.setField(clienteService, "vehiculoRepository", vehRepo);
+        ReflectionTestUtils.setField(clienteService, "citaPreviaRepository", citaRepo);
+
+        Cliente c1 = new Cliente("Elena Torres", "611000111");
+        c1.setId(1L);
+        Cliente c2 = new Cliente("Otro Cliente", "622000222");
+        c2.setId(2L);
+
+        when(cliRepo.findById(1L)).thenReturn(Optional.of(c1));
+        when(cliRepo.findByTelefono("622000222")).thenReturn(Optional.of(c2));
+        when(cliRepo.findByTelefono("611999888")).thenReturn(Optional.empty());
+        when(cliRepo.findByEmail("elena@correo.com")).thenReturn(Optional.empty());
+        when(cliRepo.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Teléfono duplicado de otro cliente -> error
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.actualizarCliente(1L, "Elena", "622000222", "elena@correo.com", null, null));
+
+        // Edición válida
+        Map<String, Object> cliAct = clienteService.actualizarCliente(
+                1L, "Elena Torres Gil", "611999888", "elena@correo.com", "87654321x", "Av. Europa 10");
+        assertEquals("87654321X", cliAct.get("dniCif"));
+        assertEquals("Av. Europa 10", cliAct.get("direccionFiscal"));
+
+        // Baja bloqueada si tiene reparaciones
+        when(repRepo.findByVehiculoClienteId(1L)).thenReturn(List.of(new Reparacion()));
+        assertThrows(IllegalStateException.class, () -> clienteService.eliminarCliente(1L));
+
+        // Baja permitida sin historial ni vehículos ni citas
+        when(repRepo.findByVehiculoClienteId(1L)).thenReturn(Collections.emptyList());
+        when(citaRepo.findByClienteIdOrderByFechaDescFranjaHorariaAsc(1L)).thenReturn(Collections.emptyList());
+        when(vehRepo.findByClienteId(1L)).thenReturn(Collections.emptyList());
+        clienteService.eliminarCliente(1L);
+        verify(cliRepo, times(1)).delete(c1);
+
+        // --- Parte B: VehiculoService ---
+        VehiculoService vehiculoService = new VehiculoService();
+        ReflectionTestUtils.setField(vehiculoService, "vehiculoRepository", vehRepo);
+        ReflectionTestUtils.setField(vehiculoService, "clienteRepository", cliRepo);
+        ReflectionTestUtils.setField(vehiculoService, "reparacionRepository", repRepo);
+        ReflectionTestUtils.setField(vehiculoService, "citaPreviaRepository", citaRepo);
+
+        Vehiculo v1 = new Vehiculo("1111AAA", "Renault", "Clio", 2019, c1);
+        v1.setId(10L);
+        Vehiculo v2 = new Vehiculo("2222BBB", "Opel", "Corsa", 2020, c2);
+        v2.setId(11L);
+
+        when(vehRepo.findById(10L)).thenReturn(Optional.of(v1));
+        when(vehRepo.findByMatricula("2222BBB")).thenReturn(Optional.of(v2));
+        when(vehRepo.findByMatricula("3333CCC")).thenReturn(Optional.empty());
+        when(vehRepo.save(any(Vehiculo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Matrícula duplicada y año inválido (< 1900)
+        assertThrows(IllegalArgumentException.class,
+                () -> vehiculoService.actualizarVehiculo(10L, "2222BBB", "Renault", "Clio", 2019));
+        assertThrows(IllegalArgumentException.class,
+                () -> vehiculoService.actualizarVehiculo(10L, "3333CCC", "Renault", "Clio", 1850));
+
+        // Edición válida
+        VehiculoResponseDTO vehAct = vehiculoService.actualizarVehiculo(10L, "3333ccc", "Renault", "Megane", 2022);
+        assertEquals("3333CCC", vehAct.getMatricula());
+        assertEquals("Megane", vehAct.getModelo());
+
+        // Baja bloqueada si tiene reparaciones y permitida si está limpio
+        when(repRepo.findByVehiculoId(10L)).thenReturn(List.of(new Reparacion()));
+        assertThrows(IllegalStateException.class, () -> vehiculoService.eliminarVehiculo(10L));
+
+        when(repRepo.findByVehiculoId(10L)).thenReturn(Collections.emptyList());
+        when(citaRepo.findByVehiculoId(10L)).thenReturn(Collections.emptyList());
+        vehiculoService.eliminarVehiculo(10L);
+        verify(vehRepo, times(1)).delete(v1);
+    }
+
+    /**
+     * PRUEBA 58 (HU #67 - Perfil personal, datos fiscales y cambio seguro de contraseña del cliente):
+     * Verifica que el cliente puede actualizar su contacto y datos fiscales (dniCif en mayúsculas),
+     * que se rechazan emails/teléfonos duplicados o inválidos, y que el cambio de contraseña
+     * exige verificar passwordActual, confirmación coincidente y fortaleza mínima (BCrypt).
+     */
+    @Test
+    @DisplayName("Prueba 58 (HU #67): Edición de perfil/datos fiscales y cambio seguro de contraseña del cliente")
+    void test58_PerfilClienteDatosFiscalesYCambioSeguroPassword() {
+        ClienteRepository cliRepo = mock(ClienteRepository.class);
+        PasswordSecurityService seguridad = new PasswordSecurityService();
+
+        ClienteService clienteService = new ClienteService();
+        ReflectionTestUtils.setField(clienteService, "clienteRepository", cliRepo);
+        ReflectionTestUtils.setField(clienteService, "passwordSecurityService", seguridad);
+
+        Cliente cliente = new Cliente("Sofía Martín", "633111222", "sofia@email.com", seguridad.hashear("ClaveActual2026"));
+        cliente.setId(7L);
+        Cliente otro = new Cliente("Mario", "644999888", "mario@email.com", seguridad.hashear("Mario2026"));
+        otro.setId(8L);
+
+        when(cliRepo.findById(7L)).thenReturn(Optional.of(cliente));
+        when(cliRepo.findByEmail("mario@email.com")).thenReturn(Optional.of(otro));
+        when(cliRepo.findByEmail("sofia.nueva@email.com")).thenReturn(Optional.empty());
+        when(cliRepo.findByTelefono("633999000")).thenReturn(Optional.empty());
+        when(cliRepo.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 1) Rechaza correo de otro cliente y correo con formato inválido
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.actualizarPerfilCliente(7L, "Sofía", "mario@email.com", "633111222", null, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.actualizarPerfilCliente(7L, "Sofía", "correo-invalido", "633111222", null, null));
+
+        // 2) Actualización válida de perfil y datos fiscales
+        Map<String, Object> perfil = clienteService.actualizarPerfilCliente(
+                7L, "Sofía Martín Ruiz", "sofia.nueva@email.com", "633999000", "45678912a", "Plaza España 3, Sevilla");
+        assertEquals("Sofía Martín Ruiz", perfil.get("nombre"));
+        assertEquals("45678912A", perfil.get("dniCif"));
+        assertEquals("Plaza España 3, Sevilla", perfil.get("direccionFiscal"));
+
+        // 3) Cambio de contraseña: falla si actual incorrecta, si no coinciden o si es débil
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.cambiarPasswordCliente(7L, "Incorrecta1", "NuevaSegura2026", "NuevaSegura2026"));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.cambiarPasswordCliente(7L, "ClaveActual2026", "NuevaSegura2026", "OtraDistinta2026"));
+        assertThrows(IllegalArgumentException.class,
+                () -> clienteService.cambiarPasswordCliente(7L, "ClaveActual2026", "1234", "1234"));
+
+        // 4) Cambio de contraseña válido: almacena nuevo hash BCrypt
+        clienteService.cambiarPasswordCliente(7L, "ClaveActual2026", "NuevaSegura2026", "NuevaSegura2026");
+        assertTrue(seguridad.estaHasheada(cliente.getPassword()));
+        assertTrue(seguridad.coincide("NuevaSegura2026", cliente.getPassword()));
+        assertFalse(seguridad.coincide("ClaveActual2026", cliente.getPassword()));
     }
 }

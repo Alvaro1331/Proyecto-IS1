@@ -1,5 +1,7 @@
 package com.taller.services;
 
+import com.taller.dtos.ReparacionRequestDTO;
+import com.taller.dtos.ReparacionResponseDTO;
 import com.taller.models.*;
 import com.taller.repositories.CitaPreviaRepository;
 import com.taller.repositories.ClienteRepository;
@@ -51,6 +53,9 @@ public class CitaPreviaService {
 
     @Autowired(required = false)
     private NotificacionService notificacionService;
+
+    @Autowired(required = false)
+    private ReparacionService reparacionService;
 
     public boolean esFinDeSemana(LocalDate fecha) {
         DayOfWeek dow = fecha.getDayOfWeek();
@@ -452,6 +457,70 @@ public class CitaPreviaService {
             msg += " Se ha notificado la confirmación por correo al cliente.";
         }
         dto.put("mensaje", msg);
+        return dto;
+    }
+
+    /**
+     * HU #58: Convierte una cita previa (PENDIENTE o CONFIRMADA) en una nueva orden de reparación,
+     * pasando la cita a estado RECEPCIONADA y almacenando el ID de la reparación en reparacionId.
+     */
+    public synchronized Map<String, Object> recepcionarYAbrirReparacion(Long citaId,
+                                                                        Long recepcionistaId,
+                                                                        Double estimacionInicial,
+                                                                        Integer diasEstimados,
+                                                                        String descripcionAveriaPersonalizada) {
+        CitaPrevia cita = citaRepository.findById(citaId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la cita con ID: " + citaId));
+
+        if ("CANCELADA".equalsIgnoreCase(cita.getEstado())) {
+            throw new IllegalStateException("No se puede recepcionar ni abrir una orden de reparación a partir de una cita CANCELADA.");
+        }
+
+        if ("RECEPCIONADA".equalsIgnoreCase(cita.getEstado()) || cita.getReparacionId() != null) {
+            String ref = cita.getReparacionId() != null ? " (Reparación #" + cita.getReparacionId() + ")" : "";
+            throw new IllegalStateException("Esta cita ya fue recepcionada o ya tiene una orden de reparación asociada" + ref + ".");
+        }
+
+        if (cita.getVehiculo() == null || cita.getVehiculo().getId() == null) {
+            throw new IllegalArgumentException("La cita no tiene un vehículo válido asociado.");
+        }
+
+        if (recepcionistaId == null) {
+            throw new IllegalArgumentException("Debe indicarse el identificador del recepcionista que realiza la recepción.");
+        }
+
+        if (reparacionService == null) {
+            throw new IllegalStateException("Servicio de reparaciones no disponible para abrir la orden.");
+        }
+
+        String descripcion;
+        if (descripcionAveriaPersonalizada != null && !descripcionAveriaPersonalizada.isBlank()) {
+            descripcion = descripcionAveriaPersonalizada.trim();
+        } else {
+            String motivo = cita.getMotivo() != null ? cita.getMotivo().trim() : "Revisión en taller";
+            String obs = cita.getObservaciones() != null ? cita.getObservaciones().trim() : "";
+            descripcion = obs.isEmpty() ? motivo : motivo + " — " + obs;
+        }
+
+        ReparacionRequestDTO req = new ReparacionRequestDTO();
+        req.setVehiculoId(cita.getVehiculo().getId());
+        req.setRecepcionistaId(recepcionistaId);
+        req.setDescripcionAveria(descripcion);
+        req.setEstimacionInicial(estimacionInicial);
+        req.setDiasEstimados(diasEstimados);
+
+        ReparacionResponseDTO repCreada = reparacionService.crearReparacion(req);
+
+        cita.setEstado("RECEPCIONADA");
+        cita.setReparacionId(repCreada.getId());
+        citaRepository.save(cita);
+
+        Map<String, Object> dto = mapearCita(cita);
+        dto.put("reparacionId", repCreada.getId());
+        dto.put("localizador", repCreada.getLocalizador());
+        dto.put("reparacion", repCreada);
+        dto.put("mensaje", "Cita " + cita.getCodigoCita() + " recepcionada y orden de reparación #"
+                + repCreada.getId() + " abierta correctamente. Código localizador: " + repCreada.getLocalizador());
         return dto;
     }
 

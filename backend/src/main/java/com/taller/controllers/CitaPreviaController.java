@@ -180,4 +180,35 @@ public class CitaPreviaController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * HU #58: Recepciona una cita previa y abre automáticamente la orden de reparación vinculada.
+     * POST /api/citas/{id}/recepcionar
+     */
+    @PostMapping("/{id}/recepcionar")
+    public ResponseEntity<?> recepcionarCita(@PathVariable Long id,
+                                             @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            Map<String, Object> payload = body != null ? body : Collections.emptyMap();
+            Long recepcionistaId = payload.get("recepcionistaId") != null && !payload.get("recepcionistaId").toString().isBlank()
+                    ? Long.valueOf(payload.get("recepcionistaId").toString()) : null;
+            Double estimacionInicial = payload.get("estimacionInicial") != null && !payload.get("estimacionInicial").toString().isBlank()
+                    ? Double.valueOf(payload.get("estimacionInicial").toString()) : null;
+            Integer diasEstimados = payload.get("diasEstimados") != null && !payload.get("diasEstimados").toString().isBlank()
+                    ? Integer.valueOf(payload.get("diasEstimados").toString()) : null;
+            String descripcionAveria = payload.get("descripcionAveria") != null
+                    ? payload.get("descripcionAveria").toString() : null;
+
+            Map<String, Object> resultado = citaService.recepcionarYAbrirReparacion(
+                    id, recepcionistaId, estimacionInicial, diasEstimados, descripcionAveria
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al recepcionar la cita: " + e.getMessage()));
+        }
+    }
 }

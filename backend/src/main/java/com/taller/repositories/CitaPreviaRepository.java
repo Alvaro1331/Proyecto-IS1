@@ -13,5 +13,6 @@ public interface CitaPreviaRepository extends JpaRepository<CitaPrevia, Long> {
     List<CitaPrevia> findByFechaOrderByFranjaHorariaAsc(LocalDate fecha);
     List<CitaPrevia> findByFechaBetweenOrderByFechaAscFranjaHorariaAsc(LocalDate desde, LocalDate hasta);
     List<CitaPrevia> findByClienteIdOrderByFechaDescFranjaHorariaAsc(Long clienteId);
+    List<CitaPrevia> findByVehiculoId(Long vehiculoId);
     Optional<CitaPrevia> findByCodigoCita(String codigoCita);
 }

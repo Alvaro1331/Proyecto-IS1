@@ -3,6 +3,7 @@ package com.taller.repositories;
 import com.taller.models.Vehiculo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -16,4 +17,7 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Long> {
 
     // Comprobar si una matrícula ya existe
     boolean existsByMatricula(String matricula);
+
+    // Todos los vehículos registrados de un cliente concreto
+    List<Vehiculo> findByClienteId(Long clienteId);
 }
