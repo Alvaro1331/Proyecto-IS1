@@ -2149,4 +2149,32 @@ public class PruebasUnitariasTest {
         assertTrue(seguridad.coincide("NuevaSegura2026", cliente.getPassword()));
         assertFalse(seguridad.coincide("ClaveActual2026", cliente.getPassword()));
     }
+
+    /**
+     * PRUEBA 59 (NotificacionService - Resolución de URLs para emails sin localhost hardcodeado):
+     * Verifica que NotificacionService resuelve la URL base configurada para los correos,
+     * permitiendo enlaces accesibles desde producción (Azure) o configurables por propiedad/entorno.
+     */
+    @Test
+    @DisplayName("Prueba 59: NotificacionService resuelve correctamente la URL base sin localhost hardcodeado")
+    void test59_NotificacionServiceResuelveUrlBaseCorrectamente() {
+        NotificacionService notifService = new NotificacionService();
+
+        // 1. Con appBaseUrl configurado (por ejemplo, dominio de producción o personalizado)
+        notifService.setAppBaseUrl("https://motorflow.midominio.com");
+        assertEquals("https://motorflow.midominio.com", notifService.getBaseUrl());
+
+        // Con trailing slash debe normalizarlo
+        notifService.setAppBaseUrl("https://motorflow.midominio.com/");
+        assertEquals("https://motorflow.midominio.com", notifService.getBaseUrl());
+
+        // 2. Si se configura servidor de correo (modo producción/envío real), debe apuntar a la URL pública de producción
+        notifService.setAppBaseUrl(null);
+        ReflectionTestUtils.setField(notifService, "mailHost", "smtp.gmail.com");
+        assertEquals(NotificacionService.DEFAULT_PROD_URL, notifService.getBaseUrl());
+
+        // 3. En desarrollo local puro (sin servidor de correo ni URL configurada), utiliza localhost
+        ReflectionTestUtils.setField(notifService, "mailHost", null);
+        assertEquals(NotificacionService.DEFAULT_LOCAL_URL, notifService.getBaseUrl());
+    }
 }

@@ -40,6 +40,12 @@ public class NotificacionService {
     @Value("${spring.mail.username:#{null}}")
     private String mailUsername;
 
+    @Value("${app.base-url:#{null}}")
+    private String appBaseUrl;
+
+    public static final String DEFAULT_PROD_URL = "https://motorflow-app-haagege7guh4fva4.swedencentral-01.azurewebsites.net";
+    public static final String DEFAULT_LOCAL_URL = "http://localhost:8080";
+
     /**
      * Listener que reacciona a eventos de cambio de estado o incidencias de reparación.
      */
@@ -240,6 +246,52 @@ public class NotificacionService {
         System.out.println("--------------------------------------------------------------------------------");
     }
 
+    /**
+     * Resuelve la URL base de la aplicación.
+     * Prioridad:
+     * 1. Propiedad 'app.base-url' o variable de entorno 'APP_BASE_URL'.
+     * 2. Variable de entorno estándar de Azure App Service ('WEBSITE_HOSTNAME').
+     * 3. Si se están enviando correos reales (mailHost configurado), utiliza la URL de producción en Azure.
+     * 4. En desarrollo local por defecto, utiliza http://localhost:8080.
+     */
+    public String getBaseUrl() {
+        if (appBaseUrl != null && !appBaseUrl.isBlank()) {
+            String url = appBaseUrl.trim();
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "https://" + url;
+            }
+            return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        }
+
+        String azureHostname = System.getenv("WEBSITE_HOSTNAME");
+        if (azureHostname != null && !azureHostname.isBlank()) {
+            String url = "https://" + azureHostname.trim();
+            return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        }
+
+        if (mailHost != null && !mailHost.isBlank()) {
+            return DEFAULT_PROD_URL;
+        }
+
+        return DEFAULT_LOCAL_URL;
+    }
+
+    public void setAppBaseUrl(String appBaseUrl) {
+        this.appBaseUrl = appBaseUrl;
+    }
+
+    private String construirUrlCompleta(String ruta) {
+        String base = getBaseUrl();
+        if (ruta == null || ruta.isBlank()) {
+            return base;
+        }
+        String cleanRuta = ruta.trim();
+        if (cleanRuta.startsWith("/")) {
+            return base + cleanRuta;
+        }
+        return base + "/" + cleanRuta;
+    }
+
     private void imprimirLogConsolaEmail(String email, String nombre, String titulo, String mensaje,
                                          String etiquetaCodigo, String valorCodigo, String matricula,
                                          String marcaModelo, String rutaEnlace) {
@@ -252,7 +304,7 @@ public class NotificacionService {
             System.out.println(" " + etiquetaCodigo + ": " + valorCodigo);
         }
         if (rutaEnlace != null && !rutaEnlace.isBlank()) {
-            System.out.println(" Enlace de consulta directa: http://localhost:8080/" + rutaEnlace);
+            System.out.println(" Enlace de consulta directa: " + construirUrlCompleta(rutaEnlace));
         }
         System.out.println(" Contenido: " + mensaje);
         System.out.println("================================================================================");
@@ -261,7 +313,7 @@ public class NotificacionService {
     private String construirPlantillaHtml(String nombreCliente, String titulo, String mensaje,
                                           String etiquetaCodigo, String valorCodigo, String matricula,
                                           String marcaModelo, String rutaEnlace, String textoBoton) {
-        String urlConsulta = "http://localhost:8080/" + (rutaEnlace != null ? rutaEnlace : "pages/consulta-estado.html");
+        String urlConsulta = construirUrlCompleta(rutaEnlace != null ? rutaEnlace : "pages/consulta-estado.html");
 
         return "<div style=\"font-family: 'Segoe UI', Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #1e1e1e; color: #f5f5f5; border: 1px solid #333; border-radius: 8px; overflow: hidden;\">"
                 + "<div style=\"background-color: #e85d04; padding: 20px; text-align: center;\">"
