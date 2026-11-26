@@ -46,7 +46,7 @@ public class ConfiguracionTallerController {
             respuesta.put("margenBeneficioPorcentaje", actualizada.getMargenBeneficioPorcentaje());
             respuesta.put("precioHoraManoObra", actualizada.getPrecioHoraManoObra());
             respuesta.put("fondoInicial", actualizada.getFondoInicial());
-            respuesta.put("mensaje", "Configuración del taller actualizada correctamente.");
+            respuesta.put("mensaje", "Configuración del taller actualizada correctamente. Las nuevas tarifas se aplicarán a operaciones abiertas y futuras sin alterar facturas ya emitidas.");
             return ResponseEntity.ok(respuesta);
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Los valores numéricos de configuración no son válidos."));

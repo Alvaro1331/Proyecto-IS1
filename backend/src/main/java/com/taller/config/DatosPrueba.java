@@ -4,6 +4,7 @@ import com.taller.models.*;
 import com.taller.repositories.*;
 import com.taller.services.CitaPreviaService;
 import com.taller.services.ConfiguracionTallerService;
+import com.taller.services.PasswordSecurityService;
 import com.taller.services.ReparacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -36,14 +38,19 @@ public class DatosPrueba implements CommandLineRunner {
     @Autowired private ConfiguracionTallerService configuracionService;
     @Autowired private ReparacionService reparacionService;
     @Autowired private CitaPreviaService citaService;
+    @Autowired private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
+    @Autowired(required = false) private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        asegurarColumnasVarcharMySQL();
+
         // 1. Asegurar que exista siempre la Configuración del Taller por defecto (15% margen, 35 €/h, 2000 € fondo)
         ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
 
-        // 2. Si la base de datos MySQL ya tiene usuarios, normalizar datos existentes
+        // 2. Si la base de datos MySQL ya tiene usuarios, normalizar datos existentes y migrar contraseñas heredadas a BCrypt
         if (usuarioRepository.count() > 0) {
+            migrarPasswordsTextoPlano();
             normalizarClientesFiscales();
             List<Reparacion> existentes = reparacionRepository.findAll();
             for (Reparacion r : existentes) {
@@ -56,10 +63,26 @@ public class DatosPrueba implements CommandLineRunner {
                     r.setFechaEstimadaFin(r.getFechaEntrada().plusDays(r.getDiasEstimados()));
                     modificado = true;
                 }
-                if (r.getHorasTrabajoMecanico() == null || (r.getHorasTrabajoMecanico() == 0.0 && r.getEstado() != EstadoReparacion.PENDIENTE)) {
+                if (r.getFechaHoraEntrada() == null && r.getFechaEntrada() != null) {
+                    r.setFechaHoraEntrada(r.getFechaEntrada().atTime(9, 0));
+                    modificado = true;
+                }
+                if (r.getEstadoTemporizador() == null || r.getEstadoTemporizador().isBlank()) {
+                    r.setEstadoTemporizador("DETENIDO");
+                    modificado = true;
+                }
+                if (r.getHorasTrabajoMecanico() == null
+                        || (r.getHorasTrabajoMecanico() == 0.0
+                        && r.getEstado() != EstadoReparacion.PENDIENTE
+                        && r.getEstado() != EstadoReparacion.CANCELADA)) {
                     r.setHorasTrabajoMecanico(r.getEstado() == EstadoReparacion.FINALIZADA
                             || r.getEstado() == EstadoReparacion.CONFIRMADA
                             || r.getEstado() == EstadoReparacion.ENTREGADA ? 2.0 : 1.5);
+                    modificado = true;
+                }
+                if ((r.getSegundosAcumuladosTemporizador() == null || r.getSegundosAcumuladosTemporizador() == 0L)
+                        && r.getHorasTrabajoMecanico() != null && r.getHorasTrabajoMecanico() > 0.0) {
+                    r.setSegundosAcumuladosTemporizador(Math.round(r.getHorasTrabajoMecanico() * 3600.0));
                     modificado = true;
                 }
                 if (modificado) {
@@ -82,10 +105,10 @@ public class DatosPrueba implements CommandLineRunner {
         }
 
         // ======== USUARIOS (personal del taller) ========
-        Usuario admin = new Usuario("Antonio García", "admin@taller.com", "admin123", "600000001", Rol.ADMIN);
-        Usuario recep1 = new Usuario("Laura Martínez", "laura@taller.com", "laura123", "600000002", Rol.RECEPCIONISTA);
-        Usuario mec1 = new Usuario("Pedro Ruiz", "pedro@taller.com", "pedro123", "600000003", Rol.MECANICO);
-        Usuario mec2 = new Usuario("Ana López", "ana@taller.com", "ana123", "600000004", Rol.MECANICO);
+        Usuario admin = new Usuario("Antonio García", "admin@taller.com", passwordSecurityService.hashear("admin123"), "600000001", Rol.ADMIN);
+        Usuario recep1 = new Usuario("Laura Martínez", "laura@taller.com", passwordSecurityService.hashear("laura123"), "600000002", Rol.RECEPCIONISTA);
+        Usuario mec1 = new Usuario("Pedro Ruiz", "pedro@taller.com", passwordSecurityService.hashear("pedro123"), "600000003", Rol.MECANICO);
+        Usuario mec2 = new Usuario("Ana López", "ana@taller.com", passwordSecurityService.hashear("ana123"), "600000004", Rol.MECANICO);
 
         usuarioRepository.save(admin);
         usuarioRepository.save(recep1);
@@ -93,9 +116,9 @@ public class DatosPrueba implements CommandLineRunner {
         usuarioRepository.save(mec2);
 
         // ======== CLIENTES ========
-        Cliente cliente1 = new Cliente("Juan Pérez", "611111111", "juan@email.com", "juan123", "12345678Z", "Calle Alcalá 45, 28014 Madrid");
+        Cliente cliente1 = new Cliente("Juan Pérez", "611111111", "juan@email.com", passwordSecurityService.hashear("juan123"), "12345678Z", "Calle Alcalá 45, 28014 Madrid");
         Cliente cliente2 = new Cliente("María Sánchez", "622222222", null, null, "45678912M", "Avenida de América 18, 28028 Madrid");
-        Cliente cliente3 = new Cliente("Carlos Fernández", "633333333", "carlos@email.com", "carlos123", "87654321X", "Paseo de la Castellana 120, 28046 Madrid");
+        Cliente cliente3 = new Cliente("Carlos Fernández", "633333333", "carlos@email.com", passwordSecurityService.hashear("carlos123"), "87654321X", "Paseo de la Castellana 120, 28046 Madrid");
 
         clienteRepository.save(cliente1);
         clienteRepository.save(cliente2);
@@ -122,9 +145,11 @@ public class DatosPrueba implements CommandLineRunner {
         materialRepository.save(new Material("Bujías", "Set de 4 unidades, iridio", 25, 22.00));
 
         // ======== REPARACIONES ========
-        // Reparación 1: Pendiente (con presupuesto desglosado pendiente de aceptación por Juan Pérez)
+        // Reparación 1: Pendiente (con fecha de llegada hace 2 días y 4 horas para registro cronológico HU #8)
         Reparacion rep1 = new Reparacion(v1, recep1, "El motor hace un ruido extraño al acelerar.", 220.00, 4);
         rep1.setMecanico(mec1);
+        rep1.setFechaHoraEntrada(LocalDateTime.now().minusDays(2).minusHours(4));
+        rep1.setFechaEstimadaFin(rep1.getFechaEntrada().plusDays(4));
         reparacionRepository.save(rep1);
 
         // Reparación 2: En proceso (Pedro Ruiz)
@@ -132,6 +157,8 @@ public class DatosPrueba implements CommandLineRunner {
         rep2.setMecanico(mec1);
         rep2.setEstado(EstadoReparacion.EN_PROCESO);
         rep2.setHorasTrabajoMecanico(1.5);
+        rep2.setSegundosAcumuladosTemporizador(5400L);
+        rep2.setEstadoTemporizador("PAUSADO");
         reparacionRepository.save(rep2);
         reparacionMaterialRepository.save(new ReparacionMaterial(rep2, mPastillas, 1));
         incidenciaRepository.save(new IncidenciaReparacion(
@@ -146,6 +173,7 @@ public class DatosPrueba implements CommandLineRunner {
         rep3.setMecanico(mec2);
         rep3.setEstado(EstadoReparacion.FINALIZADA);
         rep3.setHorasTrabajoMecanico(1.5);
+        rep3.setSegundosAcumuladosTemporizador(5400L);
         reparacionRepository.save(rep3);
         reparacionMaterialRepository.save(new ReparacionMaterial(rep3, mFiltro, 1));
         reparacionMaterialRepository.save(new ReparacionMaterial(rep3, mAceite, 1));
@@ -159,6 +187,24 @@ public class DatosPrueba implements CommandLineRunner {
         // Generar factura inicial de muestra para la reparación 3
         reparacionService.generarFactura(rep3.getId(), 1.5);
 
+        // Reparación 4 (Histórica ENTREGADA del Seat Ibiza 9012GHI para probar HU #21 Historial de mecánicos)
+        Reparacion repHistV3 = new Reparacion(v3, recep1, "Fallo de encendido en frío y revisión anual de filtros.", 110.00, 1);
+        repHistV3.setMecanico(mec2);
+        repHistV3.setFechaHoraEntrada(LocalDateTime.now().minusDays(45));
+        repHistV3.setFechaSalida(LocalDate.now().minusDays(44));
+        repHistV3.setEstado(EstadoReparacion.ENTREGADA);
+        repHistV3.setHorasTrabajoMecanico(1.25);
+        repHistV3.setSegundosAcumuladosTemporizador(4500L);
+        reparacionRepository.save(repHistV3);
+        reparacionMaterialRepository.save(new ReparacionMaterial(repHistV3, mFiltro, 1));
+        incidenciaRepository.save(new IncidenciaReparacion(
+                repHistV3,
+                "Sustitución de filtro de aceite y comprobación de bujías y batería. Arranque en frío restablecido.",
+                0.0,
+                null
+        ));
+        reparacionService.generarFactura(repHistV3.getId(), 1.25);
+
         // Vincular reparaciones a las cuentas de los clientes que tienen cuenta
         cliente1.getReparacionesVinculadas().add(rep1);
         clienteRepository.save(cliente1);
@@ -166,7 +212,7 @@ public class DatosPrueba implements CommandLineRunner {
         cliente3.getReparacionesVinculadas().add(rep3);
         clienteRepository.save(cliente3);
 
-        inicializarPresupuestoYCitasMuestra(List.of(rep1, rep2, rep3));
+        inicializarPresupuestoYCitasMuestra(List.of(rep1, rep2, rep3, repHistV3));
 
         System.out.println("=========================================");
         System.out.println("  DATOS DE PRUEBA CARGADOS CORRECTAMENTE");
@@ -176,6 +222,31 @@ public class DatosPrueba implements CommandLineRunner {
         System.out.println("  Localizador Rep 2 (Seat):    " + rep2.getLocalizador());
         System.out.println("  Localizador Rep 3 (VW Golf): " + rep3.getLocalizador());
         System.out.println("=========================================");
+    }
+
+    /**
+     * Migra automáticamente a hash BCrypt las contraseñas heredadas que aún estuvieran en texto plano
+     * en empleados o clientes con cuenta, manteniendo exactamente las mismas credenciales de acceso.
+     */
+    public int migrarPasswordsTextoPlano() {
+        int migradas = 0;
+        for (Usuario u : usuarioRepository.findAll()) {
+            String pwd = u.getPassword();
+            if (pwd != null && !pwd.isBlank() && !passwordSecurityService.estaHasheada(pwd)) {
+                u.setPassword(passwordSecurityService.hashear(pwd));
+                usuarioRepository.save(u);
+                migradas++;
+            }
+        }
+        for (Cliente c : clienteRepository.findAll()) {
+            String pwd = c.getPassword();
+            if (pwd != null && !pwd.isBlank() && !passwordSecurityService.estaHasheada(pwd)) {
+                c.setPassword(passwordSecurityService.hashear(pwd));
+                clienteRepository.save(c);
+                migradas++;
+            }
+        }
+        return migradas;
     }
 
     private void normalizarClientesFiscales() {
@@ -230,7 +301,7 @@ public class DatosPrueba implements CommandLineRunner {
                         r.setEstado(EstadoReparacion.PENDIENTE);
                         reparacionRepository.save(r);
                     }
-                } else if (r.getEstado() != EstadoReparacion.PENDIENTE) {
+                } else if (r.getEstado() != EstadoReparacion.PENDIENTE && r.getEstado() != EstadoReparacion.CANCELADA) {
                     reparacionService.crearPresupuestoAceptadoInicial(
                             r.getId(),
                             "Diagnóstico inicial confirmado con el cliente: " + r.getDescripcionAveria(),
@@ -310,5 +381,17 @@ public class DatosPrueba implements CommandLineRunner {
             cursor = cursor.plusDays(1);
         }
         return cursor;
+    }
+
+    private void asegurarColumnasVarcharMySQL() {
+        if (jdbcTemplate == null) {
+            return;
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE reparaciones MODIFY COLUMN estado VARCHAR(30) NOT NULL");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE notificaciones_cliente MODIFY COLUMN tipo VARCHAR(50) NOT NULL");
+        } catch (Exception ignored) {}
     }
 }

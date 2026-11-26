@@ -147,8 +147,31 @@ function crearBadgeEstado(estado) {
             clase += ' badge-delivered';
             texto = 'Entregada';
             break;
+        case 'CANCELADA':
+            clase += ' badge-cancelled';
+            texto = 'Cancelada';
+            break;
     }
     return `<span class="${clase}">${texto}</span>`;
+}
+
+function esEstadoCerradoTaller(estado) {
+    return estado === 'ENTREGADA' || estado === 'CANCELADA';
+}
+
+function construirMapaUltimaReparacionPorMatricula(reparaciones = []) {
+    const ordenadas = [...(reparaciones || [])].sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
+    const mapa = {};
+    ordenadas.forEach(r => {
+        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
+        if (!mat) return;
+        const previa = mapa[mat];
+        // Priorizar cualquier reparación activa sobre una cerrada, y en igualdad la más reciente
+        if (!previa || !esEstadoCerradoTaller(r.estado) || esEstadoCerradoTaller(previa.estado)) {
+            mapa[mat] = r;
+        }
+    });
+    return mapa;
 }
 
 function toggleLoading(button, isLoading) {
@@ -377,6 +400,24 @@ const PASOS_REPARACION = [
 
 function renderizarLineaTemporalHTML(rep) {
     const estadoActual = rep.estado || 'PENDIENTE';
+    if (estadoActual === 'CANCELADA') {
+        const fSalida = rep.fechaSalida ? formatearFecha(rep.fechaSalida) : 'Registrada';
+        return `
+            <div class="timeline-wrapper" style="border-color: color-mix(in srgb, var(--err) 30%, transparent);">
+                <div class="timeline-header-meta">
+                    <div style="font-weight: 600; font-size: 0.92rem; color: var(--err);">
+                        Reparación cancelada · Vehículo devuelto sin reparar
+                    </div>
+                    <div>
+                        <span class="badge badge-cancelled">Retirado del taller (${fSalida})</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    El presupuesto fue rechazado y la orden se cerró sin ejecutar trabajos de reparación ni emitir factura.
+                </div>
+            </div>
+        `;
+    }
     const idxActual = PASOS_REPARACION.findIndex(p => p.codigo === estadoActual);
     const diasEstimados = rep.diasEstimados ?? 3;
     const diasRestantes = rep.diasRestantes ?? diasEstimados;
@@ -1338,12 +1379,65 @@ function abrirModalDetalleReparacion(rep, opciones = {}) {
 
     const tieneFactura = !!r.factura;
     const tienePresupuesto = !!r.presupuestoFormal;
+    const pFormal = r.presupuestoFormal;
+    const puedeResponderPresencial = !esEstadoCerradoTaller(r.estado)
+        && tienePresupuesto
+        && r.estadoPresupuesto === 'PENDIENTE_ACEPTACION'
+        && !pFormal.caducado;
+    const puedeCancelarPorRechazo = (r.estado === 'PENDIENTE' || r.estado === 'EN_PROCESO')
+        && r.estadoPresupuesto === 'RECHAZADO';
+
+    const recargarTrasAccion = async () => {
+        if (typeof opciones.onRefresh === 'function') {
+            await opciones.onRefresh();
+        }
+    };
+    window._detalleModalAccionesCallback = recargarTrasAccion;
+
+    let bloquePresencialHtml = '';
+    if (puedeResponderPresencial) {
+        bloquePresencialHtml = `
+            <div style="padding: 0.85rem 1rem; border-radius: 8px; background: color-mix(in srgb, var(--warn) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="font-size: 0.85rem;">
+                    <strong style="color: var(--warn);">Presupuesto pendiente de respuesta (${pFormal.numeroPresupuesto} · ${formatearEuros(pFormal.totalPresupuesto)})</strong>
+                    <div style="color: var(--text-muted); margin-top: 0.15rem;">
+                        ${r.clienteTieneCuenta ? 'Si el cliente confirma en recepción o por teléfono, puedes registrarlo aquí.' : 'Este cliente no tiene cuenta web: registra su respuesta presencial o telefónica.'}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-success" style="font-size: 0.82rem;" onclick="abrirModalRespuestaPresupuestoPresencialPorId(${r.id}, 'ACEPTAR')">
+                        Aceptar (Presencial / Teléfono)
+                    </button>
+                    <button type="button" class="btn btn-danger" style="font-size: 0.82rem;" onclick="abrirModalRespuestaPresupuestoPresencialPorId(${r.id}, 'RECHAZAR')">
+                        Rechazar (Presencial / Teléfono)
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (puedeCancelarPorRechazo) {
+        bloquePresencialHtml = `
+            <div style="padding: 0.85rem 1rem; border-radius: 8px; background: color-mix(in srgb, var(--err) 9%, transparent); border: 1px solid color-mix(in srgb, var(--err) 30%, transparent); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="font-size: 0.85rem;">
+                    <strong style="color: var(--err);">Presupuesto rechazado · Orden abierta</strong>
+                    <div style="color: var(--text-muted); margin-top: 0.15rem;">
+                        El taller puede emitir un nuevo presupuesto revisado, o si el cliente se lleva el vehículo sin reparar, cancelar la orden definitivamente.
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger" style="font-size: 0.82rem;" onclick="confirmarCancelarReparacionDesdeDetalle(${r.id})">
+                    Cancelar y Devolver Vehículo
+                </button>
+            </div>
+        `;
+    }
 
     document.getElementById('det-rep-body').innerHTML = `
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             ${crearBadgeEstado(r.estado)}
             ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
+            ${!r.clienteTieneCuenta ? '<span class="badge badge-delivered">Cliente sin cuenta web</span>' : ''}
         </div>
+
+        ${bloquePresencialHtml}
 
         <div class="detail-kv-grid">
             <div><span>Cliente</span><strong>${cliente} ${tel ? `(${tel})` : ''}</strong></div>
@@ -1374,7 +1468,7 @@ function abrirModalDetalleReparacion(rep, opciones = {}) {
 
     const botones = [];
     if (rol === 'ADMIN') {
-        if (r.estado !== 'ENTREGADA') {
+        if (!esEstadoCerradoTaller(r.estado)) {
             botones.push(`<button type="button" class="btn btn-secondary" onclick="cerrarModalDetalleReparacion(); abrirPresupuestoDesdeAdmin(${r.id})">${tienePresupuesto ? 'Editar presupuesto' : 'Crear presupuesto'}</button>`);
         }
         if (tienePresupuesto) {
@@ -1406,5 +1500,221 @@ function abrirModalDetalleReparacion(rep, opciones = {}) {
     document.getElementById('det-rep-footer').innerHTML = botones.join('');
 
     document.getElementById('modal-detalle-reparacion-global').style.display = 'flex';
+}
+
+// =====================================================
+// MODALES COMPARTIDOS: PRESUPUESTO PRESENCIAL Y CANCELACIÓN DE REPARACIÓN
+// =====================================================
+let estadoModalPresupuestoPresencial = {
+    reparacion: null,
+    accion: 'ACEPTAR',
+    callback: null
+};
+
+function asegurarModalPresupuestoPresencialDOM() {
+    let overlay = document.getElementById('modal-presupuesto-presencial-overlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'modal-presupuesto-presencial-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.onclick = (e) => {
+        if (e.target === overlay) cerrarModalPresupuestoPresencial();
+    };
+    overlay.innerHTML = `
+        <div class="modal card" style="max-width: 500px; width: 95%;">
+            <h3 id="modal-pres-pres-titulo" style="margin: 0 0 0.45rem 0;">Registrar Decisión del Cliente</h3>
+            <p id="modal-pres-pres-desc" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+            <div id="modal-pres-pres-alert"></div>
+            <div class="form-group">
+                <label style="font-size: 0.84rem;">Canal de confirmación con el cliente</label>
+                <select id="select-canal-pres-presencial">
+                    <option value="Presencial en recepción">Presencial en recepción</option>
+                    <option value="Por teléfono">Por teléfono</option>
+                </select>
+            </div>
+            <div class="form-group" id="wrap-motivo-rechazo-presencial" style="display: none;">
+                <label style="font-size: 0.84rem;">Motivo del rechazo (Opcional)</label>
+                <textarea id="input-motivo-rechazo-presencial" rows="2" placeholder="Indica el motivo comunicado por el cliente (opcional)..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalPresupuestoPresencial()">Volver</button>
+                <button type="button" class="btn btn-primary" id="btn-confirmar-pres-presencial" onclick="ejecutarRespuestaPresupuestoPresencial(this)">Confirmar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function cerrarModalPresupuestoPresencial() {
+    const overlay = document.getElementById('modal-presupuesto-presencial-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function abrirModalRespuestaPresupuestoPresencialPorId(repId, accion) {
+    if (reparacionDetalleModalActiva && Number(reparacionDetalleModalActiva.id) === Number(repId)) {
+        cerrarModalDetalleReparacion();
+        abrirModalRespuestaPresupuestoPresencial(reparacionDetalleModalActiva, accion, window._detalleModalAccionesCallback);
+    }
+}
+
+function abrirModalRespuestaPresupuestoPresencial(rep, accion, callbackRecargar) {
+    if (!rep) return;
+    const overlay = asegurarModalPresupuestoPresencialDOM();
+    estadoModalPresupuestoPresencial = {
+        reparacion: rep,
+        accion: accion || 'ACEPTAR',
+        callback: callbackRecargar || null
+    };
+    document.getElementById('modal-pres-pres-alert').innerHTML = '';
+    document.getElementById('input-motivo-rechazo-presencial').value = '';
+
+    const p = rep.presupuestoFormal || {};
+    const esAceptar = (estadoModalPresupuestoPresencial.accion === 'ACEPTAR');
+    document.getElementById('modal-pres-pres-titulo').textContent = esAceptar
+        ? 'Aceptar Presupuesto (Presencial / Teléfono)'
+        : 'Rechazar Presupuesto (Presencial / Teléfono)';
+    document.getElementById('modal-pres-pres-desc').innerHTML = esAceptar
+        ? `Vas a marcar como <strong>ACEPTADO</strong> el presupuesto <strong>${p.numeroPresupuesto || ''}</strong> (${formatearEuros(p.totalPresupuesto)}) del vehículo <strong>${rep.matriculaVehiculo || ''}</strong> (Cliente: ${rep.nombreCliente || '-'}).`
+        : `Vas a marcar como <strong>RECHAZADO</strong> el presupuesto <strong>${p.numeroPresupuesto || ''}</strong> (${formatearEuros(p.totalPresupuesto)}) de <strong>${rep.matriculaVehiculo || ''}</strong>. La orden permanecerá abierta por si el mecánico emite un nuevo presupuesto, o podrás cancelar la reparación para devolver el coche.`;
+
+    document.getElementById('wrap-motivo-rechazo-presencial').style.display = esAceptar ? 'none' : 'block';
+    const btn = document.getElementById('btn-confirmar-pres-presencial');
+    btn.className = esAceptar ? 'btn btn-success' : 'btn btn-danger';
+    btn.textContent = esAceptar ? 'Marcar como Aceptado' : 'Marcar como Rechazado';
+    overlay.style.display = 'flex';
+}
+
+async function ejecutarRespuestaPresupuestoPresencial(btn) {
+    const rep = estadoModalPresupuestoPresencial.reparacion;
+    const user = getUsuarioActual();
+    const alertBox = document.getElementById('modal-pres-pres-alert');
+    alertBox.innerHTML = '';
+
+    if (!rep || !user) return;
+    const canal = document.getElementById('select-canal-pres-presencial').value;
+    const motivoRechazo = document.getElementById('input-motivo-rechazo-presencial').value.trim();
+
+    toggleLoading(btn, true);
+    try {
+        const res = await apiFetch(`/reparaciones/${rep.id}/presupuesto-formal/responder-presencial`, {
+            method: 'POST',
+            silent: true,
+            body: JSON.stringify({
+                accion: estadoModalPresupuestoPresencial.accion,
+                canal,
+                motivoRechazo,
+                usuarioId: user.id
+            })
+        });
+        cerrarModalPresupuestoPresencial();
+        mostrarAlerta(res.mensaje || 'Respuesta registrada correctamente.', 'success');
+        if (typeof estadoModalPresupuestoPresencial.callback === 'function') {
+            await estadoModalPresupuestoPresencial.callback();
+        }
+    } catch (error) {
+        mostrarAlerta(error.message || 'No se pudo registrar la decisión.', 'error', alertBox);
+    } finally {
+        toggleLoading(btn, false);
+    }
+}
+
+let estadoModalCancelarRep = {
+    reparacion: null,
+    opciones: {}
+};
+
+function asegurarModalCancelarReparacionDOM() {
+    let overlay = document.getElementById('modal-cancelar-reparacion-overlay');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'modal-cancelar-reparacion-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.onclick = (e) => {
+        if (e.target === overlay) cerrarModalCancelarReparacion();
+    };
+    overlay.innerHTML = `
+        <div class="modal card" style="max-width: 500px; width: 95%;">
+            <h3 style="margin: 0 0 0.45rem 0; color: var(--err);">Cancelar Reparación y Retirar Vehículo</h3>
+            <p id="modal-cancel-rep-desc" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+            <div id="modal-cancel-rep-alert"></div>
+            <div class="form-group">
+                <label style="font-size: 0.84rem;">Observaciones de devolución (Opcional)</label>
+                <textarea id="input-motivo-cancel-rep" rows="2" placeholder="Ej. El cliente decide retirar el vehículo sin realizar la reparación..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalCancelarReparacion()">Mantener Abierta</button>
+                <button type="button" class="btn btn-danger" id="btn-confirmar-cancel-rep" onclick="ejecutarCancelarReparacionRechazada(this)">Confirmar Cancelación</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function cerrarModalCancelarReparacion() {
+    const overlay = document.getElementById('modal-cancelar-reparacion-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function confirmarCancelarReparacionDesdeDetalle(repId) {
+    if (reparacionDetalleModalActiva && Number(reparacionDetalleModalActiva.id) === Number(repId)) {
+        const user = getUsuarioActual();
+        cerrarModalDetalleReparacion();
+        confirmarCancelarReparacionRechazada(reparacionDetalleModalActiva, {
+            usuarioId: user ? user.id : null,
+            onSuccess: window._detalleModalAccionesCallback
+        });
+    }
+}
+
+function confirmarCancelarReparacionRechazada(rep, opciones = {}) {
+    if (!rep) return;
+    const overlay = asegurarModalCancelarReparacionDOM();
+    estadoModalCancelarRep = { reparacion: rep, opciones };
+    document.getElementById('modal-cancel-rep-alert').innerHTML = '';
+    document.getElementById('input-motivo-cancel-rep').value = '';
+    const mat = rep.matriculaVehiculo || rep.matricula || '';
+    const marcaMod = `${rep.marcaVehiculo || rep.marca || ''} ${rep.modeloVehiculo || rep.modelo || ''}`.trim();
+    document.getElementById('modal-cancel-rep-desc').innerHTML =
+        `Tras rechazar el presupuesto, vas a cancelar definitivamente la reparación del vehículo <strong>${marcaMod} (${mat})</strong>. El vehículo saldrá de la lista activa del taller y quedará registrado en el historial como <strong>CANCELADA</strong> sin emitir factura.`;
+    overlay.style.display = 'flex';
+}
+
+async function ejecutarCancelarReparacionRechazada(btn) {
+    const rep = estadoModalCancelarRep.reparacion;
+    const opts = estadoModalCancelarRep.opciones || {};
+    const alertBox = document.getElementById('modal-cancel-rep-alert');
+    alertBox.innerHTML = '';
+    if (!rep) return;
+
+    const motivo = document.getElementById('input-motivo-cancel-rep').value.trim();
+    const user = getUsuarioActual();
+    const payload = { motivo };
+    if (opts.clienteId) {
+        payload.clienteId = opts.clienteId;
+    } else if (opts.usuarioId || (user && user.rol !== 'CLIENTE')) {
+        payload.usuarioId = opts.usuarioId || user.id;
+    } else if (user && user.rol === 'CLIENTE') {
+        payload.clienteId = user.id;
+    }
+
+    toggleLoading(btn, true);
+    try {
+        const res = await apiFetch(`/reparaciones/${rep.id}/cancelar`, {
+            method: 'POST',
+            silent: true,
+            body: JSON.stringify(payload)
+        });
+        cerrarModalCancelarReparacion();
+        mostrarAlerta(res.mensaje || 'Reparación cancelada y vehículo devuelto sin reparar.', 'success', opts.alertContainer || 'alert-container');
+        if (typeof opts.onSuccess === 'function') {
+            await opts.onSuccess();
+        }
+    } catch (error) {
+        mostrarAlerta(error.message || 'No se pudo cancelar la reparación.', 'error', alertBox);
+    } finally {
+        toggleLoading(btn, false);
+    }
 }
 

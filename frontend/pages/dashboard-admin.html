@@ -104,7 +104,7 @@
                     <div class="detail-kv-grid">
                         <div>
                             <span id="cuenta-fondo-sub">Fondo inicial: 2.000,00 €</span>
-                            <span>Gastos en stock y piezas</span>
+                            <span>Gastos en compras de stock (Caja)</span>
                             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.1rem;">
                                 <strong id="cuenta-gastos" style="color: var(--err);">0,00 €</strong>
                                 <button type="button" class="btn btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;" onclick="abrirModalHistorialGastos()">Ver / Eliminar gastos</button>
@@ -140,6 +140,7 @@
 
         <div class="tabs">
             <button class="tab-btn active" id="tab-btn-reparaciones" onclick="showTab('tab-reparaciones', this)">Reparaciones <span id="tab-badge-rep" class="notif-pill" style="display: none;">0</span></button>
+            <button class="tab-btn" id="tab-btn-supervision" onclick="showTab('tab-supervision', this)">Supervisión de Mecánicos</button>
             <button class="tab-btn" id="tab-btn-facturas" onclick="showTab('tab-facturas', this)">Archivo de Facturas</button>
             <button class="tab-btn" id="tab-btn-config" onclick="showTab('tab-configuracion', this)">Configuración del Taller</button>
             <button class="tab-btn" id="tab-btn-inventario" onclick="showTab('tab-inventario', this)">Inventario <span id="tab-badge-inv" class="notif-pill" style="display: none;">0</span></button>
@@ -149,15 +150,60 @@
 
         <!-- TAB 1: REPARACIONES -->
         <div id="tab-reparaciones" class="tab-content active">
+            <!-- HU #8: Registro Cronológico de Vehículos en Espera -->
+            <details class="disclosure-box" id="panel-registro-cronologico" open style="margin-top: 0; margin-bottom: 1.25rem;">
+                <summary>
+                    <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                        <strong>Registro Cronológico de Espera (Orden de Llegada)</strong>
+                        <span id="badge-crono-count" class="badge badge-pending">0 en espera</span>
+                    </div>
+                </summary>
+                <div class="disclosure-body">
+                    <p style="margin: 0 0 0.85rem 0; font-size: 0.85rem; color: var(--text-muted);">
+                        Lista de espera ordenada automáticamente del vehículo que lleva más tiempo en el taller al más reciente. Al pasar a <em>En reparación</em> salen automáticamente de esta cola.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Turno</th>
+                                    <th>Vehículo / Cliente</th>
+                                    <th>Fecha y Hora de Llegada</th>
+                                    <th>Tiempo en Taller</th>
+                                    <th style="text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-registro-cronologico"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+
             <div class="card">
-                <h2>Gestión de Reparaciones y Seguimiento</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                    <h2 style="margin: 0;">Gestión de Reparaciones y Seguimiento</h2>
+                    <!-- HU #7: Selector dinámico de ordenación por categorías operativas -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <label for="orden-reparaciones-admin" style="margin: 0; font-size: 0.84rem; font-weight: 600; color: var(--text-muted);">Ordenar por:</label>
+                        <select id="orden-reparaciones-admin" onchange="aplicarOrdenReparacionesAdmin()" style="width: auto; min-width: 265px; padding: 0.4rem 0.7rem; font-size: 0.85rem;">
+                            <option value="">Por defecto (Orden de registro)</option>
+                            <option value="LLEGADA_ASC">Orden de llegada (Más antiguos primero)</option>
+                            <option value="LLEGADA_DESC">Orden de llegada (Más recientes primero)</option>
+                            <option value="TIEMPO_ASC">Tiempo estimado de reparación (Menor a mayor)</option>
+                            <option value="TIEMPO_DESC">Tiempo estimado de reparación (Mayor a menor)</option>
+                            <option value="PIEZAS_DESC">Uso de piezas (Mayor consumo primero)</option>
+                            <option value="PIEZAS_ASC">Uso de piezas (Menor consumo primero)</option>
+                        </select>
+                    </div>
+                </div>
                 <div style="margin-bottom: 1.25rem; display: flex; gap: 0.45rem; flex-wrap: wrap;" id="filter-reparaciones">
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('')">Todas (En Taller)</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('PENDIENTE')">Pendientes</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('EN_PROCESO')">En Proceso</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('FINALIZADA')">Por Confirmar (Finalizadas)</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('CONFIRMADA')">Confirmadas (Para Entregar)</button>
-                    <button class="btn btn-secondary" onclick="cargarReparaciones('ENTREGADA')">Entregadas</button>
+                    <button class="btn btn-primary" data-estado="" onclick="cargarReparaciones('', this)">Todas (En Taller)</button>
+                    <button class="btn btn-secondary" data-estado="PENDIENTE" onclick="cargarReparaciones('PENDIENTE', this)">Pendientes</button>
+                    <button class="btn btn-secondary" data-estado="EN_PROCESO" onclick="cargarReparaciones('EN_PROCESO', this)">En Proceso</button>
+                    <button class="btn btn-secondary" data-estado="FINALIZADA" onclick="cargarReparaciones('FINALIZADA', this)">Por Confirmar (Finalizadas)</button>
+                    <button class="btn btn-secondary" data-estado="CONFIRMADA" onclick="cargarReparaciones('CONFIRMADA', this)">Confirmadas (Para Entregar)</button>
+                    <button class="btn btn-secondary" data-estado="ENTREGADA" onclick="cargarReparaciones('ENTREGADA', this)">Entregadas</button>
+                    <button class="btn btn-secondary" data-estado="CANCELADA" onclick="cargarReparaciones('CANCELADA', this)">Canceladas (Historial)</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table">
@@ -171,6 +217,89 @@
                             </tr>
                         </thead>
                         <tbody id="tabla-reparaciones"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: SUPERVISIÓN DE MECÁNICOS (HU #20) -->
+        <div id="tab-supervision" class="tab-content">
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div>
+                        <h2 style="margin: 0;">Supervisión de Tiempos del Equipo de Mecánicos</h2>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--text-muted);">
+                            Consulta las horas y minutos invertidos por cada mecánico y revisa el desglose detallado de los vehículos que ha atendido. Sección exclusiva para Administración.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                        <select id="sup-filtro-mecanico" onchange="cargarSupervisionMecanicos()" style="width: auto; min-width: 195px; padding: 0.42rem 0.7rem; font-size: 0.86rem;">
+                            <option value="">Todos los mecánicos</option>
+                        </select>
+                        <select id="sup-filtro-periodo" onchange="cargarSupervisionMecanicos()" style="width: auto; min-width: 165px; padding: 0.42rem 0.7rem; font-size: 0.86rem;">
+                            <option value="TODOS">Todo el historial</option>
+                            <option value="HOY">Hoy</option>
+                            <option value="SEMANA">Esta semana</option>
+                            <option value="MES">Este mes</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary" onclick="cargarSupervisionMecanicos()">↻ Actualizar</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                    <div style="background: color-mix(in srgb, var(--text) 8.8%, transparent); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Tiempo Total Acumulado</div>
+                        <div id="sup-total-tiempo" style="font-size: 1.35rem; font-weight: 700; color: var(--primary-light);">0 h 0 min</div>
+                    </div>
+                    <div style="background: color-mix(in srgb, var(--text) 8.8%, transparent); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Reparaciones con Registro</div>
+                        <div id="sup-total-reps" style="font-size: 1.35rem; font-weight: 700; color: var(--text-light);">0</div>
+                    </div>
+                    <div style="background: color-mix(in srgb, var(--text) 8.8%, transparent); padding: 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Mecánicos en Vista</div>
+                        <div id="sup-total-mecs" style="font-size: 1.35rem; font-weight: 700; color: var(--info);">0</div>
+                    </div>
+                </div>
+
+                <div id="sup-alerta-vacio" style="display: none; margin-bottom: 1rem;" class="alert alert-info">
+                    <span>No existen registros de trabajo para ese periodo o mecánico seleccionado.</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Mecánico</th>
+                                <th>Reparaciones Atendidas</th>
+                                <th>Tiempo Total Invertido</th>
+                                <th style="text-align: right;">Desglose</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-supervision-mecanicos"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card" id="panel-desglose-mecanico" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                    <div>
+                        <h3 id="sup-desglose-titulo" style="margin: 0;">Desglose de Reparaciones</h3>
+                        <p id="sup-desglose-subtitulo" style="margin: 0.2rem 0 0 0; font-size: 0.84rem; color: var(--text-muted);"></p>
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="font-size: 0.8rem;" onclick="cerrarDesgloseMecanico()">Cerrar desglose</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Avería / Localizador</th>
+                                <th>Vehículo y Trabajo</th>
+                                <th>Fecha Entrada</th>
+                                <th>Estado</th>
+                                <th style="text-align: right;">Tiempo Exacto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-desglose-mecanico"></tbody>
                     </table>
                 </div>
             </div>
@@ -320,6 +449,7 @@
                                 <th>Stock Disponible</th>
                                 <th>Precio</th>
                                 <th>Modificar Stock (Unidades)</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-materiales"></tbody>
@@ -348,7 +478,7 @@
                         </div>
                         <div class="form-group">
                             <label>Contraseña</label>
-                            <input type="password" id="usu-password" required>
+                            <input type="password" id="usu-password" placeholder="Mín. 8 caracteres (letras y números)" minlength="8" required>
                         </div>
                         <div class="form-group">
                             <label>Teléfono</label>
@@ -388,6 +518,7 @@
                                 <th>Email</th>
                                 <th>Teléfono</th>
                                 <th>Rol</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-usuarios"></tbody>
@@ -454,7 +585,7 @@
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
                     <div style="background: color-mix(in srgb, var(--text) 7%, transparent); padding: 0.75rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Total Gastos Tesorería</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Total Gastos Tesorería (Caja)</div>
                         <strong id="hist-gasto-total" style="font-size: 1.2rem; color: var(--err);">-0,00 €</strong>
                     </div>
                     <div style="background: color-mix(in srgb, var(--text) 7%, transparent); padding: 0.75rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
@@ -462,8 +593,8 @@
                         <strong id="hist-gasto-compras" style="font-size: 1.2rem; color: var(--err);">-0,00 €</strong>
                     </div>
                     <div style="background: color-mix(in srgb, var(--text) 7%, transparent); padding: 0.75rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);">
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Piezas en Reparaciones</div>
-                        <strong id="hist-gasto-piezas" style="font-size: 1.2rem; color: var(--text-light);">-0,00 €</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Piezas en Reparaciones (Imputado, no resta caja)</div>
+                        <strong id="hist-gasto-piezas" style="font-size: 1.2rem; color: var(--text-light);">0,00 €</strong>
                     </div>
                 </div>
 
@@ -497,6 +628,93 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal HU #59: Editar empleado del taller -->
+        <div id="modal-editar-usuario" class="modal-overlay" onclick="if (event.target === this) cerrarModalEditarUsuario()">
+            <div class="modal card" style="max-width: 560px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="margin: 0; color: var(--primary);">Editar Empleado</h3>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditarUsuario()">✕</button>
+                </div>
+                <div id="edit-usu-alert"></div>
+                <form id="form-editar-usuario" onsubmit="guardarEdicionUsuario(event)">
+                    <input type="hidden" id="edit-usu-id">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-nombre">Nombre *</label>
+                            <input type="text" id="edit-usu-nombre" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-email">Correo electrónico *</label>
+                            <input type="email" id="edit-usu-email" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-telefono">Teléfono *</label>
+                            <input type="text" id="edit-usu-telefono" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="edit-usu-rol">Rol *</label>
+                            <select id="edit-usu-rol" required>
+                                <option value="ADMIN">ADMIN</option>
+                                <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                                <option value="MECANICO">MECANICO</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; grid-column: 1 / -1;">
+                            <label for="edit-usu-password">Nueva contraseña (opcional)</label>
+                            <input type="password" id="edit-usu-password" placeholder="Dejar vacío para mantener la actual (mín. 8 caracteres, letras y números)">
+                        </div>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarUsuario()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-edit-usuario">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal HU #60: Editar datos comerciales de material -->
+        <div id="modal-editar-material" class="modal-overlay" onclick="if (event.target === this) cerrarModalEditarMaterial()">
+            <div class="modal card" style="max-width: 520px; width: 95%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="margin: 0; color: var(--primary);">Editar Material del Inventario</h3>
+                    <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;" onclick="cerrarModalEditarMaterial()">✕</button>
+                </div>
+                <div id="edit-mat-alert"></div>
+                <form id="form-editar-material" onsubmit="guardarEdicionMaterial(event)">
+                    <input type="hidden" id="edit-mat-id">
+                    <div class="form-group">
+                        <label for="edit-mat-nombre">Nombre del Material *</label>
+                        <input type="text" id="edit-mat-nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-mat-desc">Descripción Técnica</label>
+                        <textarea id="edit-mat-desc" rows="2"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="edit-mat-precio">Precio Unitario (€) *</label>
+                        <input type="number" id="edit-mat-precio" step="0.01" min="0.01" required>
+                        <small style="color: var(--text-muted); font-size: 0.78rem;">Actualizar el precio o la descripción no genera gastos de compra de stock en Tesorería.</small>
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.1rem;">
+                        <button type="button" class="btn btn-secondary" onclick="cerrarModalEditarMaterial()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-edit-material">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de confirmación de baja (HU #59 / HU #60) -->
+        <div id="modal-confirmar-eliminacion-admin" class="modal-overlay" onclick="if (event.target === this) cerrarModalConfirmarEliminacionAdmin()">
+            <div class="modal card" style="max-width: 460px; width: 95%;">
+                <h3 id="confirm-elim-admin-titulo" style="margin: 0 0 0.5rem 0; color: var(--err);">Confirmar Eliminación</h3>
+                <p id="confirm-elim-admin-texto" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;"></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalConfirmarEliminacionAdmin()">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirmar-elim-admin" onclick="ejecutarEliminacionAdmin(this)">Eliminar</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script src="../js/app.js"></script>
@@ -515,6 +733,7 @@
             cargarStats();
             cargarUsuarios();
             cargarReparaciones();
+            cargarRegistroCronologico();
             cargarFacturasAdmin();
             cargarMateriales();
             cargarVehiculosYClientes();
@@ -528,6 +747,7 @@
             document.getElementById(tabId).classList.add('active');
             if (btn) btn.classList.add('active');
             if (tabId === 'tab-facturas') cargarFacturasAdmin();
+            if (tabId === 'tab-supervision') cargarSupervisionMecanicos();
         }
 
         function irATab(tabId, btnId) {
@@ -557,6 +777,7 @@
                     cargarConfiguracionTaller(),
                     cargarStats(),
                     cargarReparaciones(),
+                    cargarRegistroCronologico(),
                     cargarFacturasAdmin(),
                     cargarUsuarios(),
                     cargarMateriales(),
@@ -632,7 +853,7 @@
                     method: 'PUT',
                     body: JSON.stringify({ precioHoraManoObra, margenBeneficioPorcentaje, fondoInicial })
                 });
-                mostrarAlerta(res.mensaje || 'Tarifas y tesorería recalculadas correctamente.', 'success', document.getElementById('alert-container'));
+                mostrarAlerta(res.mensaje || 'Tarifas actualizadas correctamente para operaciones abiertas y futuras (las facturas ya emitidas se mantienen inmutables).', 'success', document.getElementById('alert-container'));
                 await cargarConfiguracionTaller();
                 await cargarStats();
                 await cargarReparaciones();
@@ -685,14 +906,10 @@
                 ]);
 
                 const repEnriquecidas = (reparaciones || []).map(enriquecerReparacionFinanzas);
-                const repPorMatricula = {};
-                repEnriquecidas.forEach(r => {
-                    const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                    if (mat) repPorMatricula[mat] = r;
-                });
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(repEnriquecidas);
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
 
                 document.getElementById('stat-usuarios').textContent = usuarios.length || 0;
@@ -708,7 +925,7 @@
                     if (subGastosEl) {
                         const comprasSt = Number(cuenta.gastosComprasStock || 0);
                         const piezasUs = Number(cuenta.gastosPiezasUsadas || 0);
-                        subGastosEl.textContent = `Compras stock: -${formatearEuros(comprasSt)} · Piezas reparaciones: -${formatearEuros(piezasUs)}`;
+                        subGastosEl.textContent = `Compras stock (caja): -${formatearEuros(comprasSt)} · Piezas en reparaciones (informativo): ${formatearEuros(piezasUs)}`;
                     }
                     document.getElementById('cuenta-ingresos').textContent = '+' + formatearEuros(cuenta.totalFacturado ?? cuenta.ingresosCobrados);
                     document.getElementById('cuenta-ingresos-sub').textContent = `Previsión en curso (sin facturar): ${formatearEuros(cuenta.ingresosEnCurso)}`;
@@ -732,7 +949,7 @@
             if (!container) return;
 
             const porConfirmar = reparaciones.filter(r => r.estado === 'FINALIZADA');
-            const porAsignar = reparaciones.filter(r => r.estado === 'PENDIENTE' || ((!r.nombreMecanico || r.nombreMecanico === 'Sin asignar') && r.estado !== 'ENTREGADA'));
+            const porAsignar = reparaciones.filter(r => r.estado === 'PENDIENTE' || ((!r.nombreMecanico || r.nombreMecanico === 'Sin asignar') && !esEstadoCerradoTaller(r.estado)));
 
             const totalRepTareas = porConfirmar.length + porAsignar.length;
             const totalNotificaciones = totalRepTareas + (matBajoStock.length > 0 ? 1 : 0);
@@ -887,98 +1104,381 @@
                 mostrarAlerta(`Mecánico asignado correctamente a la reparación #${repId} (EN PROCESO).`, 'success', document.getElementById('alert-container'));
                 cargarStats();
                 cargarReparaciones();
+                cargarRegistroCronologico();
                 cargarVehiculosYClientes();
             } catch (error) {
                 mostrarAlerta('Error al asignar mecánico: ' + error.message, 'error', document.getElementById('alert-container'));
             }
         }
 
-        // ================= REPARACIONES =================
+        // ================= REPARACIONES, ORDENACIÓN (HU #7) Y CRONOLÓGICO (HU #8) =================
         let currentRepEstado = '';
         let reparacionesAdminCache = [];
-        async function cargarReparaciones(estado = currentRepEstado) {
-            currentRepEstado = estado;
-            try {
-                let todas = await apiFetch('/reparaciones');
-                let reparaciones = (todas || []).map(enriquecerReparacionFinanzas);
-                reparacionesAdminCache = reparaciones;
-                if (!estado) {
-                    reparaciones = reparaciones.filter(r => r.estado !== 'ENTREGADA');
-                } else {
-                    reparaciones = reparaciones.filter(r => r.estado === estado);
-                }
-                const tbody = document.getElementById('tabla-reparaciones');
-                tbody.innerHTML = '';
+        let mecanicosAdminCache = [];
+        let supervisionCache = null;
 
-                if (reparaciones.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No se encontraron reparaciones con este filtro</td></tr>';
+        async function refrescarTodoAdmin() {
+            await Promise.all([
+                cargarStats(),
+                cargarReparaciones(),
+                cargarRegistroCronologico(),
+                cargarFacturasAdmin(),
+                cargarVehiculosYClientes()
+            ]);
+        }
+
+        function abrirRespuestaPresencialAdmin(repId, accion) {
+            const rep = reparacionesAdminCache.find(item => item.id === repId);
+            if (!rep) return;
+            abrirModalRespuestaPresupuestoPresencial(rep, accion, refrescarTodoAdmin);
+        }
+
+        function abrirCancelarReparacionAdmin(repId) {
+            const rep = reparacionesAdminCache.find(item => item.id === repId);
+            if (!rep) return;
+            const user = getUsuarioActual();
+            confirmarCancelarReparacionRechazada(rep, {
+                usuarioId: user ? user.id : null,
+                alertContainer: 'alert-container',
+                onSuccess: refrescarTodoAdmin
+            });
+        }
+
+        async function cargarRegistroCronologico() {
+            const tbody = document.getElementById('tabla-registro-cronologico');
+            const badge = document.getElementById('badge-crono-count');
+            if (!tbody) return;
+            try {
+                const pendientes = await apiFetch('/reparaciones/registro-cronologico');
+                const lista = Array.isArray(pendientes) ? pendientes : [];
+                if (badge) {
+                    badge.textContent = `${lista.length} en espera`;
+                }
+                if (lista.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay vehículos pendientes en la cola de espera cronológica.</td></tr>';
                     return;
                 }
-                const mecanicos = await apiFetch('/usuarios/rol/MECANICO').catch(() => []);
-                reparaciones.forEach(r => {
-                    const mat = r.matriculaVehiculo || (r.vehiculo ? r.vehiculo.matricula : '-');
+                tbody.innerHTML = lista.map((r, idx) => {
+                    const mat = r.matriculaVehiculo || '-';
                     const marcaMod = `${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''}`.trim();
-                    const cliente = r.nombreCliente || (r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-');
-                    const nomMec = r.nombreMecanico || (r.mecanico ? r.mecanico.nombre : null);
-                    const tieneMecanico = nomMec && nomMec !== 'Sin asignar';
-                    const mecanico = tieneMecanico ? nomMec : '<span style="color: var(--text-muted);">Sin asignar</span>';
-                    const estadoHtml = crearBadgeEstado(r.estado);
-                    const tieneFactura = !!r.factura;
-                    const importePrincipal = tieneFactura
-                        ? `<strong>${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
-                        : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`;
-                    let accionPrimaria = '';
-                    if (r.estado === 'PENDIENTE' || !tieneMecanico) {
-                        const opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
-                        accionPrimaria = `
-                            <select id="mec-${r.id}" style="padding: 0.35rem 0.5rem; width: auto; min-width: 135px; font-size: 0.84rem;">
-                                <option value="">Mecánico...</option>
-                                ${opts}
-                            </select>
-                            <button class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
-                        `;
-                    } else if (r.estado === 'FINALIZADA') {
-                        accionPrimaria = `<button class="btn btn-success" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="confirmarReparacionAdmin(${r.id})">Confirmar</button>`;
-                    } else if (r.estado === 'CONFIRMADA' && !tieneFactura) {
-                        accionPrimaria = `<button class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="emitirFacturaDesdeAdmin(${r.id})">Emitir Factura</button>`;
-                    }
-                    tbody.innerHTML += `
+                    const cliente = r.nombreCliente || '-';
+                    const llegada = r.fechaHoraEntrada ? formatearFechaHora(r.fechaHoraEntrada) : formatearFecha(r.fechaEntrada);
+                    const estancia = r.tiempoEstanciaTexto || 'Recién llegado';
+                    const mecNom = (r.nombreMecanico && r.nombreMecanico !== 'Sin asignar') ? ` · Mecánico: ${r.nombreMecanico}` : '';
+                    return `
                         <tr>
+                            <td style="white-space: nowrap;">
+                                <span class="badge ${idx === 0 ? 'badge-pending' : 'badge-delivered'}">#${idx + 1} Prioridad</span>
+                            </td>
                             <td>
-                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                    <strong>${mat}</strong>
-                                    ${marcaMod ? `<span style="color: var(--text-muted); font-size: 0.86rem;">${marcaMod}</span>` : ''}
-                                    <span style="font-family: monospace; font-size: 0.76rem; color: var(--brand-text); background: var(--brand-soft); padding: 0.1rem 0.45rem; border-radius: 4px;">#${r.id} · ${r.localizador || ''}</span>
-                                </div>
-                                <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
-                                    ${cliente} · <span style="color: var(--text);">${r.descripcionAveria || 'Sin descripción'}</span>
+                                <strong>${mat}</strong> <span style="color: var(--text-muted); font-size: 0.85rem;">${marcaMod}</span>
+                                <span style="font-family: monospace; font-size: 0.75rem; color: var(--brand-text); background: var(--brand-soft); padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.35rem;">#${r.id} · ${r.localizador || ''}</span>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
+                                    ${cliente}${mecNom} · <em>${r.descripcionAveria || ''}</em>
                                 </div>
                             </td>
-                            <td style="white-space: nowrap;">${mecanico}</td>
-                            <td>
-                                <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
-                                    ${estadoHtml}
-                                    ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
-                                </div>
+                            <td style="white-space: nowrap; font-size: 0.84rem;">${llegada}</td>
+                            <td style="white-space: nowrap;">
+                                <strong style="color: ${idx === 0 ? 'var(--warn)' : 'var(--text)'};">${estancia}</strong>
                             </td>
-                            <td style="white-space: nowrap;">${importePrincipal}</td>
                             <td style="text-align: right; white-space: nowrap;">
-                                <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.4rem; flex-wrap: wrap;">
-                                    ${accionPrimaria}
-                                    <button type="button" class="btn btn-secondary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="verDetalleReparacionAdmin(${r.id})">Ver detalle</button>
-                                </div>
+                                <button type="button" class="btn btn-secondary" style="padding: 0.32rem 0.7rem; font-size: 0.8rem;" onclick="verDetalleReparacionDesdeCrono(${r.id})">Ver detalle</button>
                             </td>
                         </tr>
                     `;
+                }).join('');
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="5" style="color: var(--err);">Error al cargar el registro cronológico: ${error.message}</td></tr>`;
+            }
+        }
+
+        async function verDetalleReparacionDesdeCrono(repId) {
+            let rep = reparacionesAdminCache.find(item => item.id === repId);
+            if (!rep) {
+                rep = await apiFetch(`/reparaciones/${repId}`).catch(() => null);
+            }
+            if (rep) abrirModalDetalleReparacion(rep, { rol: 'ADMIN', onRefresh: refrescarTodoAdmin });
+        }
+
+        function ordenarListaReparacionesLocal(lista, criterio) {
+            const copia = [...(lista || [])];
+            switch (criterio) {
+                case 'LLEGADA_ASC':
+                    copia.sort((a, b) => (a.fechaHoraEntrada || a.fechaEntrada || '').localeCompare(b.fechaHoraEntrada || b.fechaEntrada || '') || (a.id - b.id));
+                    break;
+                case 'LLEGADA_DESC':
+                    copia.sort((a, b) => (b.fechaHoraEntrada || b.fechaEntrada || '').localeCompare(a.fechaHoraEntrada || a.fechaEntrada || '') || (b.id - a.id));
+                    break;
+                case 'TIEMPO_ASC':
+                    copia.sort((a, b) => (Number(a.diasEstimados || 999) - Number(b.diasEstimados || 999)) || (a.id - b.id));
+                    break;
+                case 'TIEMPO_DESC':
+                    copia.sort((a, b) => (Number(b.diasEstimados || 0) - Number(a.diasEstimados || 0)) || (a.id - b.id));
+                    break;
+                case 'PIEZAS_DESC':
+                    copia.sort((a, b) => (Number(b.totalUnidadesPiezas || 0) - Number(a.totalUnidadesPiezas || 0)) || (Number(b.costeMateriales || 0) - Number(a.costeMateriales || 0)) || (a.id - b.id));
+                    break;
+                case 'PIEZAS_ASC':
+                    copia.sort((a, b) => (Number(a.totalUnidadesPiezas || 0) - Number(b.totalUnidadesPiezas || 0)) || (Number(a.costeMateriales || 0) - Number(b.costeMateriales || 0)) || (a.id - b.id));
+                    break;
+                default:
+                    break;
+            }
+            return copia;
+        }
+
+        function aplicarOrdenReparacionesAdmin() {
+            renderizarTablaReparacionesAdmin();
+        }
+
+        function renderizarTablaReparacionesAdmin() {
+            const tbody = document.getElementById('tabla-reparaciones');
+            if (!tbody) return;
+            const criterioOrden = document.getElementById('orden-reparaciones-admin')?.value || '';
+
+            let reparaciones = [...reparacionesAdminCache];
+            if (!currentRepEstado) {
+                reparaciones = reparaciones.filter(r => !esEstadoCerradoTaller(r.estado));
+            } else {
+                reparaciones = reparaciones.filter(r => r.estado === currentRepEstado);
+            }
+            reparaciones = ordenarListaReparacionesLocal(reparaciones, criterioOrden);
+
+            tbody.innerHTML = '';
+            if (reparaciones.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No se encontraron reparaciones con este filtro</td></tr>';
+                return;
+            }
+
+            const mecanicos = mecanicosAdminCache || [];
+            reparaciones.forEach(r => {
+                const mat = r.matriculaVehiculo || (r.vehiculo ? r.vehiculo.matricula : '-');
+                const marcaMod = `${r.marcaVehiculo || ''} ${r.modeloVehiculo || ''}`.trim();
+                const cliente = r.nombreCliente || (r.vehiculo && r.vehiculo.cliente ? r.vehiculo.cliente.nombre : '-');
+                const nomMec = r.nombreMecanico || (r.mecanico ? r.mecanico.nombre : null);
+                const tieneMecanico = nomMec && nomMec !== 'Sin asignar';
+                const mecanico = tieneMecanico ? nomMec : '<span style="color: var(--text-muted);">Sin asignar</span>';
+                const estadoHtml = crearBadgeEstado(r.estado);
+                const tieneFactura = !!r.factura;
+                const importePrincipal = r.estado === 'CANCELADA'
+                    ? `<span style="color: var(--err); font-weight: 600;">0,00 €</span><div style="font-size: 0.76rem; color: var(--text-muted);">Cancelada · Sin factura</div>`
+                    : (tieneFactura
+                        ? `<strong>${formatearEuros(r.factura.totalFactura)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">${r.factura.numeroFactura}</div>`
+                        : `<strong>${formatearEuros(r.totalCalculadoPrevisto)}</strong><div style="font-size: 0.76rem; color: var(--text-muted);">Previsto c/IVA</div>`);
+                let accionPrimaria = '';
+                if (!esEstadoCerradoTaller(r.estado) && (r.estado === 'PENDIENTE' || !tieneMecanico)) {
+                    const opts = mecanicos.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+                    accionPrimaria = `
+                        <select id="mec-${r.id}" style="padding: 0.35rem 0.5rem; width: auto; min-width: 135px; font-size: 0.84rem;">
+                            <option value="">Mecánico...</option>
+                            ${opts}
+                        </select>
+                        <button class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="asignarMecanico(${r.id})">Asignar</button>
+                    `;
+                } else if (r.estado === 'FINALIZADA') {
+                    accionPrimaria = `<button class="btn btn-success" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="confirmarReparacionAdmin(${r.id})">Confirmar</button>`;
+                } else if (r.estado === 'CONFIRMADA' && !tieneFactura) {
+                    accionPrimaria = `<button class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="emitirFacturaDesdeAdmin(${r.id})">Emitir Factura</button>`;
+                }
+
+                let accionPresupuesto = '';
+                if (!esEstadoCerradoTaller(r.estado)) {
+                    if (r.presupuestoFormal && r.estadoPresupuesto === 'PENDIENTE_ACEPTACION' && !r.presupuestoFormal.caducado) {
+                        accionPresupuesto = `
+                            <button type="button" class="btn btn-success" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirRespuestaPresencialAdmin(${r.id}, 'ACEPTAR')">Aceptar (Pres./Tel.)</button>
+                            <button type="button" class="btn btn-danger" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirRespuestaPresencialAdmin(${r.id}, 'RECHAZAR')">Rechazar (Pres./Tel.)</button>
+                        `;
+                    } else if (r.estadoPresupuesto === 'RECHAZADO' && (r.estado === 'PENDIENTE' || r.estado === 'EN_PROCESO')) {
+                        accionPresupuesto = `<button type="button" class="btn btn-danger" style="padding: 0.35rem 0.65rem; font-size: 0.78rem;" onclick="abrirCancelarReparacionAdmin(${r.id})">Cancelar y Devolver</button>`;
+                    }
+                }
+
+                const llegadaTxt = r.fechaHoraEntrada ? formatearFechaHora(r.fechaHoraEntrada) : formatearFecha(r.fechaEntrada);
+                const piezasTxt = `${r.totalUnidadesPiezas ?? 0} ud(s)`;
+                const diasTxt = `${r.diasEstimados ?? 3} día(s)`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <strong>${mat}</strong>
+                                ${marcaMod ? `<span style="color: var(--text-muted); font-size: 0.86rem;">${marcaMod}</span>` : ''}
+                                <span style="font-family: monospace; font-size: 0.76rem; color: var(--brand-text); background: var(--brand-soft); padding: 0.1rem 0.45rem; border-radius: 4px;">#${r.id} · ${r.localizador || ''}</span>
+                                ${!r.clienteTieneCuenta ? '<span class="badge badge-delivered" style="font-size: 0.68rem;">Sin cuenta</span>' : ''}
+                            </div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                ${cliente} · <span style="color: var(--text);">${r.descripcionAveria || 'Sin descripción'}</span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.22rem;">
+                                Llegada: ${llegadaTxt} (${r.tiempoEstanciaTexto || '-'}) · Est.: ${diasTxt} · Piezas usadas: ${piezasTxt}
+                            </div>
+                        </td>
+                        <td style="white-space: nowrap;">${mecanico}</td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                                ${estadoHtml}
+                                ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
+                            </div>
+                        </td>
+                        <td style="white-space: nowrap;">${importePrincipal}</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.4rem; flex-wrap: wrap;">
+                                ${accionPrimaria}
+                                ${accionPresupuesto}
+                                <button type="button" class="btn btn-secondary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" onclick="verDetalleReparacionAdmin(${r.id})">Ver detalle</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function cargarReparaciones(estado = currentRepEstado, btnEl = null) {
+            currentRepEstado = estado;
+            if (btnEl) {
+                document.querySelectorAll('#filter-reparaciones button').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-secondary');
                 });
+                btnEl.classList.remove('btn-secondary');
+                btnEl.classList.add('btn-primary');
+            }
+            try {
+                const [todas, mecanicos] = await Promise.all([
+                    apiFetch('/reparaciones'),
+                    apiFetch('/usuarios/rol/MECANICO').catch(() => [])
+                ]);
+                reparacionesAdminCache = (todas || []).map(enriquecerReparacionFinanzas);
+                mecanicosAdminCache = mecanicos || [];
+                renderizarTablaReparacionesAdmin();
             } catch (error) {
                 console.error(error);
             }
         }
 
+        // ================= SUPERVISIÓN DE TIEMPOS DE MECÁNICOS (HU #20) =================
+        async function cargarSupervisionMecanicos() {
+            const tbody = document.getElementById('tabla-supervision-mecanicos');
+            const selectMec = document.getElementById('sup-filtro-mecanico');
+            const periodo = document.getElementById('sup-filtro-periodo')?.value || 'TODOS';
+            const alertaVacio = document.getElementById('sup-alerta-vacio');
+            if (!tbody) return;
+
+            const user = getUsuarioActual();
+            const mecSeleccionado = selectMec ? selectMec.value : '';
+
+            try {
+                if (selectMec && selectMec.options.length <= 1) {
+                    const mecs = await apiFetch('/usuarios/rol/MECANICO').catch(() => []);
+                    mecs.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.nombre;
+                        selectMec.appendChild(opt);
+                    });
+                    if (mecSeleccionado) selectMec.value = mecSeleccionado;
+                }
+
+                const params = new URLSearchParams();
+                if (mecSeleccionado) params.set('mecanicoId', mecSeleccionado);
+                if (periodo) params.set('periodo', periodo);
+                params.set('rol', user?.rol || 'ADMIN');
+
+                const data = await apiFetch(`/reparaciones/supervision-tiempos?${params.toString()}`);
+                supervisionCache = data;
+
+                document.getElementById('sup-total-tiempo').textContent = data.tiempoTotalGlobalFormateado || '0 h 0 min';
+                document.getElementById('sup-total-reps').textContent = data.totalReparacionesGlobal ?? 0;
+                const listaMecs = Array.isArray(data.mecanicos) ? data.mecanicos : [];
+                document.getElementById('sup-total-mecs').textContent = listaMecs.length;
+
+                if (alertaVacio) {
+                    alertaVacio.style.display = data.sinRegistros ? 'flex' : 'none';
+                }
+
+                if (listaMecs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay mecánicos disponibles para mostrar.</td></tr>';
+                    cerrarDesgloseMecanico();
+                    return;
+                }
+
+                tbody.innerHTML = listaMecs.map(m => `
+                    <tr>
+                        <td>
+                            <strong>${m.nombreMecanico}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${m.emailMecanico || ''}</div>
+                        </td>
+                        <td><strong>${m.numeroReparaciones || 0}</strong> vehículo(s)</td>
+                        <td>
+                            <strong style="color: var(--primary-light); font-size: 1rem;">${m.tiempoTotalFormateado || '0 h 0 min'}</strong>
+                            <span style="font-size: 0.78rem; color: var(--text-muted);">(${Number(m.totalHoras || 0).toFixed(2)} h)</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;" onclick="verDesgloseMecanico(${m.mecanicoId})">
+                                Ver desglose de vehículos
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                if (mecSeleccionado && listaMecs.length === 1) {
+                    verDesgloseMecanico(listaMecs[0].mecanicoId);
+                } else {
+                    cerrarDesgloseMecanico();
+                }
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: var(--err);">Error al cargar supervisión: ${error.message}</td></tr>`;
+            }
+        }
+
+        function verDesgloseMecanico(mecanicoId) {
+            const panel = document.getElementById('panel-desglose-mecanico');
+            const tbody = document.getElementById('tabla-desglose-mecanico');
+            if (!panel || !tbody || !supervisionCache) return;
+
+            const mec = (supervisionCache.mecanicos || []).find(m => Number(m.mecanicoId) === Number(mecanicoId));
+            if (!mec) return;
+
+            document.getElementById('sup-desglose-titulo').textContent = `Desglose de trabajo · ${mec.nombreMecanico}`;
+            document.getElementById('sup-desglose-subtitulo').textContent =
+                `Total acumulado en el filtro actual: ${mec.tiempoTotalFormateado} (${mec.numeroReparaciones} reparación/es)`;
+
+            const lista = Array.isArray(mec.desgloseReparaciones) ? mec.desgloseReparaciones : [];
+            if (lista.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No existen registros de trabajo para ese periodo.</td></tr>';
+            } else {
+                tbody.innerHTML = lista.map(d => `
+                    <tr>
+                        <td style="white-space: nowrap;">
+                            <strong style="font-family: monospace; color: var(--brand-text);">#${d.reparacionId} · ${d.localizador || '-'}</strong>
+                        </td>
+                        <td>
+                            <strong>${d.matriculaVehiculo}</strong> <span style="color: var(--text-muted); font-size: 0.85rem;">${d.marcaVehiculo || ''} ${d.modeloVehiculo || ''}</span>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${d.descripcionAveria || ''}</div>
+                        </td>
+                        <td style="white-space: nowrap;">${formatearFecha(d.fechaEntrada)}</td>
+                        <td>
+                            ${crearBadgeEstado(d.estado)}
+                            ${d.estadoTemporizador === 'EN_MARCHA' ? '<span class="badge badge-process" style="margin-left: 0.3rem; font-size: 0.68rem;">⏱ Activo</span>' : ''}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <strong style="color: var(--primary-light);">${d.tiempoFormateado}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">${Number(d.horasTrabajo || 0).toFixed(2)} h</div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            panel.style.display = 'block';
+        }
+
+        function cerrarDesgloseMecanico() {
+            const panel = document.getElementById('panel-desglose-mecanico');
+            if (panel) panel.style.display = 'none';
+        }
+
         function verDetalleReparacionAdmin(repId) {
             const rep = reparacionesAdminCache.find(item => item.id === repId);
-            if (rep) abrirModalDetalleReparacion(rep, { rol: 'ADMIN' });
+            if (rep) abrirModalDetalleReparacion(rep, { rol: 'ADMIN', onRefresh: refrescarTodoAdmin });
         }
 
         async function asignarMecanico(repId) {
@@ -991,6 +1491,7 @@
                 await apiFetch(`/reparaciones/${repId}/asignar/${mecanicoId}`, { method: 'PUT', silent: true });
                 mostrarAlerta('Mecánico asignado correctamente. La reparación pasa a EN PROCESO.', 'success', document.getElementById('alert-container'));
                 cargarReparaciones();
+                cargarRegistroCronologico();
                 cargarVehiculosYClientes();
                 cargarStats();
             } catch (error) {
@@ -1165,9 +1666,16 @@
         document.getElementById('form-crear-usuario').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-submit-usuario');
+            const alertCont = document.getElementById('alert-container');
+            const pwd = document.getElementById('usu-password').value;
+
+            if (pwd.length < 8 || !/[A-Za-zÀ-ÿ]/.test(pwd) || !/\d/.test(pwd)) {
+                mostrarAlerta('La contraseña debe tener al menos 8 caracteres y combinar letras y números.', 'error', alertCont);
+                return;
+            }
+
             toggleLoading(btn, true);
 
-            const pwd = document.getElementById('usu-password').value;
             const data = {
                 nombre: document.getElementById('usu-nombre').value,
                 email: document.getElementById('usu-email').value,
@@ -1179,7 +1687,7 @@
 
             try {
                 await apiFetch('/usuarios', { method: 'POST', silent: true, body: JSON.stringify(data) });
-                mostrarAlerta('Usuario creado exitosamente.', 'success', document.getElementById('alert-container'));
+                mostrarAlerta('Usuario creado exitosamente.', 'success', alertCont);
                 e.target.reset();
                 cargarUsuarios();
                 cargarStats();
@@ -1190,6 +1698,10 @@
             }
         });
 
+        let usuariosAdminCache = {};
+        let materialesAdminCache = {};
+        let eliminacionAdminPendiente = null;
+
         async function cargarUsuarios() {
             const rol = document.getElementById('filter-rol').value;
             const endpoint = rol ? `/usuarios/rol/${rol}` : '/usuarios';
@@ -1197,28 +1709,193 @@
                 const usuarios = await apiFetch(endpoint);
                 const tbody = document.getElementById('tabla-usuarios');
                 tbody.innerHTML = '';
+                usuariosAdminCache = {};
                 if (!usuarios || usuarios.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No se encontraron usuarios</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron usuarios</td></tr>';
                     return;
                 }
+                const adminActual = getUsuarioActual();
                 usuarios.forEach(u => {
+                    usuariosAdminCache[u.id] = u;
                     let rolBadgeClass = 'badge';
                     if (u.rol === 'ADMIN') rolBadgeClass = 'badge badge-entregada';
                     else if (u.rol === 'MECANICO') rolBadgeClass = 'badge badge-process';
                     else if (u.rol === 'RECEPCIONISTA') rolBadgeClass = 'badge badge-finished';
 
+                    const esMismoAdmin = adminActual && Number(adminActual.id) === Number(u.id);
+
                     tbody.innerHTML += `
                         <tr>
                             <td>${u.id}</td>
-                            <td>${u.nombre}</td>
+                            <td>${u.nombre}${esMismoAdmin ? ' <span class="badge" style="font-size: 0.7rem;">Tú</span>' : ''}</td>
                             <td>${u.email}</td>
                             <td>${u.telefono || '-'}</td>
                             <td><span class="${rolBadgeClass}">${u.rol}</span></td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;" onclick="abrirModalEditarUsuario(${u.id})">Editar</button>
+                                    <button type="button" class="btn btn-danger" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;${esMismoAdmin ? ' opacity: 0.5; cursor: not-allowed;' : ''}" ${esMismoAdmin ? 'disabled title="No puedes eliminar tu propia cuenta"' : `onclick="solicitarEliminarUsuario(${u.id})"`}>Eliminar</button>
+                                </div>
+                            </td>
                         </tr>
                     `;
                 });
             } catch (error) {
                 console.error(error);
+            }
+        }
+
+        function abrirModalEditarUsuario(id) {
+            const u = usuariosAdminCache[id];
+            if (!u) return;
+            document.getElementById('edit-usu-alert').innerHTML = '';
+            document.getElementById('edit-usu-id').value = u.id;
+            document.getElementById('edit-usu-nombre').value = u.nombre || '';
+            document.getElementById('edit-usu-email').value = u.email || '';
+            document.getElementById('edit-usu-telefono').value = u.telefono || '';
+            document.getElementById('edit-usu-rol').value = u.rol || 'MECANICO';
+            document.getElementById('edit-usu-password').value = '';
+            document.getElementById('modal-editar-usuario').style.display = 'flex';
+        }
+
+        function cerrarModalEditarUsuario() {
+            document.getElementById('modal-editar-usuario').style.display = 'none';
+        }
+
+        async function guardarEdicionUsuario(e) {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-usu-id').value);
+            const btn = document.getElementById('btn-guardar-edit-usuario');
+            const alertBox = document.getElementById('edit-usu-alert');
+            const adminActual = getUsuarioActual();
+
+            const payload = {
+                nombre: document.getElementById('edit-usu-nombre').value.trim(),
+                email: document.getElementById('edit-usu-email').value.trim(),
+                telefono: document.getElementById('edit-usu-telefono').value.trim(),
+                rol: document.getElementById('edit-usu-rol').value,
+                password: document.getElementById('edit-usu-password').value,
+                adminActualId: adminActual ? adminActual.id : null
+            };
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch(`/usuarios/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                cerrarModalEditarUsuario();
+                if (adminActual && Number(adminActual.id) === id) {
+                    const actualizado = { ...adminActual, nombre: res.nombre, email: res.email, telefono: res.telefono, rol: res.rol };
+                    sessionStorage.setItem('usuario', JSON.stringify(actualizado));
+                    pintarCabeceraUsuario(actualizado);
+                }
+                mostrarAlerta(res.mensaje || 'Empleado actualizado correctamente.', 'success', document.getElementById('alert-container'));
+                await Promise.all([cargarUsuarios(), cargarStats(), cargarReparaciones()]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        function solicitarEliminarUsuario(id) {
+            const u = usuariosAdminCache[id];
+            if (!u) return;
+            eliminacionAdminPendiente = { tipo: 'USUARIO', id, nombre: u.nombre };
+            document.getElementById('confirm-elim-admin-titulo').textContent = 'Confirmar Baja de Empleado';
+            document.getElementById('confirm-elim-admin-texto').innerHTML =
+                `¿Seguro que deseas dar de baja a <strong>${u.nombre}</strong> (${u.rol})? Si es mecánico con reparaciones asignadas, pasarán automáticamente a <strong>Sin asignar</strong>.`;
+            document.getElementById('modal-confirmar-eliminacion-admin').style.display = 'flex';
+        }
+
+        function abrirModalEditarMaterial(id) {
+            const m = materialesAdminCache[id];
+            if (!m) return;
+            document.getElementById('edit-mat-alert').innerHTML = '';
+            document.getElementById('edit-mat-id').value = m.id;
+            document.getElementById('edit-mat-nombre').value = m.nombre || '';
+            document.getElementById('edit-mat-desc').value = m.descripcion || '';
+            document.getElementById('edit-mat-precio').value = Number(m.precioUnitario || 0).toFixed(2);
+            document.getElementById('modal-editar-material').style.display = 'flex';
+        }
+
+        function cerrarModalEditarMaterial() {
+            document.getElementById('modal-editar-material').style.display = 'none';
+        }
+
+        async function guardarEdicionMaterial(e) {
+            e.preventDefault();
+            const id = Number(document.getElementById('edit-mat-id').value);
+            const btn = document.getElementById('btn-guardar-edit-material');
+            const alertBox = document.getElementById('edit-mat-alert');
+            const nombre = document.getElementById('edit-mat-nombre').value.trim();
+            const descripcion = document.getElementById('edit-mat-desc').value.trim();
+            const precioUnitario = parseFloat(document.getElementById('edit-mat-precio').value);
+
+            if (!nombre) {
+                mostrarAlerta('El nombre del material no puede estar vacío.', 'error', alertBox);
+                return;
+            }
+            if (isNaN(precioUnitario) || precioUnitario <= 0) {
+                mostrarAlerta('El precio unitario debe ser mayor que 0,00 €.', 'error', alertBox);
+                return;
+            }
+
+            toggleLoading(btn, true);
+            try {
+                const res = await apiFetch(`/materiales/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ nombre, descripcion, precioUnitario })
+                });
+                cerrarModalEditarMaterial();
+                mostrarAlerta(res.mensaje || 'Material actualizado correctamente.', 'success', document.getElementById('alert-container'));
+                await Promise.all([cargarMateriales(), cargarStats()]);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                toggleLoading(btn, false);
+            }
+        }
+
+        function solicitarEliminarMaterial(id) {
+            const m = materialesAdminCache[id];
+            if (!m) return;
+            eliminacionAdminPendiente = { tipo: 'MATERIAL', id, nombre: m.nombre };
+            document.getElementById('confirm-elim-admin-titulo').textContent = 'Confirmar Baja de Material';
+            document.getElementById('confirm-elim-admin-texto').innerHTML =
+                `¿Seguro que deseas eliminar <strong>${m.nombre}</strong> del inventario? Si esta pieza ya fue consumida en reparaciones históricas, el sistema bloqueará el borrado para proteger el historial.`;
+            document.getElementById('modal-confirmar-eliminacion-admin').style.display = 'flex';
+        }
+
+        function cerrarModalConfirmarEliminacionAdmin() {
+            document.getElementById('modal-confirmar-eliminacion-admin').style.display = 'none';
+            eliminacionAdminPendiente = null;
+        }
+
+        async function ejecutarEliminacionAdmin(btn) {
+            if (!eliminacionAdminPendiente) return;
+            const { tipo, id } = eliminacionAdminPendiente;
+            toggleLoading(btn, true);
+            try {
+                if (tipo === 'USUARIO') {
+                    const adminActual = getUsuarioActual();
+                    const qs = adminActual && adminActual.id ? `?adminActualId=${adminActual.id}` : '';
+                    const res = await apiFetch(`/usuarios/${id}${qs}`, { method: 'DELETE' });
+                    cerrarModalConfirmarEliminacionAdmin();
+                    mostrarAlerta(res.mensaje || 'Empleado eliminado correctamente.', 'success', document.getElementById('alert-container'));
+                    await Promise.all([cargarUsuarios(), cargarStats(), cargarReparaciones()]);
+                } else if (tipo === 'MATERIAL') {
+                    const res = await apiFetch(`/materiales/${id}`, { method: 'DELETE' });
+                    cerrarModalConfirmarEliminacionAdmin();
+                    mostrarAlerta(res.mensaje || 'Material eliminado correctamente.', 'success', document.getElementById('alert-container'));
+                    await Promise.all([cargarMateriales(), cargarStats()]);
+                }
+            } catch (error) {
+                cerrarModalConfirmarEliminacionAdmin();
+                mostrarAlerta(error.message, 'error', document.getElementById('alert-container'));
+            } finally {
+                toggleLoading(btn, false);
             }
         }
 
@@ -1265,13 +1942,15 @@
                 const materiales = await apiFetch(endpoint);
                 const tbody = document.getElementById('tabla-materiales');
                 tbody.innerHTML = '';
+                materialesAdminCache = {};
 
                 if (!materiales || materiales.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No se encontraron materiales</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron materiales</td></tr>';
                     return;
                 }
 
                 materiales.forEach(m => {
+                    materialesAdminCache[m.id] = m;
                     const stockActual = m.stockDisponible ?? m.stock ?? 0;
                     const precioUnit = Number(m.precioUnitario || 0);
                     const isBajo = stockActual < 5;
@@ -1293,6 +1972,12 @@
                                     <input type="number" id="stock-${m.id}" value="${stockActual}" min="0" style="width: 75px; padding: 0.3rem; text-align: center; font-weight: bold;">
                                     <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.55rem;" onclick="ajustarInputStock(${m.id}, 1)">+</button>
                                     <button type="button" class="btn btn-primary" style="padding: 0.3rem 0.75rem;" onclick="actualizarStock(${m.id}, '${m.nombre.replace(/'/g, "\\'")}', ${stockActual}, ${precioUnit})">Guardar Stock</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;" onclick="abrirModalEditarMaterial(${m.id})">Editar</button>
+                                    <button type="button" class="btn btn-danger" style="padding: 0.28rem 0.6rem; font-size: 0.78rem;" onclick="solicitarEliminarMaterial(${m.id})">Eliminar</button>
                                 </div>
                             </td>
                         </tr>
@@ -1350,17 +2035,14 @@
                     apiFetch('/reparaciones').catch(() => [])
                 ]);
 
-                const repPorMatricula = {};
-                if (Array.isArray(reparaciones)) {
-                    reparaciones.forEach(r => {
-                        const mat = (r.matriculaVehiculo || r.vehiculo?.matricula || '').toUpperCase();
-                        if (mat) repPorMatricula[mat] = enriquecerReparacionFinanzas(r);
-                    });
-                }
+                const repEnriquecidas = Array.isArray(reparaciones)
+                    ? reparaciones.map(enriquecerReparacionFinanzas)
+                    : [];
+                const repPorMatricula = construirMapaUltimaReparacionPorMatricula(repEnriquecidas);
 
                 const vehiculosEnTaller = (vehiculos || []).filter(v => {
                     const rep = repPorMatricula[(v.matricula || '').toUpperCase()];
-                    return !rep || rep.estado !== 'ENTREGADA';
+                    return !rep || !esEstadoCerradoTaller(rep.estado);
                 });
 
                 const tVehiculos = document.getElementById('tabla-vehiculos');
@@ -1435,13 +2117,13 @@
                     : await apiFetch('/reparaciones/gastos').catch(() => []);
                 historialGastosCache = lista || [];
 
-                const totalGastos = Number(cuenta?.gastosMateriales ?? historialGastosCache.reduce((a, g) => a + Number(g.importe || 0), 0));
                 const totalCompras = Number(cuenta?.gastosComprasStock ?? historialGastosCache.filter(g => g.origen === 'COMPRA').reduce((a, g) => a + Number(g.importe || 0), 0));
+                const totalGastos = Number(cuenta?.gastosMateriales ?? totalCompras);
                 const totalPiezas = Number(cuenta?.gastosPiezasUsadas ?? historialGastosCache.filter(g => g.origen === 'USO_REPARACION').reduce((a, g) => a + Number(g.importe || 0), 0));
 
                 document.getElementById('hist-gasto-total').textContent = '-' + formatearEuros(totalGastos);
                 document.getElementById('hist-gasto-compras').textContent = '-' + formatearEuros(totalCompras);
-                document.getElementById('hist-gasto-piezas').textContent = '-' + formatearEuros(totalPiezas);
+                document.getElementById('hist-gasto-piezas').textContent = formatearEuros(totalPiezas);
 
                 filtrarHistorialGastosModal();
             } catch (error) {
@@ -1493,7 +2175,10 @@
                             <div style="font-size: 0.75rem; color: var(--text-muted);">${formatearEuros(g.precioUnitario)}/ud</div>
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
-                            <strong style="color: var(--err);">-${formatearEuros(g.importe)}</strong>
+                            ${esCompra
+                                ? `<strong style="color: var(--err);">-${formatearEuros(g.importe)}</strong>`
+                                : `<strong style="color: var(--text-light);">${formatearEuros(g.importe)}</strong><div style="font-size: 0.72rem; color: var(--text-muted);">Imputado (no resta caja)</div>`
+                            }
                         </td>
                         <td style="text-align: right; white-space: nowrap;">
                             <button type="button" class="btn btn-danger" style="padding: 0.28rem 0.65rem; font-size: 0.78rem;" onclick="confirmarEliminarGastoTesoreria('${g.id}')">

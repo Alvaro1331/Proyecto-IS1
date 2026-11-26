@@ -16,6 +16,9 @@ public interface ReparacionRepository extends JpaRepository<Reparacion, Long> {
     // Todas las reparaciones de un vehículo concreto
     List<Reparacion> findByVehiculoId(Long vehiculoId);
 
+    // Todas las reparaciones de los vehículos de un cliente concreto
+    List<Reparacion> findByVehiculoClienteId(Long clienteId);
+
     // Todas las reparaciones asignadas a un mecánico
     List<Reparacion> findByMecanicoId(Long mecanicoId);
 

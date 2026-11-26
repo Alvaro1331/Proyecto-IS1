@@ -70,6 +70,9 @@
             <button type="button" class="tab-btn" id="btn-cli-notifs" onclick="mostrarSeccionCliente('sec-notificaciones', this)">
                 Avisos y Notificaciones <span id="badge-notif-tab" class="badge" style="display: none; background: #dc2626; color: #fff; margin-left: 0.35rem; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px;">0</span>
             </button>
+            <button type="button" class="tab-btn" id="btn-cli-perfil" onclick="mostrarSeccionCliente('sec-mi-perfil', this)">
+                Mi Perfil / Datos Fiscales
+            </button>
         </div>
 
         <!-- SECCIÓN 1: REPARACIONES, PRESUPUESTOS Y FACTURAS -->
@@ -221,6 +224,73 @@
             </div>
         </div>
 
+        <!-- SECCIÓN 4: MI PERFIL, CONTRASEÑA Y DATOS FISCALES (HU #67) -->
+        <div id="sec-mi-perfil" class="tab-content">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+                <!-- Datos de Contacto y Fiscales -->
+                <div class="card">
+                    <h2 style="margin: 0 0 0.35rem 0;">Datos Personales y Datos Fiscales</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.15rem;">
+                        Mantén al día tu información de contacto y deja preparados tu DNI/CIF y dirección fiscal para agilizar la emisión de tus facturas.
+                    </p>
+                    <div id="alerta-perfil-cliente"></div>
+                    <form id="form-perfil-cliente" onsubmit="guardarPerfilCliente(event)">
+                        <div class="form-group">
+                            <label for="perfil-nombre">Nombre completo *</label>
+                            <input type="text" id="perfil-nombre" required placeholder="Tu nombre y apellidos">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+                            <div class="form-group">
+                                <label for="perfil-email">Correo electrónico *</label>
+                                <input type="email" id="perfil-email" required placeholder="tu@correo.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="perfil-telefono">Teléfono *</label>
+                                <input type="text" id="perfil-telefono" required placeholder="Ej. 611223344">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-dni">DNI / CIF Fiscal</label>
+                            <input type="text" id="perfil-dni" placeholder="Ej. 12345678Z o B12345678" style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-direccion">Dirección Fiscal Completa</label>
+                            <input type="text" id="perfil-direccion" placeholder="Ej. Calle Alcalá 45, 28014 Madrid">
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btn-guardar-perfil-cliente" style="width: 100%;">
+                            Guardar Datos de Perfil y Facturación
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Cambio Seguro de Contraseña -->
+                <div class="card">
+                    <h2 style="margin: 0 0 0.35rem 0;">Seguridad y Contraseña</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.15rem;">
+                        Para cambiar tu contraseña debes verificar tu clave actual. La nueva clave debe tener al menos 8 caracteres combinando letras y números.
+                    </p>
+                    <div id="alerta-password-cliente"></div>
+                    <form id="form-password-cliente" onsubmit="cambiarPasswordPerfilCliente(event)">
+                        <div class="form-group">
+                            <label for="perfil-pass-actual">Contraseña actual *</label>
+                            <input type="password" id="perfil-pass-actual" required placeholder="Introduce tu contraseña actual">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-pass-nueva">Nueva contraseña *</label>
+                            <input type="password" id="perfil-pass-nueva" required minlength="8" placeholder="Mín. 8 caracteres (letras y números)">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-pass-confirmar">Confirmar nueva contraseña *</label>
+                            <input type="password" id="perfil-pass-confirmar" required minlength="8" placeholder="Repite la nueva contraseña">
+                        </div>
+                        <button type="submit" class="btn btn-secondary" id="btn-cambiar-password-cliente" style="width: 100%;">
+                            Actualizar Contraseña
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Emergente de Confirmación de Presupuesto con Contraseña (Historia de Usuario 3) -->
         <div id="modal-confirmar-presupuesto-cliente" class="modal-overlay">
             <div class="modal card" style="max-width: 480px; width: 95%;">
@@ -296,6 +366,103 @@
                 cargarMisCitasCliente();
             } else if (secId === 'sec-notificaciones') {
                 cargarNotificacionesCliente();
+            } else if (secId === 'sec-mi-perfil') {
+                cargarPerfilCliente();
+            }
+        }
+
+        async function cargarPerfilCliente() {
+            const user = getUsuarioActual();
+            if (!user || !user.id) return;
+            try {
+                const cli = await apiFetch(`/clientes/${user.id}`);
+                document.getElementById('perfil-nombre').value = cli.nombre || user.nombre || '';
+                document.getElementById('perfil-email').value = cli.email || user.email || '';
+                document.getElementById('perfil-telefono').value = cli.telefono || user.telefono || '';
+                document.getElementById('perfil-dni').value = cli.dniCif || '';
+                document.getElementById('perfil-direccion').value = cli.direccionFiscal || '';
+            } catch (error) {
+                document.getElementById('perfil-nombre').value = user.nombre || '';
+                document.getElementById('perfil-email').value = user.email || '';
+                document.getElementById('perfil-telefono').value = user.telefono || '';
+            }
+        }
+
+        async function guardarPerfilCliente(e) {
+            e.preventDefault();
+            const user = getUsuarioActual();
+            if (!user || !user.id) return;
+            const alertBox = document.getElementById('alerta-perfil-cliente');
+            const btn = document.getElementById('btn-guardar-perfil-cliente');
+
+            const payload = {
+                nombre: document.getElementById('perfil-nombre').value.trim(),
+                email: document.getElementById('perfil-email').value.trim(),
+                telefono: document.getElementById('perfil-telefono').value.trim(),
+                dniCif: document.getElementById('perfil-dni').value.trim().toUpperCase(),
+                direccionFiscal: document.getElementById('perfil-direccion').value.trim()
+            };
+
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+            try {
+                const res = await apiFetch(`/clientes/${user.id}/perfil`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                const sesionActualizada = {
+                    ...user,
+                    nombre: res.nombre,
+                    email: res.email,
+                    telefono: res.telefono,
+                    dniCif: res.dniCif,
+                    direccionFiscal: res.direccionFiscal
+                };
+                sessionStorage.setItem('usuario', JSON.stringify(sesionActualizada));
+                pintarCabeceraUsuario(sesionActualizada, 'CLIENTE');
+                document.getElementById('profile-email').textContent = sesionActualizada.email || 'Sin correo registrado';
+                document.getElementById('profile-phone').textContent = sesionActualizada.telefono || 'Sin teléfono';
+                mostrarAlerta(res.mensaje || 'Perfil y datos fiscales actualizados correctamente.', 'success', alertBox);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
+            }
+        }
+
+        async function cambiarPasswordPerfilCliente(e) {
+            e.preventDefault();
+            const user = getUsuarioActual();
+            if (!user || !user.id) return;
+            const alertBox = document.getElementById('alerta-password-cliente');
+            const btn = document.getElementById('btn-cambiar-password-cliente');
+
+            const passwordActual = document.getElementById('perfil-pass-actual').value;
+            const nuevaPassword = document.getElementById('perfil-pass-nueva').value;
+            const confirmarPassword = document.getElementById('perfil-pass-confirmar').value;
+
+            if (nuevaPassword !== confirmarPassword) {
+                mostrarAlerta('La nueva contraseña y su confirmación no coinciden.', 'error', alertBox);
+                return;
+            }
+
+            const txtOrig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Actualizando...';
+            try {
+                const res = await apiFetch(`/clientes/${user.id}/password`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ passwordActual, nuevaPassword, confirmarPassword })
+                });
+                e.target.reset();
+                mostrarAlerta(res.mensaje || 'Contraseña actualizada correctamente.', 'success', alertBox);
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', alertBox);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = txtOrig;
             }
         }
 
@@ -307,11 +474,13 @@
             try {
                 const reparaciones = await apiFetch(`/clientes/${user.id}/mis-reparaciones`);
                 reparacionesClienteCache = reparaciones || [];
-                const activas = reparacionesClienteCache.filter(r => r.estado !== 'ENTREGADA').length;
-                const resumen = document.getElementById('resumen-activas');
-                if (resumen) resumen.textContent = activas;
+                const activasList = reparacionesClienteCache.filter(r => !esEstadoCerradoTaller(r.estado));
+                const historialList = reparacionesClienteCache.filter(r => esEstadoCerradoTaller(r.estado));
 
-                const presPendientes = reparacionesClienteCache.filter(r =>
+                const resumen = document.getElementById('resumen-activas');
+                if (resumen) resumen.textContent = activasList.length;
+
+                const presPendientes = activasList.filter(r =>
                     r.presupuestoFormal && r.presupuestoFormal.estado === 'PENDIENTE_ACEPTACION' && !r.presupuestoFormal.caducado
                 ).length;
                 const badgePres = document.getElementById('badge-pres-pendientes');
@@ -331,7 +500,8 @@
                 }
 
                 container.innerHTML = '';
-                reparacionesClienteCache.forEach((r, idx) => {
+
+                const construirTarjetaCliente = (r, idx) => {
                     const card = document.createElement('div');
                     card.className = `repair-card estado-${r.estado}`;
 
@@ -342,7 +512,8 @@
                     let bloquePresupuestoHtml = '';
                     if (r.presupuestoFormal) {
                         const p = r.presupuestoFormal;
-                        const puedeResponder = (p.estado === 'PENDIENTE_ACEPTACION' && !p.caducado);
+                        const puedeResponder = (!esEstadoCerradoTaller(r.estado) && p.estado === 'PENDIENTE_ACEPTACION' && !p.caducado);
+                        const puedeCancelarTrasRechazo = (r.estado === 'PENDIENTE' || r.estado === 'EN_PROCESO') && p.estado === 'RECHAZADO';
                         let botonesRespuestaHtml = '';
 
                         if (puedeResponder) {
@@ -364,6 +535,20 @@
                                     </div>
                                 </div>
                             `;
+                        } else if (puedeCancelarTrasRechazo) {
+                            botonesRespuestaHtml = `
+                                <div style="margin-top: 0.85rem; padding: 0.9rem 1rem; border-radius: 6px; background: color-mix(in srgb, var(--err) 9%, transparent); border: 1px solid color-mix(in srgb, var(--err) 30%, transparent); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; font-size: 0.86rem;">
+                                    <div style="flex: 1; min-width: 220px;">
+                                        <strong style="color: var(--err);">Presupuesto rechazado</strong>
+                                        <div style="color: var(--text-muted); margin-top: 0.2rem;">
+                                            Has rechazado este presupuesto.${p.motivoRechazo ? ' Motivo: ' + p.motivoRechazo + '.' : ''} El taller puede enviarte una nueva propuesta revisada o, si deseas llevarte el coche sin reparar, puedes cancelar la reparación.
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-danger" onclick="cancelarReparacionPorRechazoCliente(${idx})">
+                                        Cancelar reparación y retirar vehículo sin reparar
+                                    </button>
+                                </div>
+                            `;
                         } else {
                             const textoBloqueo = p.caducado
                                 ? `Este presupuesto superó su fecha de validez (${formatearFecha(p.fechaValidez)}).`
@@ -373,16 +558,12 @@
                             botonesRespuestaHtml = `
                                 <div style="margin-top: 0.85rem; padding: 0.75rem 1rem; border-radius: 6px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.86rem;">
                                     <span>${textoBloqueo}</span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button type="button" class="btn btn-secondary" disabled style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Aceptar Presupuesto</button>
-                                        <button type="button" class="btn btn-secondary" disabled style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Rechazar Presupuesto</button>
-                                    </div>
                                 </div>
                             `;
                         }
 
                         bloquePresupuestoHtml = `
-                            <details class="disclosure-box" ${puedeResponder ? 'open' : ''}>
+                            <details class="disclosure-box" ${(puedeResponder || puedeCancelarTrasRechazo) ? 'open' : ''}>
                                 <summary>
                                     <span>Presupuesto (${p.numeroPresupuesto}) · <strong>${formatearEuros(p.totalPresupuesto)}</strong></span>
                                     ${renderizarBadgePresupuesto(r.estadoPresupuesto)}
@@ -417,6 +598,12 @@
                                     ${renderizarFacturaDesglosadaHTML(r.factura)}
                                 </div>
                             </details>
+                        `;
+                    } else if (r.estado === 'CANCELADA') {
+                        bloqueFacturaHtml = `
+                            <div style="margin-top: 0.75rem; padding: 0.75rem 1rem; background: color-mix(in srgb, var(--err) 7%, transparent); border: 1px solid color-mix(in srgb, var(--err) 25%, transparent); border-radius: 8px; font-size: 0.86rem; color: var(--err);">
+                                Reparación cancelada · Vehículo devuelto sin reparar (sin factura).
+                            </div>
                         `;
                     } else {
                         bloqueFacturaHtml = `
@@ -454,7 +641,7 @@
 
                         <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.86rem; color: var(--text-muted); margin-bottom: 0.75rem;">
                             <span>Entrada: <strong style="color: var(--text);">${r.fechaEntrada ? formatearFecha(r.fechaEntrada) : 'N/A'}</strong></span>
-                            <span>Entrega estimada: <strong style="color: var(--text);">${r.fechaEstimadaFin ? formatearFecha(r.fechaEstimadaFin) : 'En evaluación'} (${r.diasEstimados || 3}d)</strong></span>
+                            <span>${r.estado === 'CANCELADA' ? 'Salida' : 'Entrega estimada'}: <strong style="color: var(--text);">${r.estado === 'CANCELADA' ? (r.fechaSalida ? formatearFecha(r.fechaSalida) : 'Devuelto') : `${r.fechaEstimadaFin ? formatearFecha(r.fechaEstimadaFin) : 'En evaluación'} (${r.diasEstimados || 3}d)`}</strong></span>
                             <span>Mecánico: <strong style="color: var(--text);">${r.mecanico || 'Pendiente de asignar'}</strong></span>
                             <span>Avería: <strong style="color: var(--text);">${r.descripcionAveria || 'Sin avería especificada'}</strong></span>
                         </div>
@@ -464,8 +651,32 @@
                         ${bloqueIncidenciasColapsable}
                         ${bloqueFacturaHtml}
                     `;
-                    container.appendChild(card);
-                });
+                    return card;
+                };
+
+                if (activasList.length > 0) {
+                    activasList.forEach(r => {
+                        const idx = reparacionesClienteCache.indexOf(r);
+                        container.appendChild(construirTarjetaCliente(r, idx));
+                    });
+                } else {
+                    const emptyActivas = document.createElement('div');
+                    emptyActivas.className = 'empty-state';
+                    emptyActivas.style.padding = '1.25rem';
+                    emptyActivas.innerHTML = `<p style="margin: 0; color: var(--text-muted);">No tienes reparaciones activas en el taller actualmente.</p>`;
+                    container.appendChild(emptyActivas);
+                }
+
+                if (historialList.length > 0) {
+                    const histHeader = document.createElement('h3');
+                    histHeader.style.margin = '1.5rem 0 0.5rem 0';
+                    histHeader.textContent = `Historial de Reparaciones (Entregadas y Canceladas · ${historialList.length})`;
+                    container.appendChild(histHeader);
+                    historialList.forEach(r => {
+                        const idx = reparacionesClienteCache.indexOf(r);
+                        container.appendChild(construirTarjetaCliente(r, idx));
+                    });
+                }
             } catch (error) {
                 mostrarAlerta(error.message || 'Error al cargar tus reparaciones.', 'error', alerts);
             }
@@ -483,6 +694,20 @@
             if (r && r.presupuestoFormal) {
                 abrirModalPresupuestoObjeto(r.presupuestoFormal);
             }
+        }
+
+        function cancelarReparacionPorRechazoCliente(idx) {
+            const r = reparacionesClienteCache[idx];
+            const user = getUsuarioActual();
+            if (!r || !user) return;
+            confirmarCancelarReparacionRechazada(r, {
+                clienteId: user.id,
+                alertContainer: 'alerts-container',
+                onSuccess: async () => {
+                    await cargarMisReparaciones();
+                    await cargarNotificacionesCliente();
+                }
+            });
         }
 
         // ======== HISTORIA 3: CONFIRMACIÓN DE PRESUPUESTO CON CONTRASEÑA ========
@@ -709,10 +934,12 @@
 
             const payload = {
                 clienteId: user.id,
+                emailContacto: user.email || '',
                 fecha,
                 franjaHoraria,
                 motivo,
-                observaciones
+                observaciones,
+                estado: 'PENDIENTE'
             };
 
             if (vehiculoVal === 'NUEVO') {
@@ -738,15 +965,17 @@
                 });
 
                 resumenBox.style.display = 'block';
+                resumenBox.style.background = 'color-mix(in srgb, var(--warn) 12%, transparent)';
+                resumenBox.style.borderColor = 'var(--warn)';
                 resumenBox.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                         <div>
-                            <h3 style="margin: 0; color: var(--ok);">¡Cita Previa Confirmada! (${res.codigoCita})</h3>
+                            <h3 style="margin: 0; color: var(--warn);">¡Solicitud de Cita Previa Registrada! (${res.codigoCita})</h3>
                             <p style="margin: 0.25rem 0 0 0; color: var(--text-light); font-size: 0.92rem;">
-                                Te esperamos el <strong>${formatearFecha(res.fecha)}</strong> a las <strong>${res.franjaHoraria}</strong> con tu vehículo <strong>${res.marcaVehiculo} ${res.modeloVehiculo} (${res.matriculaVehiculo})</strong>.
+                                Solicitud registrada para el <strong>${formatearFecha(res.fecha)}</strong> a las <strong>${res.franjaHoraria}</strong> con tu vehículo <strong>${res.marcaVehiculo} ${res.modeloVehiculo} (${res.matriculaVehiculo})</strong>.
                             </p>
                             <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.2rem;">
-                                Motivo registrado: <strong>${res.motivo}</strong> · Estado: <span class="badge badge-confirmed">${res.estado}</span>
+                                Motivo registrado: <strong>${res.motivo}</strong> · Estado: <span class="badge badge-pending">${res.estado}</span> · Te avisaremos si se confirma o se rechaza.
                             </div>
                         </div>
                     </div>
@@ -846,6 +1075,10 @@
                     return { icono: '●', color: 'var(--success)' };
                 case 'ENTREGADA':
                     return { icono: '●', color: 'var(--text-muted)' };
+                case 'CANCELADA':
+                    return { icono: '●', color: 'var(--err)' };
+                case 'CITA_PREVIA':
+                    return { icono: '●', color: 'var(--brand)' };
                 default:
                     return { icono: '●', color: 'var(--primary-light)' };
             }

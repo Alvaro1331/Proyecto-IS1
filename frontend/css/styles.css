@@ -420,7 +420,8 @@ input[type="file"] { padding: 0.45rem; }
 .badge-process::before,
 .badge-finished::before,
 .badge-confirmed::before,
-.badge-delivered::before {
+.badge-delivered::before,
+.badge-cancelled::before {
     content: '';
     width: 6px;
     height: 6px;
@@ -433,6 +434,7 @@ input[type="file"] { padding: 0.45rem; }
 .badge-finished  { background: color-mix(in srgb, var(--purple) 12%, transparent); color: var(--purple); border-color: color-mix(in srgb, var(--purple) 24%, transparent); }
 .badge-confirmed { background: color-mix(in srgb, var(--ok) 12%, transparent);     color: var(--ok);     border-color: color-mix(in srgb, var(--ok) 24%, transparent); }
 .badge-delivered { background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
+.badge-cancelled { background: color-mix(in srgb, var(--err) 12%, transparent);    color: var(--err);    border-color: color-mix(in srgb, var(--err) 25%, transparent); }
 
 /* ---------- Estadísticas (KPIs estilo Stripe) ---------- */
 .stat-card { display: flex; align-items: center; gap: 1rem; }
@@ -600,7 +602,8 @@ input[type="file"] { padding: 0.45rem; }
 .repair-card.estado-EN_PROCESO .repair-title::before,
 .repair-card.estado-FINALIZADA .repair-title::before,
 .repair-card.estado-CONFIRMADA .repair-title::before,
-.repair-card.estado-ENTREGADA  .repair-title::before {
+.repair-card.estado-ENTREGADA  .repair-title::before,
+.repair-card.estado-CANCELADA  .repair-title::before {
     content: '';
     display: inline-block;
     width: 7px; height: 7px;
@@ -612,6 +615,7 @@ input[type="file"] { padding: 0.45rem; }
 .repair-card.estado-EN_PROCESO .repair-title::before { background: var(--info); }
 .repair-card.estado-FINALIZADA .repair-title::before { background: var(--purple); }
 .repair-card.estado-CONFIRMADA .repair-title::before { background: var(--ok); }
+.repair-card.estado-CANCELADA  .repair-title::before { background: var(--err); }
 .repair-header {
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
     gap: 0.75rem;

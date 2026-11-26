@@ -8,6 +8,7 @@ import com.taller.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -15,7 +16,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -115,6 +119,9 @@ public class ReparacionService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
+
     /**
      * Crea una nueva reparación en Recepción con una estimación inicial orientativa (no bloqueante)
      * y los días estimados de trabajo.
@@ -159,15 +166,33 @@ public class ReparacionService {
         reparacionRepository.save(reparacion);
 
         if (vehiculo.getCliente() != null) {
-            eventPublisher.publishEvent(new NotificacionReparacionEvent(
-                    vehiculo.getCliente(),
-                    reparacion,
-                    TipoNotificacion.ENTRADA_TALLER,
-                    "Vehículo recepcionado en el taller",
-                    "Hemos recibido tu vehículo " + vehiculo.getMarca() + " " + vehiculo.getModelo()
-                            + " (" + vehiculo.getMatricula() + "). Tu código localizador de seguimiento es: "
-                            + reparacion.getLocalizador()
-            ));
+            Cliente cli = vehiculo.getCliente();
+            if (cli.tieneCuenta() && clienteRepository != null) {
+                Cliente cliPersistido = cli.getId() != null
+                        ? clienteRepository.findById(cli.getId()).orElse(cli)
+                        : cli;
+                if (cliPersistido.getReparacionesVinculadas() == null) {
+                    cliPersistido.setReparacionesVinculadas(new HashSet<>());
+                }
+                boolean yaVinculada = cliPersistido.getReparacionesVinculadas().stream()
+                        .anyMatch(r -> reparacion.getId() != null && reparacion.getId().equals(r.getId()));
+                if (!yaVinculada) {
+                    cliPersistido.getReparacionesVinculadas().add(reparacion);
+                    clienteRepository.save(cliPersistido);
+                }
+            }
+
+            if (eventPublisher != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cli,
+                        reparacion,
+                        TipoNotificacion.ENTRADA_TALLER,
+                        "Vehículo recepcionado en el taller",
+                        "Hemos recibido tu vehículo " + vehiculo.getMarca() + " " + vehiculo.getModelo()
+                                + " (" + vehiculo.getMatricula() + "). Tu código localizador de seguimiento es: "
+                                + reparacion.getLocalizador()
+                ));
+            }
         }
 
         return convertirAResponseDTO(reparacion,
@@ -202,6 +227,11 @@ public class ReparacionService {
         if (mecanico.getRol() != Rol.MECANICO && mecanico.getRol() != Rol.ADMIN) {
             throw new IllegalArgumentException(
                     "El usuario " + mecanico.getNombre() + " no tiene rol de mecánico.");
+        }
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "No se puede asignar un mecánico a una reparación ya cerrada (" + reparacion.getEstado() + ").");
         }
 
         reparacion.setMecanico(mecanico);
@@ -255,6 +285,11 @@ public class ReparacionService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
 
+        if (esReparacionConcluida(reparacion.getEstado())) {
+            throw new IllegalArgumentException(
+                    "No se pueden modificar las horas de una reparación en estado " + reparacion.getEstado().name() + ".");
+        }
+
         if (!tienePresupuestoAceptado(reparacionId)) {
             throw new IllegalArgumentException(
                     "Operación bloqueada: no se pueden registrar horas de trabajo hasta que el cliente haya ACEPTADO el presupuesto desglosado.");
@@ -262,19 +297,159 @@ public class ReparacionService {
 
         double horasRedondeadas = Math.round(horas * 100.0) / 100.0;
         reparacion.setHorasTrabajoMecanico(horasRedondeadas);
+        reparacion.setSegundosAcumuladosTemporizador(Math.round(horasRedondeadas * 3600.0));
+        reparacion.setInicioTemporizador(null);
+        if ("EN_MARCHA".equalsIgnoreCase(reparacion.getEstadoTemporizador())) {
+            reparacion.setEstadoTemporizador("PAUSADO");
+        }
         reparacionRepository.save(reparacion);
 
         // Si ya existía una factura preliminar, la sincronizamos con las nuevas horas
-        facturaRepository.findByReparacionId(reparacionId).ifPresent(factura -> {
-            ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
-            double costeMat = calcularCosteMateriales(reparacionId);
-            factura.recalcularImportes(costeMat, horasRedondeadas, config.getPrecioHoraManoObra(),
-                    config.getMargenBeneficioPorcentaje(), 21.0);
-            facturaRepository.save(factura);
-        });
+        if (facturaRepository != null) {
+            facturaRepository.findByReparacionId(reparacionId).ifPresent(factura -> {
+                ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
+                double costeMat = calcularCosteMateriales(reparacionId);
+                factura.recalcularImportes(costeMat, horasRedondeadas, config.getPrecioHoraManoObra(),
+                        config.getMargenBeneficioPorcentaje(), 21.0);
+                facturaRepository.save(factura);
+            });
+        }
 
         return convertirAResponseDTO(reparacion,
                 String.format("Horas de mano de obra actualizadas a %.2f h.", horasRedondeadas));
+    }
+
+    /**
+     * HU #19: Inicia o reanuda el temporizador de mano de obra para una reparación EN_PROCESO.
+     * Si el mecánico ya tiene otro vehículo con temporizador EN_MARCHA, bloquea la acción.
+     */
+    public synchronized ReparacionResponseDTO iniciarTemporizador(Long reparacionId, Long mecanicoId) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() != EstadoReparacion.EN_PROCESO) {
+            throw new IllegalArgumentException(
+                    "Solo se puede iniciar el temporizador en reparaciones en estado EN_PROCESO (estado actual: "
+                            + reparacion.getEstado().name() + ").");
+        }
+
+        if (presupuestoRepository != null && !tienePresupuestoAceptado(reparacionId)) {
+            throw new IllegalArgumentException(
+                    "Operación bloqueada: el presupuesto debe estar aceptado por el cliente antes de iniciar el temporizador.");
+        }
+
+        Long mecIdEfectivo = mecanicoId != null
+                ? mecanicoId
+                : (reparacion.getMecanico() != null ? reparacion.getMecanico().getId() : null);
+
+        if (mecIdEfectivo != null) {
+            List<Reparacion> delMecanico = reparacionRepository.findByMecanicoId(mecIdEfectivo);
+            if (delMecanico != null) {
+                for (Reparacion otra : delMecanico) {
+                    if (otra.getId() != null && !otra.getId().equals(reparacionId)
+                            && "EN_MARCHA".equalsIgnoreCase(otra.getEstadoTemporizador())) {
+                        String matriculaOtra = (otra.getVehiculo() != null && otra.getVehiculo().getMatricula() != null)
+                                ? otra.getVehiculo().getMatricula() : ("Orden #" + otra.getId());
+                        throw new IllegalStateException(
+                                "Ya tienes un temporizador en marcha en el vehículo " + matriculaOtra
+                                        + " (Orden #" + otra.getId() + "). Pausa la tarea activa antes de comenzar una nueva.");
+                    }
+                }
+            }
+        }
+
+        if ("EN_MARCHA".equalsIgnoreCase(reparacion.getEstadoTemporizador())) {
+            return convertirAResponseDTO(reparacion, "El temporizador ya se encuentra en marcha.");
+        }
+
+        if (reparacion.getSegundosAcumuladosTemporizador() == 0L && reparacion.getHorasTrabajoMecanico() > 0.0) {
+            reparacion.setSegundosAcumuladosTemporizador(Math.round(reparacion.getHorasTrabajoMecanico() * 3600.0));
+        }
+
+        reparacion.setEstadoTemporizador("EN_MARCHA");
+        reparacion.setInicioTemporizador(LocalDateTime.now());
+        reparacionRepository.save(reparacion);
+
+        return convertirAResponseDTO(reparacion, "Temporizador de mano de obra iniciado.");
+    }
+
+    /**
+     * HU #19: Pausa el temporizador de mano de obra guardando los segundos y horas acumulados.
+     */
+    public synchronized ReparacionResponseDTO pausarTemporizador(Long reparacionId) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (!"EN_MARCHA".equalsIgnoreCase(reparacion.getEstadoTemporizador())) {
+            throw new IllegalStateException("El temporizador no está en marcha actualmente para esta reparación.");
+        }
+
+        long transcurrido = calcularSegundosDesdeInicio(reparacion.getInicioTemporizador());
+        long totalSegundos = reparacion.getSegundosAcumuladosTemporizador() + transcurrido;
+        double horas = Math.round((totalSegundos / 3600.0) * 100.0) / 100.0;
+
+        reparacion.setSegundosAcumuladosTemporizador(totalSegundos);
+        reparacion.setInicioTemporizador(null);
+        reparacion.setEstadoTemporizador("PAUSADO");
+        reparacion.setHorasTrabajoMecanico(horas);
+        reparacionRepository.save(reparacion);
+
+        return convertirAResponseDTO(reparacion,
+                "Temporizador pausado. Tiempo acumulado: " + formatearDuracionHorasMinutos(totalSegundos) + ".");
+    }
+
+    /**
+     * HU #19: Detiene definitivamente el temporizador y consolida las horas invertidas en la ficha.
+     */
+    public synchronized ReparacionResponseDTO terminarTemporizador(Long reparacionId) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (esReparacionConcluida(reparacion.getEstado())) {
+            throw new IllegalArgumentException(
+                    "La reparación ya está en estado " + reparacion.getEstado().name() + " y su tiempo no puede modificarse.");
+        }
+
+        long transcurrido = "EN_MARCHA".equalsIgnoreCase(reparacion.getEstadoTemporizador())
+                ? calcularSegundosDesdeInicio(reparacion.getInicioTemporizador())
+                : 0L;
+        long totalSegundos = reparacion.getSegundosAcumuladosTemporizador() + transcurrido;
+        if (totalSegundos == 0L && reparacion.getHorasTrabajoMecanico() > 0.0) {
+            totalSegundos = Math.round(reparacion.getHorasTrabajoMecanico() * 3600.0);
+        }
+        double horas = Math.round((totalSegundos / 3600.0) * 100.0) / 100.0;
+
+        reparacion.setSegundosAcumuladosTemporizador(totalSegundos);
+        reparacion.setInicioTemporizador(null);
+        reparacion.setEstadoTemporizador("DETENIDO");
+        reparacion.setHorasTrabajoMecanico(horas);
+        reparacionRepository.save(reparacion);
+
+        if (facturaRepository != null) {
+            facturaRepository.findByReparacionId(reparacionId).ifPresent(factura -> {
+                ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
+                double costeMat = calcularCosteMateriales(reparacionId);
+                factura.recalcularImportes(costeMat, horas, config.getPrecioHoraManoObra(),
+                        config.getMargenBeneficioPorcentaje(), 21.0);
+                facturaRepository.save(factura);
+            });
+        }
+
+        return convertirAResponseDTO(reparacion,
+                "Tiempo total registrado en la reparación: " + formatearDuracionHorasMinutos(totalSegundos)
+                        + " (" + String.format(Locale.US, "%.2f", horas) + " h).");
+    }
+
+    private long calcularSegundosDesdeInicio(LocalDateTime inicio) {
+        if (inicio == null) return 0L;
+        return Math.max(0L, Duration.between(inicio, LocalDateTime.now()).getSeconds());
+    }
+
+    private boolean esReparacionConcluida(EstadoReparacion estado) {
+        return estado == EstadoReparacion.FINALIZADA
+                || estado == EstadoReparacion.CONFIRMADA
+                || estado == EstadoReparacion.ENTREGADA
+                || estado == EstadoReparacion.CANCELADA;
     }
 
     /**
@@ -292,7 +467,7 @@ public class ReparacionService {
         reparacion.setDiasEstimados(dias);
         reparacionRepository.save(reparacion);
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             eventPublisher.publishEvent(new NotificacionReparacionEvent(
                     reparacion.getVehiculo().getCliente(),
                     reparacion,
@@ -316,6 +491,12 @@ public class ReparacionService {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
+
+        if (esReparacionConcluida(reparacion.getEstado())) {
+            throw new IllegalArgumentException(
+                    "No se pueden añadir incidencias ni fotografías a una reparación ya concluida ("
+                            + reparacion.getEstado().name() + ").");
+        }
 
         if (descripcion == null || descripcion.isBlank()) {
             throw new IllegalArgumentException("La descripción de la incidencia no puede estar vacía.");
@@ -343,7 +524,7 @@ public class ReparacionService {
         IncidenciaReparacion incidencia = new IncidenciaReparacion(reparacion, descripcion.trim(), impacto, rutaFotoPublica);
         incidenciaRepository.save(incidencia);
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             String extraImpacto = (impacto > 0)
                     ? " (Impacto económico estimado: +" + String.format(Locale.US, "%.2f", impacto) + " €)"
                     : "";
@@ -398,6 +579,11 @@ public class ReparacionService {
             throw new IllegalArgumentException("La incidencia no pertenece a la reparación #" + reparacionId);
         }
 
+        if (esReparacionConcluida(incidencia.getReparacion().getEstado())) {
+            throw new IllegalArgumentException(
+                    "El historial de reparaciones concluidas es de solo lectura: no se pueden eliminar fotografías.");
+        }
+
         if (incidencia.getRutaFoto() == null || incidencia.getRutaFoto().isBlank()) {
             throw new IllegalArgumentException("Esta incidencia no tiene ninguna foto adjunta para eliminar.");
         }
@@ -421,6 +607,11 @@ public class ReparacionService {
 
         if (!incidencia.getReparacion().getId().equals(reparacionId)) {
             throw new IllegalArgumentException("La incidencia no pertenece a la reparación #" + reparacionId);
+        }
+
+        if (esReparacionConcluida(incidencia.getReparacion().getEstado())) {
+            throw new IllegalArgumentException(
+                    "El historial de reparaciones concluidas es de solo lectura: no se pueden borrar notas pasadas.");
         }
 
         if (incidencia.getRutaFoto() != null && !incidencia.getRutaFoto().isBlank()) {
@@ -466,7 +657,9 @@ public class ReparacionService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No se encontró la reparación con ID: " + reparacionId));
 
-        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE || reparacion.getEstado() == EstadoReparacion.EN_PROCESO) {
+        if (reparacion.getEstado() == EstadoReparacion.PENDIENTE
+                || reparacion.getEstado() == EstadoReparacion.EN_PROCESO
+                || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
             throw new IllegalArgumentException(
                     "No se puede generar la factura si la reparación no está en estado FINALIZADA o CONFIRMADA (estado actual: "
                             + reparacion.getEstado().name() + ").");
@@ -509,8 +702,15 @@ public class ReparacionService {
         Factura factura;
         if (existente.isPresent()) {
             factura = existente.get();
-            factura.setFechaEmision(LocalDate.now());
-            factura.recalcularImportes(costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
+            if (reparacion.getEstado() == EstadoReparacion.ENTREGADA) {
+                throw new IllegalArgumentException(
+                        "La factura " + factura.getNumeroFactura()
+                                + " ya está cerrada y entregada; sus importes son inmutables y no pueden modificarse.");
+            }
+            if (reparacion.getEstado() != EstadoReparacion.CONFIRMADA) {
+                factura.setFechaEmision(LocalDate.now());
+                factura.recalcularImportes(costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
+            }
         } else {
             String numeroFactura = generarNumeroFacturaUnico();
             factura = new Factura(numeroFactura, reparacion, costeMateriales, horas, precioHora, porcentajeMargen, 21.0);
@@ -539,6 +739,11 @@ public class ReparacionService {
                                                                          List<Map<String, Object>> lineasRaw) {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede emitir ni modificar el presupuesto de una reparación ya "
+                    + reparacion.getEstado().name() + ".");
+        }
 
         if (lineasRaw == null || lineasRaw.isEmpty()) {
             throw new IllegalArgumentException("El presupuesto debe contener al menos un concepto (pieza o mano de obra).");
@@ -631,7 +836,7 @@ public class ReparacionService {
                 ? "Ampliación de presupuesto " + presupuesto.getNumeroPresupuesto() + " enviada al cliente. La reparación queda en pausa hasta su aceptación."
                 : "Presupuesto " + presupuesto.getNumeroPresupuesto() + " guardado y enviado al cliente (PENDIENTE_ACEPTACION).");
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             String tituloNotif = eraAmpliacion ? "Ampliación de presupuesto disponible" : "Presupuesto desglosado disponible";
             eventPublisher.publishEvent(new NotificacionReparacionEvent(
                     reparacion.getVehiculo().getCliente(),
@@ -694,6 +899,11 @@ public class ReparacionService {
         Reparacion reparacion = reparacionRepository.findById(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
 
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede responder al presupuesto porque la reparación ya está "
+                    + reparacion.getEstado().name() + ".");
+        }
+
         PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
                 .orElseThrow(() -> new IllegalArgumentException("Esta reparación no tiene un presupuesto formal pendiente."));
 
@@ -713,15 +923,23 @@ public class ReparacionService {
 
         Cliente cliente = reparacion.getVehiculo().getCliente();
         boolean passwordValida = false;
-        if (cliente.getPassword() != null && cliente.getPassword().equals(password)) {
+        if (cliente.getPassword() != null && passwordSecurityService.coincide(password, cliente.getPassword())) {
             passwordValida = true;
+            if (!passwordSecurityService.estaHasheada(cliente.getPassword())) {
+                cliente.setPassword(passwordSecurityService.hashear(password));
+                clienteRepository.save(cliente);
+            }
         } else {
             // También comprobar si la reparación está vinculada a otro perfil de cliente con cuenta
             for (Cliente c : clienteRepository.findAll()) {
                 if (c.getReparacionesVinculadas() != null
                         && c.getReparacionesVinculadas().stream().anyMatch(r -> r.getId().equals(reparacionId))
-                        && c.getPassword() != null && c.getPassword().equals(password)) {
+                        && c.getPassword() != null && passwordSecurityService.coincide(password, c.getPassword())) {
                     passwordValida = true;
+                    if (!passwordSecurityService.estaHasheada(c.getPassword())) {
+                        c.setPassword(passwordSecurityService.hashear(password));
+                        clienteRepository.save(c);
+                    }
                     break;
                 }
             }
@@ -751,15 +969,17 @@ public class ReparacionService {
                     null
             ));
 
-            eventPublisher.publishEvent(new NotificacionReparacionEvent(
-                    cliente,
-                    reparacion,
-                    TipoNotificacion.EN_PROCESO,
-                    "Presupuesto aceptado - Reparación en marcha",
-                    "Has autorizado el presupuesto " + presupuesto.getNumeroPresupuesto()
-                            + " (" + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €). Tu vehículo ("
-                            + reparacion.getVehiculo().getMatricula() + ") ya está listo para que el mecánico inicie las reparaciones."
-            ));
+            if (eventPublisher != null && cliente != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cliente,
+                        reparacion,
+                        TipoNotificacion.EN_PROCESO,
+                        "Presupuesto aceptado - Reparación en marcha",
+                        "Has autorizado el presupuesto " + presupuesto.getNumeroPresupuesto()
+                                + " (" + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €). Tu vehículo ("
+                                + reparacion.getVehiculo().getMatricula() + ") ya está listo para que el mecánico inicie las reparaciones."
+                ));
+            }
         } else if ("RECHAZAR".equals(accionNorm) || "RECHAZADO".equals(accionNorm)) {
             presupuesto.setEstado("RECHAZADO");
             presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
@@ -784,6 +1004,219 @@ public class ReparacionService {
                 ? "Has aceptado el presupuesto correctamente. El taller ya puede iniciar la reparación."
                 : "Has rechazado el presupuesto. Se ha notificado al taller tu decisión.");
         return dto;
+    }
+
+    /**
+     * Punto 2: Permite a Recepción o Administración registrar la ACEPTACIÓN o RECHAZO
+     * presencial/telefónico de un presupuesto cuando el cliente no tiene cuenta web.
+     */
+    @Transactional
+    public synchronized Map<String, Object> responderPresupuestoPersonal(Long reparacionId,
+                                                                         String accion,
+                                                                         String canalConfirmacion,
+                                                                         String motivoRechazo,
+                                                                         Long usuarioId) {
+        if (usuarioId == null) {
+            throw new IllegalArgumentException("Solo Recepción o Administración puede registrar la aceptación o rechazo presencial/telefónico de un presupuesto.");
+        }
+        Usuario empleado = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario del taller con ID: " + usuarioId));
+
+        if (empleado.getRol() != Rol.RECEPCIONISTA && empleado.getRol() != Rol.ADMIN) {
+            throw new IllegalArgumentException("Solo Recepción o Administración puede registrar la aceptación o rechazo presencial/telefónico de un presupuesto.");
+        }
+
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede responder al presupuesto porque la reparación ya está "
+                    + reparacion.getEstado().name() + ".");
+        }
+
+        PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("Esta reparación no tiene un presupuesto formal pendiente."));
+
+        if (!"PENDIENTE_ACEPTACION".equalsIgnoreCase(presupuesto.getEstado())) {
+            throw new IllegalStateException("No se puede modificar este presupuesto porque ya se encuentra en estado "
+                    + presupuesto.getEstado() + ".");
+        }
+
+        if (presupuesto.estaCaducado()) {
+            throw new IllegalStateException("Este presupuesto ha superado su fecha de validez ("
+                    + presupuesto.getFechaValidez() + ") y ya no puede ser aceptado ni rechazado.");
+        }
+
+        String canal = (canalConfirmacion != null && !canalConfirmacion.trim().isEmpty())
+                ? canalConfirmacion.trim() : "Presencial / Teléfono";
+        String accionNorm = accion != null ? accion.trim().toUpperCase() : "";
+        Cliente cliente = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getCliente() : null;
+        String matricula = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getMatricula() : "";
+
+        if ("ACEPTAR".equals(accionNorm) || "ACEPTADO".equals(accionNorm)) {
+            presupuesto.setEstado("ACEPTADO");
+            presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            presupuesto.setMotivoRechazo(null);
+            presupuestoRepository.save(presupuesto);
+
+            if (reparacion.getEstado() == EstadoReparacion.PENDIENTE && reparacion.getMecanico() != null) {
+                reparacion.setEstado(EstadoReparacion.EN_PROCESO);
+            }
+            reparacion.setPresupuesto(presupuesto.getTotalPresupuesto());
+            reparacionRepository.save(reparacion);
+
+            if (incidenciaRepository != null) {
+                incidenciaRepository.save(new IncidenciaReparacion(
+                        reparacion,
+                        "✅ Presupuesto " + presupuesto.getNumeroPresupuesto() + " ACEPTADO (" + canal
+                                + ") registrado por " + empleado.getNombre() + ". Vehículo autorizado para reparar.",
+                        0.0,
+                        null
+                ));
+            }
+
+            if (eventPublisher != null && cliente != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cliente,
+                        reparacion,
+                        TipoNotificacion.EN_PROCESO,
+                        "Presupuesto aceptado - Reparación en marcha",
+                        "Se ha registrado la autorización (" + canal + ") del presupuesto "
+                                + presupuesto.getNumeroPresupuesto() + " ("
+                                + String.format(Locale.US, "%.2f", presupuesto.getTotalPresupuesto()) + " €) para tu vehículo ("
+                                + matricula + ")."
+                ));
+            }
+        } else if ("RECHAZAR".equals(accionNorm) || "RECHAZADO".equals(accionNorm)) {
+            presupuesto.setEstado("RECHAZADO");
+            presupuesto.setFechaRespuestaCliente(java.time.LocalDateTime.now());
+            String motivo = (motivoRechazo != null && !motivoRechazo.trim().isEmpty())
+                    ? motivoRechazo.trim() : "Rechazado por el cliente (" + canal + ")";
+            presupuesto.setMotivoRechazo(motivo);
+            presupuestoRepository.save(presupuesto);
+
+            if (incidenciaRepository != null) {
+                incidenciaRepository.save(new IncidenciaReparacion(
+                        reparacion,
+                        "❌ Presupuesto " + presupuesto.getNumeroPresupuesto() + " RECHAZADO (" + canal
+                                + ") registrado por " + empleado.getNombre() + ". Motivo: " + motivo
+                                + ". La orden queda abierta para nuevo presupuesto o cancelación.",
+                        0.0,
+                        null
+                ));
+            }
+
+            if (eventPublisher != null && cliente != null) {
+                eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                        cliente,
+                        reparacion,
+                        TipoNotificacion.INFO,
+                        "Presupuesto rechazado (" + canal + ")",
+                        "Se ha registrado el rechazo del presupuesto " + presupuesto.getNumeroPresupuesto()
+                                + " para tu vehículo (" + matricula + "). Motivo: " + motivo
+                                + ". Puedes solicitar un nuevo presupuesto o retirar el vehículo sin reparar."
+                ));
+            }
+        } else {
+            throw new IllegalArgumentException("Acción no válida. Debe ser ACEPTAR o RECHAZAR.");
+        }
+
+        Map<String, Object> dto = mapearPresupuestoCompleto(presupuesto);
+        dto.put("estadoReparacion", reparacion.getEstado().name());
+        dto.put("canalConfirmacion", canal);
+        dto.put("mensaje", "ACEPTADO".equals(presupuesto.getEstado())
+                ? "Presupuesto marcado como ACEPTADO (" + canal + "). El taller ya puede iniciar la reparación."
+                : "Presupuesto marcado como RECHAZADO (" + canal + "). La reparación sigue abierta a un nuevo presupuesto o a su cancelación definitiva.");
+        return dto;
+    }
+
+    /**
+     * Punto 3: Cancela definitivamente una reparación tras haberse rechazado el presupuesto
+     * y devuelve el vehículo sin reparar, retirándolo de las listas activas del taller.
+     * Puede invocarlo el cliente propietario/vinculado o un Recepcionista/Admin.
+     */
+    @Transactional
+    public synchronized ReparacionResponseDTO cancelarReparacionPorRechazo(Long reparacionId,
+                                                                           String motivo,
+                                                                           Long clienteId,
+                                                                           Long usuarioId) {
+        Reparacion reparacion = reparacionRepository.findById(reparacionId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la reparación con ID: " + reparacionId));
+
+        if (reparacion.getEstado() == EstadoReparacion.ENTREGADA || reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            throw new IllegalStateException("No se puede cancelar la reparación porque ya se encuentra en estado "
+                    + reparacion.getEstado().name() + ".");
+        }
+        if (reparacion.getEstado() == EstadoReparacion.FINALIZADA || reparacion.getEstado() == EstadoReparacion.CONFIRMADA) {
+            throw new IllegalStateException("No se puede cancelar una reparación que ya ha sido finalizada o confirmada.");
+        }
+
+        PresupuestoReparacion presupuesto = presupuestoRepository.findByReparacionId(reparacionId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Solo se puede cancelar una reparación y retirar el vehículo sin reparar cuando el presupuesto haya sido rechazado previamente."));
+
+        if (!"RECHAZADO".equalsIgnoreCase(presupuesto.getEstado())) {
+            throw new IllegalStateException(
+                    "Solo se puede cancelar una reparación y retirar el vehículo sin reparar cuando el presupuesto haya sido rechazado previamente.");
+        }
+
+        String origen;
+        if (usuarioId != null) {
+            Usuario empleado = usuarioRepository.findById(usuarioId)
+                    .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario con ID: " + usuarioId));
+            if (empleado.getRol() != Rol.RECEPCIONISTA && empleado.getRol() != Rol.ADMIN) {
+                throw new IllegalArgumentException("Solo el cliente, Recepción o Administración pueden cancelar la reparación.");
+            }
+            origen = "Recepción/Admin (" + empleado.getNombre() + ")";
+        } else if (clienteId != null) {
+            Cliente cli = clienteRepository.findById(clienteId)
+                    .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado con ID: " + clienteId));
+            boolean esPropietario = reparacion.getVehiculo() != null
+                    && reparacion.getVehiculo().getCliente() != null
+                    && clienteId.equals(reparacion.getVehiculo().getCliente().getId());
+            boolean estaVinculado = cli.getReparacionesVinculadas() != null
+                    && cli.getReparacionesVinculadas().stream().anyMatch(r -> reparacionId.equals(r.getId()));
+            if (!esPropietario && !estaVinculado) {
+                throw new IllegalArgumentException("No tienes permiso para cancelar esta reparación.");
+            }
+            origen = "Cliente (" + cli.getNombre() + ")";
+        } else {
+            throw new IllegalArgumentException("Debes identificarte como cliente, recepcionista o administrador para cancelar la reparación.");
+        }
+
+        reparacion.setEstado(EstadoReparacion.CANCELADA);
+        reparacion.setFechaSalida(LocalDate.now());
+        reparacionRepository.save(reparacion);
+
+        String motivoLimpio = (motivo != null && !motivo.trim().isEmpty()) ? motivo.trim() : null;
+        if (incidenciaRepository != null) {
+            incidenciaRepository.save(new IncidenciaReparacion(
+                    reparacion,
+                    "🚫 Reparación CANCELADA por " + origen
+                            + ". El vehículo ha sido devuelto/retirado sin reparar tras rechazar el presupuesto."
+                            + (motivoLimpio != null ? " Observaciones: " + motivoLimpio : ""),
+                    0.0,
+                    null
+            ));
+        }
+
+        Cliente clienteNotif = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getCliente() : null;
+        String matricula = reparacion.getVehiculo() != null ? reparacion.getVehiculo().getMatricula() : "";
+        if (eventPublisher != null && clienteNotif != null) {
+            eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                    clienteNotif,
+                    reparacion,
+                    TipoNotificacion.CANCELADA,
+                    "Reparación cancelada - Vehículo devuelto sin reparar",
+                    "La reparación de tu vehículo (" + matricula + ") ha sido cancelada tras el rechazo del presupuesto. "
+                            + "El vehículo ha sido retirado sin coste de reparación."
+            ));
+        }
+
+        return convertirAResponseDTO(
+                reparacion,
+                "Reparación cancelada correctamente. El vehículo ha sido retirado de la lista activa del taller y registrado en el historial como CANCELADA."
+        );
     }
 
     public Map<String, Object> mapearPresupuestoCompleto(PresupuestoReparacion p) {
@@ -924,6 +1357,7 @@ public class ReparacionService {
         ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
 
         return reparacionRepository.findAll().stream()
+                .filter(r -> r.getEstado() != EstadoReparacion.CANCELADA)
                 .filter(r -> {
                     if (filtro.isEmpty()) return true;
                     String desc = r.getDescripcionAveria() != null ? r.getDescripcionAveria().toLowerCase() : "";
@@ -986,12 +1420,14 @@ public class ReparacionService {
             nuevoEstado = EstadoReparacion.valueOf(nuevoEstadoStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Estado no válido: " + nuevoEstadoStr
-                    + ". Los estados válidos son: PENDIENTE, EN_PROCESO, FINALIZADA, CONFIRMADA, ENTREGADA");
+                    + ". Los estados válidos son: PENDIENTE, EN_PROCESO, FINALIZADA, CONFIRMADA, ENTREGADA, CANCELADA");
         }
 
         validarTransicionEstado(reparacion.getEstado(), nuevoEstado);
 
-        if (nuevoEstado != EstadoReparacion.PENDIENTE && reparacion.getMecanico() == null) {
+        if (nuevoEstado != EstadoReparacion.PENDIENTE
+                && nuevoEstado != EstadoReparacion.CANCELADA
+                && reparacion.getMecanico() == null) {
             throw new IllegalArgumentException(
                     "No se puede cambiar el estado a " + nuevoEstado + " porque la reparación no tiene ningún mecánico asignado.");
         }
@@ -1014,8 +1450,19 @@ public class ReparacionService {
         reparacion.setEstado(nuevoEstado);
 
         if (nuevoEstado == EstadoReparacion.FINALIZADA
+                && "EN_MARCHA".equalsIgnoreCase(reparacion.getEstadoTemporizador())) {
+            long transcurrido = calcularSegundosDesdeInicio(reparacion.getInicioTemporizador());
+            long totalSegundos = reparacion.getSegundosAcumuladosTemporizador() + transcurrido;
+            reparacion.setSegundosAcumuladosTemporizador(totalSegundos);
+            reparacion.setInicioTemporizador(null);
+            reparacion.setEstadoTemporizador("DETENIDO");
+            reparacion.setHorasTrabajoMecanico(Math.round((totalSegundos / 3600.0) * 100.0) / 100.0);
+        }
+
+        if (nuevoEstado == EstadoReparacion.FINALIZADA
                 || nuevoEstado == EstadoReparacion.CONFIRMADA
-                || nuevoEstado == EstadoReparacion.ENTREGADA) {
+                || nuevoEstado == EstadoReparacion.ENTREGADA
+                || nuevoEstado == EstadoReparacion.CANCELADA) {
             reparacion.setFechaSalida(LocalDate.now());
         }
 
@@ -1026,7 +1473,7 @@ public class ReparacionService {
             generarFactura(reparacionId, reparacion.getHorasTrabajoMecanico());
         }
 
-        if (reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
+        if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             Cliente cliente = reparacion.getVehiculo().getCliente();
             String matricula = reparacion.getVehiculo().getMatricula();
             switch (nuevoEstado) {
@@ -1058,6 +1505,13 @@ public class ReparacionService {
                             "Tu vehículo (" + matricula + ") ha sido entregado. Muchas gracias por confiar en MotorFlow. Tu factura ya está disponible para descargar."
                     ));
                     break;
+                case CANCELADA:
+                    eventPublisher.publishEvent(new NotificacionReparacionEvent(
+                            cliente, reparacion, TipoNotificacion.CANCELADA,
+                            "Reparación cancelada - Vehículo devuelto sin reparar",
+                            "La reparación de tu vehículo (" + matricula + ") ha sido cancelada tras rechazar el presupuesto."
+                    ));
+                    break;
                 default:
                     break;
             }
@@ -1085,10 +1539,13 @@ public class ReparacionService {
                 .sum() * 100.0) / 100.0;
         this.gastosComprasStock = totalComprasStock;
 
+        // Coste analítico/imputado de piezas instaladas en reparaciones (informativo: no vuelve a restar de la caja)
         double gastosPiezasUsadas = Math.round(todosUsos.stream()
                 .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
                 .sum() * 100.0) / 100.0;
-        double gastosMateriales = Math.round((gastosPiezasUsadas + totalComprasStock) * 100.0) / 100.0;
+
+        // El flujo de salida de caja real corresponde únicamente a las compras/reposiciones de stock del almacén
+        double gastosMateriales = totalComprasStock;
 
         // Ingresos cobrados: suma del totalFactura de reparaciones entregadas o facturadas
         double ingresosCobrados = facturas.stream()
@@ -1098,8 +1555,9 @@ public class ReparacionService {
                 .mapToDouble(Factura::getTotalFactura)
                 .sum();
 
-        // Previsión de ingresos en curso (reparaciones sin factura emitida todavía)
+        // Previsión de ingresos en curso (reparaciones activas sin factura emitida todavía, excluyendo canceladas)
         double ingresosEnCurso = todas.stream()
+                .filter(r -> r.getEstado() != EstadoReparacion.CANCELADA)
                 .filter(r -> facturaRepository.findByReparacionId(r.getId()).isEmpty())
                 .mapToDouble(this::calcularTotalPrevistoReparacion)
                 .sum();
@@ -1174,6 +1632,7 @@ public class ReparacionService {
             item.put("cantidad", g.getCantidad());
             item.put("precioUnitario", g.getPrecioUnitario());
             item.put("importe", Math.round((g.getImporte() != null ? g.getImporte() : 0.0) * 100.0) / 100.0);
+            item.put("descuentaCaja", true);
             item.put("eliminable", true);
             resultado.add(item);
         }
@@ -1209,6 +1668,7 @@ public class ReparacionService {
             item.put("cantidad", u.getCantidad());
             item.put("precioUnitario", precioUnit);
             item.put("importe", imp);
+            item.put("descuentaCaja", false);
             item.put("eliminable", true);
             resultado.add(item);
         }
@@ -1340,20 +1800,27 @@ public class ReparacionService {
     }
 
     public double calcularCosteMateriales(Long reparacionId) {
-        if (reparacionId == null) return 0.0;
+        if (reparacionId == null || reparacionMaterialRepository == null) return 0.0;
         return reparacionMaterialRepository.findByReparacionId(reparacionId).stream()
                 .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
                 .sum();
     }
 
     public double calcularTotalPrevistoReparacion(Reparacion r) {
-        ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
+        if (r == null || r.getEstado() == EstadoReparacion.CANCELADA) {
+            return 0.0;
+        }
+        ConfiguracionTaller config = configuracionService != null
+                ? configuracionService.obtenerConfiguracion()
+                : new ConfiguracionTaller();
         double costeMat = calcularCosteMateriales(r.getId());
         double horas = r.getHorasTrabajoMecanico() != null ? r.getHorasTrabajoMecanico() : 0.0;
         if (costeMat == 0.0 && horas == 0.0) {
-            double impacto = incidenciaRepository.findByReparacionIdOrderByFechaAsc(r.getId()).stream()
+            double impacto = (incidenciaRepository != null && r.getId() != null)
+                    ? incidenciaRepository.findByReparacionIdOrderByFechaAsc(r.getId()).stream()
                     .mapToDouble(i -> i.getImpactoPrecio() != null ? i.getImpactoPrecio() : 0.0)
-                    .sum();
+                    .sum()
+                    : 0.0;
             return Math.round(((r.getEstimacionInicial() != null ? r.getEstimacionInicial() : 150.0) + impacto) * 100.0) / 100.0;
         }
         double manoObra = horas * config.getPrecioHoraManoObra();
@@ -1365,9 +1832,268 @@ public class ReparacionService {
     }
 
     public List<ReparacionResponseDTO> obtenerTodas() {
-        return reparacionRepository.findAll().stream()
+        return obtenerTodas(null);
+    }
+
+    /**
+     * HU #7: Devuelve todas las reparaciones con ordenación dinámica opcional por categorías operativas.
+     */
+    public List<ReparacionResponseDTO> obtenerTodas(String orden) {
+        List<ReparacionResponseDTO> lista = reparacionRepository.findAll().stream()
                 .map(r -> convertirAResponseDTO(r, null))
                 .collect(Collectors.toList());
+        return ordenarReparacionesPorCriterio(lista, orden);
+    }
+
+    /**
+     * HU #7: Ordena una lista de reparaciones según criterios operativos del Mecánico Jefe:
+     * LLEGADA_ASC (orden de llegada), LLEGADA_DESC, TIEMPO_ASC, TIEMPO_DESC, PIEZAS_DESC, PIEZAS_ASC.
+     */
+    public List<ReparacionResponseDTO> ordenarReparacionesPorCriterio(List<ReparacionResponseDTO> lista, String criterio) {
+        if (lista == null || lista.isEmpty() || criterio == null || criterio.isBlank()) {
+            return lista;
+        }
+        String norm = criterio.trim().toUpperCase(Locale.ROOT);
+        List<ReparacionResponseDTO> copia = new ArrayList<>(lista);
+
+        switch (norm) {
+            case "LLEGADA_ASC":
+            case "ORDEN_LLEGADA":
+                copia.sort(Comparator
+                        .comparing((ReparacionResponseDTO r) -> r.getFechaHoraEntrada() != null ? r.getFechaHoraEntrada() : "")
+                        .thenComparing(r -> r.getId() != null ? r.getId() : 0L));
+                break;
+            case "LLEGADA_DESC":
+                copia.sort(Comparator
+                        .comparing((ReparacionResponseDTO r) -> r.getFechaHoraEntrada() != null ? r.getFechaHoraEntrada() : "")
+                        .reversed()
+                        .thenComparing(Comparator.comparing((ReparacionResponseDTO r) -> r.getId() != null ? r.getId() : 0L).reversed()));
+                break;
+            case "TIEMPO_ASC":
+            case "TIEMPO_ESTIMADO":
+                copia.sort(Comparator
+                        .comparing((ReparacionResponseDTO r) -> r.getDiasEstimados() != null ? r.getDiasEstimados() : Integer.MAX_VALUE)
+                        .thenComparing(r -> r.getId() != null ? r.getId() : 0L));
+                break;
+            case "TIEMPO_DESC":
+                copia.sort(Comparator
+                        .comparing((ReparacionResponseDTO r) -> r.getDiasEstimados() != null ? r.getDiasEstimados() : 0)
+                        .reversed()
+                        .thenComparing(r -> r.getId() != null ? r.getId() : 0L));
+                break;
+            case "PIEZAS_DESC":
+            case "USO_PIEZAS":
+                copia.sort(Comparator
+                        .comparingInt((ReparacionResponseDTO r) -> r.getTotalUnidadesPiezas() != null ? r.getTotalUnidadesPiezas() : 0)
+                        .reversed()
+                        .thenComparing(Comparator.comparingDouble((ReparacionResponseDTO r) -> r.getCosteMateriales() != null ? r.getCosteMateriales() : 0.0).reversed())
+                        .thenComparing(r -> r.getId() != null ? r.getId() : 0L));
+                break;
+            case "PIEZAS_ASC":
+                copia.sort(Comparator
+                        .comparingInt((ReparacionResponseDTO r) -> r.getTotalUnidadesPiezas() != null ? r.getTotalUnidadesPiezas() : 0)
+                        .thenComparingDouble(r -> r.getCosteMateriales() != null ? r.getCosteMateriales() : 0.0)
+                        .thenComparing(r -> r.getId() != null ? r.getId() : 0L));
+                break;
+            default:
+                break;
+        }
+        return copia;
+    }
+
+    /**
+     * HU #8: Registro cronológico de vehículos pendientes de entrar a reparación,
+     * ordenados automáticamente del que lleva más tiempo esperando en el taller al más reciente.
+     */
+    public List<ReparacionResponseDTO> obtenerRegistroCronologicoEspera() {
+        return reparacionRepository.findAll().stream()
+                .filter(r -> r.getEstado() == EstadoReparacion.PENDIENTE)
+                .sorted(Comparator
+                        .comparing((Reparacion r) -> r.getFechaHoraEntrada() != null
+                                ? r.getFechaHoraEntrada()
+                                : (r.getFechaEntrada() != null ? r.getFechaEntrada().atTime(9, 0) : LocalDateTime.now()))
+                        .thenComparing(r -> r.getId() != null ? r.getId() : 0L))
+                .map(r -> convertirAResponseDTO(r, null))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * HU #20: Supervisión del trabajo de los mecánicos (resumen de horas y desglose por coche).
+     * Protegido por RBAC: bloquea el acceso si solicita un rol MECANICO o CLIENTE.
+     */
+    public Map<String, Object> obtenerSupervisionTiemposMecanicos(Long mecanicoId, String periodo, String rolSolicitante) {
+        if (rolSolicitante != null && !rolSolicitante.isBlank() && !"ADMIN".equalsIgnoreCase(rolSolicitante.trim())) {
+            throw new SecurityException(
+                    "Acceso denegado: la supervisión de tiempos del equipo solo está disponible para el administrador.");
+        }
+
+        String periodoNorm = (periodo != null && !periodo.isBlank())
+                ? periodo.trim().toUpperCase(Locale.ROOT)
+                : "TODOS";
+        LocalDate hoy = LocalDate.now();
+        LocalDate inicioSemana = hoy.with(DayOfWeek.MONDAY);
+        LocalDate inicioMes = hoy.withDayOfMonth(1);
+
+        List<Usuario> mecanicos = usuarioRepository.findByRol(Rol.MECANICO);
+        if (mecanicos == null) {
+            mecanicos = Collections.emptyList();
+        }
+        if (mecanicoId != null) {
+            mecanicos = mecanicos.stream()
+                    .filter(m -> mecanicoId.equals(m.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        List<Map<String, Object>> resumenMecanicos = new ArrayList<>();
+        long totalSegundosGlobal = 0L;
+        int totalReparacionesGlobal = 0;
+
+        for (Usuario mec : mecanicos) {
+            List<Reparacion> repsMec = reparacionRepository.findByMecanicoId(mec.getId());
+            if (repsMec == null) {
+                repsMec = Collections.emptyList();
+            }
+
+            List<Map<String, Object>> desglose = new ArrayList<>();
+            long totalSegMec = 0L;
+
+            List<Reparacion> ordenadas = new ArrayList<>(repsMec);
+            ordenadas.sort(Comparator
+                    .comparing((Reparacion r) -> r.getFechaEntrada(), Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(r -> r.getId(), Comparator.nullsLast(Comparator.reverseOrder())));
+
+            for (Reparacion r : ordenadas) {
+                if (r.getEstado() == EstadoReparacion.CANCELADA) {
+                    continue;
+                }
+                LocalDate fechaRef = r.getFechaSalida() != null ? r.getFechaSalida() : r.getFechaEntrada();
+                if (!cumpleFiltroPeriodo(fechaRef, periodoNorm, hoy, inicioSemana, inicioMes)) {
+                    continue;
+                }
+
+                long seg = calcularSegundosInvertidosReparacion(r);
+                if (seg <= 0L && !"EN_MARCHA".equalsIgnoreCase(r.getEstadoTemporizador())) {
+                    continue;
+                }
+
+                double horasDec = Math.round((seg / 3600.0) * 100.0) / 100.0;
+                totalSegMec += seg;
+
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("reparacionId", r.getId());
+                item.put("localizador", r.getLocalizador());
+                item.put("matriculaVehiculo", r.getVehiculo() != null ? r.getVehiculo().getMatricula() : "-");
+                item.put("marcaVehiculo", r.getVehiculo() != null ? r.getVehiculo().getMarca() : "");
+                item.put("modeloVehiculo", r.getVehiculo() != null ? r.getVehiculo().getModelo() : "");
+                item.put("descripcionAveria", r.getDescripcionAveria());
+                item.put("estado", r.getEstado() != null ? r.getEstado().name() : "PENDIENTE");
+                item.put("estadoTemporizador", r.getEstadoTemporizador());
+                item.put("fechaEntrada", r.getFechaEntrada() != null ? r.getFechaEntrada().toString() : "");
+                item.put("fechaSalida", r.getFechaSalida() != null ? r.getFechaSalida().toString() : "");
+                item.put("segundosInvertidos", seg);
+                item.put("horasTrabajo", horasDec);
+                item.put("tiempoFormateado", formatearDuracionHorasMinutos(seg));
+                desglose.add(item);
+            }
+
+            totalSegundosGlobal += totalSegMec;
+            totalReparacionesGlobal += desglose.size();
+
+            Map<String, Object> mecDto = new LinkedHashMap<>();
+            mecDto.put("mecanicoId", mec.getId());
+            mecDto.put("nombreMecanico", mec.getNombre());
+            mecDto.put("emailMecanico", mec.getEmail());
+            mecDto.put("numeroReparaciones", desglose.size());
+            mecDto.put("totalSegundos", totalSegMec);
+            mecDto.put("totalHoras", Math.round((totalSegMec / 3600.0) * 100.0) / 100.0);
+            mecDto.put("tiempoTotalFormateado", formatearDuracionHorasMinutos(totalSegMec));
+            mecDto.put("desgloseReparaciones", desglose);
+            resumenMecanicos.add(mecDto);
+        }
+
+        boolean sinRegistros = totalReparacionesGlobal == 0;
+        Map<String, Object> resultado = new LinkedHashMap<>();
+        resultado.put("periodo", periodoNorm);
+        resultado.put("mecanicoIdFiltro", mecanicoId);
+        resultado.put("mecanicos", resumenMecanicos);
+        resultado.put("totalReparacionesGlobal", totalReparacionesGlobal);
+        resultado.put("totalSegundosGlobal", totalSegundosGlobal);
+        resultado.put("totalHorasGlobal", Math.round((totalSegundosGlobal / 3600.0) * 100.0) / 100.0);
+        resultado.put("tiempoTotalGlobalFormateado", formatearDuracionHorasMinutos(totalSegundosGlobal));
+        resultado.put("sinRegistros", sinRegistros);
+        resultado.put("mensaje", sinRegistros
+                ? "No existen registros de trabajo para ese periodo."
+                : "Supervisión de tiempos cargada correctamente.");
+        return resultado;
+    }
+
+    private boolean cumpleFiltroPeriodo(LocalDate fechaRef, String periodoNorm,
+                                        LocalDate hoy, LocalDate inicioSemana, LocalDate inicioMes) {
+        if ("TODOS".equals(periodoNorm) || fechaRef == null) {
+            return true;
+        }
+        switch (periodoNorm) {
+            case "HOY":
+                return fechaRef.equals(hoy);
+            case "SEMANA":
+                return !fechaRef.isBefore(inicioSemana) && !fechaRef.isAfter(hoy);
+            case "MES":
+                return !fechaRef.isBefore(inicioMes) && !fechaRef.isAfter(hoy);
+            default:
+                return true;
+        }
+    }
+
+    private long calcularSegundosInvertidosReparacion(Reparacion r) {
+        long base = r.getSegundosAcumuladosTemporizador();
+        if (base == 0L && r.getHorasTrabajoMecanico() > 0.0) {
+            base = Math.round(r.getHorasTrabajoMecanico() * 3600.0);
+        }
+        if ("EN_MARCHA".equalsIgnoreCase(r.getEstadoTemporizador()) && r.getInicioTemporizador() != null) {
+            base += calcularSegundosDesdeInicio(r.getInicioTemporizador());
+        }
+        return base;
+    }
+
+    /**
+     * HU #21: Historial de reparaciones anteriores concluidas (FINALIZADA, CONFIRMADA, ENTREGADA)
+     * de un vehículo para consulta técnica en modo solo lectura por los mecánicos.
+     */
+    public List<ReparacionResponseDTO> obtenerHistorialVehiculoParaMecanico(Long vehiculoId, Long excluirReparacionId) {
+        if (vehiculoId == null) {
+            return Collections.emptyList();
+        }
+        return reparacionRepository.findByVehiculoId(vehiculoId).stream()
+                .filter(r -> r.getEstado() == EstadoReparacion.FINALIZADA
+                        || r.getEstado() == EstadoReparacion.CONFIRMADA
+                        || r.getEstado() == EstadoReparacion.ENTREGADA)
+                .filter(r -> excluirReparacionId == null || !excluirReparacionId.equals(r.getId()))
+                .sorted(Comparator
+                        .comparing((Reparacion r) -> r.getFechaSalida() != null ? r.getFechaSalida() : r.getFechaEntrada(),
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(r -> r.getId(), Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(r -> convertirAResponseDTO(r, null))
+                .collect(Collectors.toList());
+    }
+
+    private String formatearEstanciaTexto(long minutosTotales) {
+        if (minutosTotales < 60) {
+            return Math.max(1L, minutosTotales) + " min";
+        }
+        long dias = minutosTotales / (24 * 60);
+        long horas = (minutosTotales % (24 * 60)) / 60;
+        long mins = minutosTotales % 60;
+        if (dias > 0) {
+            return dias + (dias == 1 ? " día" : " días") + " y " + horas + (horas == 1 ? " hora" : " horas");
+        }
+        return horas + (horas == 1 ? " hora" : " horas") + " y " + mins + " min";
+    }
+
+    private String formatearDuracionHorasMinutos(long segundosTotales) {
+        long minsTotales = Math.max(0L, Math.round(segundosTotales / 60.0));
+        long horas = minsTotales / 60;
+        long mins = minsTotales % 60;
+        return horas + " h " + mins + " min";
     }
 
     public ReparacionResponseDTO obtenerPorId(Long id) {
@@ -1407,6 +2133,17 @@ public class ReparacionService {
             throw new IllegalArgumentException(
                     "La reparación ya está ENTREGADA, no se puede modificar su estado.");
         }
+        if (actual == EstadoReparacion.CANCELADA) {
+            throw new IllegalArgumentException(
+                    "La reparación ya está CANCELADA, no se puede modificar su estado.");
+        }
+        if (nuevo == EstadoReparacion.CANCELADA) {
+            if (actual == EstadoReparacion.FINALIZADA || actual == EstadoReparacion.CONFIRMADA) {
+                throw new IllegalArgumentException(
+                        "No se puede cancelar una reparación que ya ha sido finalizada o confirmada.");
+            }
+            return;
+        }
         if (actual.ordinal() > nuevo.ordinal()) {
             throw new IllegalArgumentException(
                     "No se puede cambiar de " + actual + " a " + nuevo
@@ -1427,9 +2164,13 @@ public class ReparacionService {
     }
 
     public ReparacionResponseDTO convertirAResponseDTO(Reparacion reparacion, String mensaje) {
-        ConfiguracionTaller config = configuracionService.obtenerConfiguracion();
+        ConfiguracionTaller config = configuracionService != null
+                ? configuracionService.obtenerConfiguracion()
+                : new ConfiguracionTaller();
 
-        List<ReparacionMaterial> usados = reparacionMaterialRepository.findByReparacionId(reparacion.getId());
+        List<ReparacionMaterial> usados = (reparacionMaterialRepository != null && reparacion.getId() != null)
+                ? reparacionMaterialRepository.findByReparacionId(reparacion.getId())
+                : Collections.emptyList();
         double costeMateriales = Math.round(usados.stream()
                 .mapToDouble(u -> u.getCantidad() * (u.getMaterial().getPrecioUnitario() != null ? u.getMaterial().getPrecioUnitario() : 0.0))
                 .sum() * 100.0) / 100.0;
@@ -1438,7 +2179,9 @@ public class ReparacionService {
         int diasEstimados = reparacion.getDiasEstimados();
         LocalDate fechaEstimadaFin = reparacion.getFechaEstimadaFin();
         long diasRestantes = 0L;
-        if (reparacion.getEstado() != EstadoReparacion.ENTREGADA && fechaEstimadaFin != null) {
+        if (reparacion.getEstado() != EstadoReparacion.ENTREGADA
+                && reparacion.getEstado() != EstadoReparacion.CANCELADA
+                && fechaEstimadaFin != null) {
             diasRestantes = Math.max(0L, ChronoUnit.DAYS.between(LocalDate.now(), fechaEstimadaFin));
         }
 
@@ -1447,20 +2190,25 @@ public class ReparacionService {
         double subtotalManoObra = Math.round(horasTrabajo * precioHora * 100.0) / 100.0;
         double porcentajeMargen = config.getMargenBeneficioPorcentaje();
 
-        List<Map<String, Object>> incidenciasDto = incidenciaRepository
-                .findByReparacionIdOrderByFechaAsc(reparacion.getId())
-                .stream()
-                .map(this::mapearIncidencia)
-                .collect(Collectors.toList());
+        List<Map<String, Object>> incidenciasDto = (incidenciaRepository != null && reparacion.getId() != null)
+                ? incidenciaRepository.findByReparacionIdOrderByFechaAsc(reparacion.getId())
+                    .stream()
+                    .map(this::mapearIncidencia)
+                    .collect(Collectors.toList())
+                : Collections.emptyList();
 
         double impactoIncidencias = Math.round(incidenciasDto.stream()
                 .mapToDouble(m -> m.get("impactoPrecio") != null ? ((Number) m.get("impactoPrecio")).doubleValue() : 0.0)
                 .sum() * 100.0) / 100.0;
 
-        Optional<Factura> optFactura = facturaRepository.findByReparacionId(reparacion.getId());
+        Optional<Factura> optFactura = (facturaRepository != null && reparacion.getId() != null)
+                ? facturaRepository.findByReparacionId(reparacion.getId())
+                : Optional.empty();
         Map<String, Object> facturaMap = optFactura.map(this::mapearFacturaCompleta).orElse(null);
 
-        Optional<PresupuestoReparacion> optPresupuesto = presupuestoRepository.findByReparacionId(reparacion.getId());
+        Optional<PresupuestoReparacion> optPresupuesto = (presupuestoRepository != null && reparacion.getId() != null)
+                ? presupuestoRepository.findByReparacionId(reparacion.getId())
+                : Optional.empty();
         Map<String, Object> presupuestoMap = optPresupuesto.map(this::mapearPresupuestoCompleto).orElse(null);
         String estadoPresupuesto = optPresupuesto.map(PresupuestoReparacion::getEstado).orElse("SIN_PRESUPUESTO");
 
@@ -1469,7 +2217,9 @@ public class ReparacionService {
 
         // Beneficio neto del taller en esta reparación (mano de obra + margen sobre base, o estimación - materiales si aún está pendiente)
         double beneficio;
-        if (optFactura.isPresent()) {
+        if (reparacion.getEstado() == EstadoReparacion.CANCELADA) {
+            beneficio = 0.0;
+        } else if (optFactura.isPresent()) {
             Factura f = optFactura.get();
             beneficio = Math.round((f.getSubtotalManoObra() + f.getImporteMargen()) * 100.0) / 100.0;
         } else if (costeMateriales > 0 || horasTrabajo > 0) {
@@ -1490,14 +2240,45 @@ public class ReparacionService {
         ReparacionResponseDTO dto = new ReparacionResponseDTO();
         dto.setId(reparacion.getId());
         dto.setLocalizador(reparacion.getLocalizador());
-        dto.setMatriculaVehiculo(reparacion.getVehiculo().getMatricula());
-        dto.setMarcaVehiculo(reparacion.getVehiculo().getMarca());
-        dto.setModeloVehiculo(reparacion.getVehiculo().getModelo());
-        dto.setNombreCliente(reparacion.getVehiculo().getCliente().getNombre());
-        dto.setTelefonoCliente(reparacion.getVehiculo().getCliente().getTelefono());
+        dto.setVehiculoId(reparacion.getVehiculo() != null ? reparacion.getVehiculo().getId() : null);
+        dto.setMatriculaVehiculo(reparacion.getVehiculo() != null ? reparacion.getVehiculo().getMatricula() : "-");
+        dto.setMarcaVehiculo(reparacion.getVehiculo() != null ? reparacion.getVehiculo().getMarca() : "");
+        dto.setModeloVehiculo(reparacion.getVehiculo() != null ? reparacion.getVehiculo().getModelo() : "");
+        dto.setNombreCliente(reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null
+                ? reparacion.getVehiculo().getCliente().getNombre() : "-");
+        dto.setTelefonoCliente(reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null
+                ? reparacion.getVehiculo().getCliente().getTelefono() : "");
+        dto.setMecanicoId(reparacion.getMecanico() != null ? reparacion.getMecanico().getId() : null);
         dto.setNombreMecanico(reparacion.getMecanico() != null ? reparacion.getMecanico().getNombre() : "Sin asignar");
-        dto.setNombreRecepcionista(reparacion.getRecepcionista().getNombre());
+        dto.setNombreRecepcionista(reparacion.getRecepcionista() != null ? reparacion.getRecepcionista().getNombre() : "-");
         dto.setFechaEntrada(reparacion.getFechaEntrada());
+
+        LocalDateTime fhEntrada = reparacion.getFechaHoraEntrada() != null
+                ? reparacion.getFechaHoraEntrada()
+                : (reparacion.getFechaEntrada() != null ? reparacion.getFechaEntrada().atTime(9, 0) : LocalDateTime.now());
+        long minutosEstancia = Math.max(0L, Duration.between(fhEntrada, LocalDateTime.now()).toMinutes());
+        dto.setFechaHoraEntrada(fhEntrada.toString());
+        dto.setMinutosEstancia(minutosEstancia);
+        dto.setTiempoEstanciaTexto(formatearEstanciaTexto(minutosEstancia));
+
+        int totalUnidadesPiezas = usados.stream()
+                .mapToInt(u -> u.getCantidad() != null ? u.getCantidad() : 0)
+                .sum();
+        dto.setTotalUnidadesPiezas(totalUnidadesPiezas);
+
+        long segundosAcum = reparacion.getSegundosAcumuladosTemporizador();
+        if (segundosAcum == 0L && horasTrabajo > 0.0) {
+            segundosAcum = Math.round(horasTrabajo * 3600.0);
+        }
+        long segundosEfectivos = segundosAcum;
+        if ("EN_MARCHA".equalsIgnoreCase(reparacion.getEstadoTemporizador()) && reparacion.getInicioTemporizador() != null) {
+            segundosEfectivos += calcularSegundosDesdeInicio(reparacion.getInicioTemporizador());
+        }
+        dto.setEstadoTemporizador(reparacion.getEstadoTemporizador());
+        dto.setInicioTemporizador(reparacion.getInicioTemporizador() != null ? reparacion.getInicioTemporizador().toString() : null);
+        dto.setSegundosAcumuladosTemporizador(segundosAcum);
+        dto.setTiempoTrabajoFormateado(formatearDuracionHorasMinutos(segundosEfectivos));
+
         dto.setFechaSalida(reparacion.getFechaSalida());
         dto.setEstado(reparacion.getEstado().name());
         dto.setDescripcionAveria(reparacion.getDescripcionAveria());
@@ -1525,6 +2306,7 @@ public class ReparacionService {
         dto.setEstadoPresupuesto(estadoPresupuesto);
         dto.setDniCifCliente(reparacion.getVehiculo().getCliente().getDniCif() != null ? reparacion.getVehiculo().getCliente().getDniCif() : "");
         dto.setDireccionFiscalCliente(reparacion.getVehiculo().getCliente().getDireccionFiscal() != null ? reparacion.getVehiculo().getCliente().getDireccionFiscal() : "");
+        dto.setClienteTieneCuenta(reparacion.getVehiculo().getCliente().tieneCuenta());
         dto.setMensaje(mensaje);
         return dto;
     }

@@ -208,7 +208,9 @@
     <script>
         let materialesCache = [];
         let misReparacionesCache = [];
+        let historialVehiculoCache = {};
         let filtroOrdenActual = 'TODAS';
+        let timerIntervalMecanico = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             requireAuth(['MECANICO', 'ADMIN']);
@@ -221,6 +223,10 @@
                 cargarMateriales(),
                 cargarMisReparaciones()
             ]);
+
+            if (!timerIntervalMecanico) {
+                timerIntervalMecanico = setInterval(actualizarRelojesTemporizadores, 1000);
+            }
 
             document.getElementById('form-usar-material').addEventListener('submit', handleUsarMaterial);
             document.getElementById('form-incidencia').addEventListener('submit', handleSubirIncidencia);
@@ -271,7 +277,7 @@
             try {
                 const todasReparaciones = await apiFetch(`/reparaciones/mecanico/${user.id}`);
                 const reparaciones = (todasReparaciones || [])
-                    .filter(r => r.estado !== 'ENTREGADA')
+                    .filter(r => !esEstadoCerradoTaller(r.estado))
                     .map(enriquecerReparacionFinanzas);
                 misReparacionesCache = reparaciones;
 
@@ -539,15 +545,43 @@
                                 <summary>
                                     <span>Tiempos y Costes</span>
                                     <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 400;">
-                                        ${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}h · Previsto: <strong style="color: var(--text);">${formatearEuros(rep.totalCalculadoPrevisto)}</strong>
+                                        ${Number(rep.horasTrabajoMecanico || 0).toFixed(2)}h (${rep.tiempoTrabajoFormateado || '0 h 0 min'}) · Previsto: <strong style="color: var(--text);">${formatearEuros(rep.totalCalculadoPrevisto)}</strong>
                                     </span>
                                 </summary>
                                 <div class="disclosure-body">
+                                    <!-- HU #19: Temporizador de Mano de Obra en Tiempo Real -->
+                                    ${(() => {
+                                        const estTimer = rep.estadoTemporizador || 'DETENIDO';
+                                        const segActuales = calcularSegundosActualesOrden(rep);
+                                        const badgeTimer = estTimer === 'EN_MARCHA'
+                                            ? '<span class="badge badge-process">EN MARCHA</span>'
+                                            : (estTimer === 'PAUSADO'
+                                                ? '<span class="badge badge-pending">PAUSADO</span>'
+                                                : '<span class="badge badge-delivered">DETENIDO</span>');
+                                        return `
+                                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.75rem 0.9rem; margin-bottom: 0.9rem; border-radius: 8px; background: color-mix(in srgb, var(--primary) 6%, transparent); border: 1px solid var(--border);">
+                                                <div>
+                                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
+                                                        <span style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);">Cronómetro Mano de Obra</span>
+                                                        ${badgeTimer}
+                                                    </div>
+                                                    <div id="timer-display-${rep.id}" style="font-family: monospace; font-size: 1.45rem; font-weight: 800; color: ${estTimer === 'EN_MARCHA' ? 'var(--primary-light)' : 'var(--text)'};">
+                                                        ${formatearHMS(segActuales)}
+                                                    </div>
+                                                </div>
+                                                <div style="display: flex; gap: 0.45rem; flex-wrap: wrap;">
+                                                    <button type="button" class="btn btn-success" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" ${(!puedeTrabajar || estTimer === 'EN_MARCHA') ? 'disabled' : ''} onclick="iniciarTemporizadorMecanico(${rep.id})">▶ Iniciar</button>
+                                                    <button type="button" class="btn btn-secondary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem; border-color: var(--warning); color: var(--warn);" ${(!puedeTrabajar || estTimer !== 'EN_MARCHA') ? 'disabled' : ''} onclick="pausarTemporizadorMecanico(${rep.id})">⏸ Pausar</button>
+                                                    <button type="button" class="btn btn-primary" style="padding: 0.38rem 0.75rem; font-size: 0.82rem;" ${(!puedeTrabajar || (estTimer === 'DETENIDO' && segActuales === 0)) ? 'disabled' : ''} onclick="confirmarTerminarTemporizador(${rep.id})">⏹ Terminar</button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    })()}
                                     <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
                                         <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem;">
                                             <span>Horas Mano Obra:</span>
                                             <div class="inline-input-group">
-                                                <input type="number" id="horas-rep-${rep.id}" value="${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}" min="0" step="0.5" ${!puedeTrabajar ? 'disabled' : ''}>
+                                                <input type="number" id="horas-rep-${rep.id}" value="${Number(rep.horasTrabajoMecanico || 0).toFixed(2)}" min="0" step="0.25" ${!puedeTrabajar ? 'disabled' : ''}>
                                                 <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" ${!puedeTrabajar ? 'disabled' : ''} onclick="guardarHorasTrabajo(${rep.id})">Guardar</button>
                                             </div>
                                         </div>
@@ -562,7 +596,7 @@
                                     <div class="detail-kv-grid">
                                         <div><span>Presupuesto aprobado</span><strong>${p ? formatearEuros(p.totalPresupuesto) : formatearEuros(rep.estimacionInicial)}</strong></div>
                                         <div><span>Piezas instaladas</span><strong>${formatearEuros(rep.costeMateriales)}</strong></div>
-                                        <div><span>Mano de obra (${Number(rep.horasTrabajoMecanico || 0).toFixed(1)}h)</span><strong>${formatearEuros(rep.subtotalManoObra)}</strong></div>
+                                        <div><span>Mano de obra (${Number(rep.horasTrabajoMecanico || 0).toFixed(2)}h)</span><strong>${formatearEuros(rep.subtotalManoObra)}</strong></div>
                                         <div><span>Total acumulado (c/IVA)</span><strong style="color: var(--ok);">${formatearEuros(rep.totalCalculadoPrevisto)}</strong></div>
                                     </div>
                                 </div>
@@ -600,6 +634,17 @@
                                             </button>
                                         ` : ''}
                                     </div>
+                                </div>
+                            </details>
+
+                            <!-- Sección 4 (HU #21): Historial de Reparaciones Anteriores (Solo Lectura) -->
+                            <details class="disclosure-box" id="details-hist-veh-${rep.id}" ontoggle="if(this.open) cargarHistorialVehiculoMecanico(${rep.vehiculoId || 'null'}, ${rep.id})">
+                                <summary>
+                                    <span>Historial de reparaciones (${matricula})</span>
+                                    <span style="font-size: 0.82rem; color: var(--text-muted);">Solo lectura · Diagnósticos y piezas previas</span>
+                                </summary>
+                                <div class="disclosure-body" id="historial-veh-mec-${rep.id}">
+                                    <div style="font-size: 0.84rem; color: var(--text-muted);">Despliega para consultar las reparaciones anteriores de este vehículo...</div>
                                 </div>
                             </details>
                         </div>
@@ -981,6 +1026,153 @@
             const rep = misReparacionesCache.find(r => r.id === reparacionId);
             if (rep && rep.presupuestoFormal) {
                 abrirModalPresupuestoObjeto(rep.presupuestoFormal);
+            }
+        }
+
+        // ================= HU #19: TEMPORIZADOR DE MANO DE OBRA =================
+        function calcularSegundosActualesOrden(rep) {
+            if (!rep) return 0;
+            let base = Number(rep.segundosAcumuladosTemporizador || 0);
+            if (base === 0 && Number(rep.horasTrabajoMecanico || 0) > 0) {
+                base = Math.round(Number(rep.horasTrabajoMecanico) * 3600);
+            }
+            if (rep.estadoTemporizador === 'EN_MARCHA' && rep.inicioTemporizador) {
+                const inicioMs = new Date(rep.inicioTemporizador).getTime();
+                if (!isNaN(inicioMs)) {
+                    const diffSeg = Math.max(0, Math.floor((Date.now() - inicioMs) / 1000));
+                    base += diffSeg;
+                }
+            }
+            return base;
+        }
+
+        function formatearHMS(totalSegundos) {
+            const s = Math.max(0, Math.floor(totalSegundos || 0));
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        }
+
+        function actualizarRelojesTemporizadores() {
+            if (!Array.isArray(misReparacionesCache)) return;
+            misReparacionesCache.forEach(rep => {
+                if (rep.estadoTemporizador === 'EN_MARCHA') {
+                    const el = document.getElementById(`timer-display-${rep.id}`);
+                    if (el) {
+                        el.textContent = formatearHMS(calcularSegundosActualesOrden(rep));
+                    }
+                }
+            });
+        }
+
+        async function iniciarTemporizadorMecanico(repId) {
+            const user = getUsuarioActual();
+            try {
+                const res = await apiFetch(`/reparaciones/${repId}/temporizador/iniciar`, {
+                    method: 'POST',
+                    silent: true,
+                    body: JSON.stringify({ mecanicoId: user ? user.id : null })
+                });
+                mostrarAlerta(res.mensaje || `Temporizador iniciado en la Orden #${repId}.`, 'success', document.getElementById('alertas-container'));
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+            }
+        }
+
+        async function pausarTemporizadorMecanico(repId) {
+            try {
+                const res = await apiFetch(`/reparaciones/${repId}/temporizador/pausar`, {
+                    method: 'POST',
+                    silent: true
+                });
+                mostrarAlerta(res.mensaje || `Temporizador pausado en la Orden #${repId}.`, 'success', document.getElementById('alertas-container'));
+                await cargarMisReparaciones();
+            } catch (error) {
+                mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+            }
+        }
+
+        function confirmarTerminarTemporizador(repId) {
+            mostrarModal(
+                'Terminar Temporizador de Mano de Obra',
+                '¿Deseas detener por completo el temporizador de esta reparación y guardar el total de horas y minutos dedicados en la ficha de la avería?',
+                async () => {
+                    try {
+                        const res = await apiFetch(`/reparaciones/${repId}/temporizador/terminar`, {
+                            method: 'POST',
+                            silent: true
+                        });
+                        mostrarAlerta(res.mensaje || `Tiempo definitivo guardado en la Orden #${repId}.`, 'success', document.getElementById('alertas-container'));
+                        await cargarMisReparaciones();
+                    } catch (error) {
+                        mostrarAlerta(error.message, 'error', document.getElementById('alertas-container'));
+                    }
+                }
+            );
+        }
+
+        // ================= HU #21: HISTORIAL DE REPARACIONES PARA MECÁNICOS (SOLO LECTURA) =================
+        async function cargarHistorialVehiculoMecanico(vehiculoId, repId) {
+            const container = document.getElementById(`historial-veh-mec-${repId}`);
+            if (!container) return;
+            if (!vehiculoId) {
+                container.innerHTML = '<div style="font-size: 0.84rem; color: var(--text-muted);">No se pudo identificar el vehículo.</div>';
+                return;
+            }
+            container.innerHTML = '<div style="font-size: 0.84rem; color: var(--text-muted);"><span class="spinner"></span> Cargando historial técnico del vehículo...</div>';
+
+            try {
+                const lista = await apiFetch(`/reparaciones/vehiculo/${vehiculoId}/historial-mecanico?excluirReparacionId=${repId}`);
+                historialVehiculoCache[repId] = lista || [];
+
+                if (!lista || lista.length === 0) {
+                    container.innerHTML = `
+                        <div style="padding: 0.65rem 0.85rem; border-radius: 6px; background: color-mix(in srgb, var(--text) 4%, transparent); border: 1px dashed var(--border); font-size: 0.84rem; color: var(--text-muted);">
+                            Este vehículo no tiene reparaciones anteriores registradas.
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+                        Registro histórico de solo lectura (${lista.length} intervención/es anterior/es, ordenadas de la más reciente a la más antigua):
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.55rem;">
+                        ${lista.map(h => {
+                            const fechaStr = formatearFecha(h.fechaSalida || h.fechaEntrada);
+                            const piezasHtml = (h.materialesDetalle && h.materialesDetalle.length > 0)
+                                ? `<ul style="margin: 0.25rem 0 0 1.1rem; padding: 0; font-size: 0.8rem; color: var(--text-light);">${h.materialesDetalle.map(p => `<li>${p}</li>`).join('')}</ul>`
+                                : '<span style="font-size: 0.8rem; color: var(--text-muted);">Sin piezas registradas</span>';
+                            const notasHtml = (h.incidencias && h.incidencias.length > 0)
+                                ? `<ul style="margin: 0.25rem 0 0 1.1rem; padding: 0; font-size: 0.8rem; color: var(--text-light);">${h.incidencias.map(inc => `<li>${inc.descripcion || ''}${inc.rutaFoto ? ` <a href="${resolverUrlFoto(inc.rutaFoto)}" target="_blank" style="color: var(--info); font-weight: 600;">[Ver foto]</a>` : ''}</li>`).join('')}</ul>`
+                                : '<span style="font-size: 0.8rem; color: var(--text-muted);">Sin notas ni fotos guardadas</span>';
+                            const diag = h.presupuestoFormal?.diagnosticoPrevio || h.descripcionAveria || '-';
+
+                            return `
+                                <details style="border: 1px solid var(--border); border-radius: 6px; background: var(--surface); padding: 0.5rem 0.75rem;">
+                                    <summary style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.84rem;">
+                                        <span>
+                                            <strong>${fechaStr}</strong> · <span>${h.descripcionAveria || 'Reparación'}</span>
+                                            <span style="color: var(--text-muted); font-size: 0.78rem;"> (Mecánico: ${h.nombreMecanico || 'Sin asignar'})</span>
+                                        </span>
+                                        <span>${crearBadgeEstado(h.estado)}</span>
+                                    </summary>
+                                    <div style="margin-top: 0.6rem; padding-top: 0.55rem; border-top: 1px dashed var(--border); font-size: 0.82rem; display: flex; flex-direction: column; gap: 0.45rem;">
+                                        <div><strong>Orden:</strong> #${h.id} (${h.localizador || '-'}) · <strong>Tiempo invertido:</strong> ${h.tiempoTrabajoFormateado || (Number(h.horasTrabajoMecanico || 0).toFixed(2) + ' h')}</div>
+                                        <div><strong>Diagnóstico / Trabajo realizado:</strong> <span style="color: var(--text-muted);">${diag}</span></div>
+                                        <div><strong>Piezas del almacén gastadas:</strong> ${piezasHtml}</div>
+                                        <div><strong>Notas y fotografías (solo lectura):</strong> ${notasHtml}</div>
+                                    </div>
+                                </details>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `<div style="color: var(--err); font-size: 0.84rem;">Error al cargar historial: ${error.message}</div>`;
             }
         }
     </script>

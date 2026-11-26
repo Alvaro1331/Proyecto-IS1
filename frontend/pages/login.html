@@ -78,7 +78,8 @@
                     </div>
                     <div class="form-group">
                         <label for="reg-password">Crea tu Contraseña</label>
-                        <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required minlength="4">
+                        <input type="password" id="reg-password" class="form-control" placeholder="Mín. 8 caracteres (letras y números)" required minlength="8">
+                        <small style="display:block; margin-top:4px; color:var(--text-muted); font-size:0.78rem;">Debe tener al menos 8 caracteres y combinar letras y números.</small>
                     </div>
                     <button type="submit" id="btn-client-reg-submit" class="btn-primary">Crear mi Cuenta de Cliente</button>
                 </form>
@@ -122,15 +123,15 @@
 
                 <!-- Paso 3: nueva contraseña (dos veces) -->
                 <div id="reset-step-password" style="display: none;">
-                    <p class="reset-hint">Elige tu nueva contraseña y repítela para confirmarla.</p>
+                    <p class="reset-hint">Elige tu nueva contraseña (mín. 8 caracteres combinando letras y números) y repítela para confirmarla.</p>
                     <form id="form-reset-password" onsubmit="handleResetPassword(event)">
                         <div class="form-group">
                             <label for="reset-new-password">Nueva contraseña</label>
-                            <input type="password" id="reset-new-password" class="form-control" minlength="4" required>
+                            <input type="password" id="reset-new-password" class="form-control" placeholder="Mín. 8 caracteres (letras y números)" minlength="8" required>
                         </div>
                         <div class="form-group">
                             <label for="reset-confirm-password">Repite la nueva contraseña</label>
-                            <input type="password" id="reset-confirm-password" class="form-control" minlength="4" required>
+                            <input type="password" id="reset-confirm-password" class="form-control" placeholder="Repite tu contraseña" minlength="8" required>
                         </div>
                         <button type="submit" id="btn-reset-password-submit" class="btn-primary">Cambiar contraseña</button>
                     </form>
@@ -144,6 +145,7 @@
         </div>
 
         <div class="links">
+            <a href="cita-previa.html">Pedir cita previa sin iniciar sesión</a>
             <a href="consulta-estado.html">Consultar estado con código localizador (sin cuenta)</a>
             <a href="../index.html">← Volver al inicio</a>
         </div>
@@ -262,8 +264,13 @@
                 password: document.getElementById('reg-password').value.trim()
             };
 
-            toggleLoading(btn, true);
             alertCont.innerHTML = '';
+            if (payload.password.length < 8 || !/[A-Za-zÀ-ÿ]/.test(payload.password) || !/\d/.test(payload.password)) {
+                mostrarAlerta('La contraseña debe tener al menos 8 caracteres y combinar letras y números.', 'error', alertCont);
+                return;
+            }
+
+            toggleLoading(btn, true);
 
             try {
                 const res = await apiFetch('/clientes/registro', {
@@ -384,6 +391,11 @@
             const confirmarPassword = document.getElementById('reset-confirm-password').value;
             const alertCont = document.getElementById('alert-container');
             alertCont.innerHTML = '';
+
+            if (nuevaPassword.length < 8 || !/[A-Za-zÀ-ÿ]/.test(nuevaPassword) || !/\d/.test(nuevaPassword)) {
+                mostrarAlerta('La contraseña debe tener al menos 8 caracteres y combinar letras y números.', 'error', alertCont);
+                return;
+            }
 
             if (nuevaPassword !== confirmarPassword) {
                 mostrarAlerta('Las contraseñas no coinciden. Vuelve a escribirlas.', 'error', alertCont);

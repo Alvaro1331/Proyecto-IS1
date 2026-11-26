@@ -1,6 +1,7 @@
 package com.taller.services;
 
 import com.taller.events.NotificacionReparacionEvent;
+import com.taller.models.CitaPrevia;
 import com.taller.models.Cliente;
 import com.taller.models.NotificacionCliente;
 import com.taller.models.Reparacion;
@@ -75,6 +76,88 @@ public class NotificacionService {
     }
 
     /**
+     * Notifica al cliente por email (y en su panel si tiene ficha de cliente) cuando cambia el estado de una cita previa
+     * (por ejemplo, si se confirma o si se rechaza/cancela desde recepción).
+     */
+    @Transactional
+    public void notificarCambioEstadoCita(CitaPrevia cita, String estadoAnterior, String motivo) {
+        if (cita == null || cita.getEstado() == null) {
+            return;
+        }
+        String estadoNuevo = cita.getEstado().trim().toUpperCase();
+        if (estadoAnterior != null && estadoNuevo.equalsIgnoreCase(estadoAnterior)) {
+            return;
+        }
+
+        String codigo = cita.getCodigoCita() != null ? cita.getCodigoCita() : "";
+        String fecha = cita.getFecha() != null ? cita.getFecha().toString() : "";
+        String franja = cita.getFranjaHoraria() != null ? cita.getFranjaHoraria() : "";
+        String matricula = cita.getVehiculo() != null && cita.getVehiculo().getMatricula() != null
+                ? cita.getVehiculo().getMatricula() : "Vehículo";
+        String marcaModelo = cita.getVehiculo() != null
+                ? ((cita.getVehiculo().getMarca() != null ? cita.getVehiculo().getMarca() : "")
+                + " " + (cita.getVehiculo().getModelo() != null ? cita.getVehiculo().getModelo() : "")).trim()
+                : "";
+
+        String titulo;
+        String mensaje;
+        switch (estadoNuevo) {
+            case "CANCELADA":
+                titulo = "Cita previa rechazada / cancelada (" + codigo + ")";
+                mensaje = "Tu solicitud de cita previa " + codigo + " para el " + fecha + " a las " + franja
+                        + " (" + matricula + ") ha sido rechazada o cancelada por el taller."
+                        + (motivo != null && !motivo.isBlank()
+                        ? " Motivo: " + motivo.trim() + "."
+                        : " Por favor, solicita otra fecha u horario disponible en nuestra web.");
+                break;
+            case "CONFIRMADA":
+                titulo = "Cita previa confirmada (" + codigo + ")";
+                mensaje = "Tu cita previa " + codigo + " para el " + fecha + " a las " + franja
+                        + " con el vehículo " + matricula + " ha sido confirmada por el taller. ¡Te esperamos!";
+                break;
+            case "RECEPCIONADA":
+                titulo = "Vehículo recepcionado de tu cita (" + codigo + ")";
+                mensaje = "Hemos recepcionado tu vehículo (" + matricula + ") correspondiente a la cita "
+                        + codigo + " del " + fecha + " a las " + franja + ".";
+                break;
+            default:
+                return;
+        }
+
+        if (cita.getCliente() != null && notificacionRepository != null) {
+            notificacionRepository.save(new NotificacionCliente(
+                    cita.getCliente(), null, TipoNotificacion.CITA_PREVIA, titulo, mensaje
+            ));
+        }
+
+        String emailDestino = (cita.getEmailContacto() != null && !cita.getEmailContacto().isBlank())
+                ? cita.getEmailContacto().trim()
+                : (cita.getCliente() != null ? cita.getCliente().getEmail() : null);
+
+        String nombreDest = cita.getCliente() != null && cita.getCliente().getNombre() != null
+                ? cita.getCliente().getNombre() : "Cliente";
+
+        if (emailDestino != null && !emailDestino.isBlank()) {
+            enviarEmailDirecto(
+                    emailDestino,
+                    nombreDest,
+                    titulo,
+                    mensaje,
+                    "Código de Cita",
+                    codigo,
+                    matricula,
+                    marcaModelo,
+                    "pages/cita-previa.html",
+                    "Solicitar / Ver Citas Previas"
+            );
+        }
+
+        if (cita.getCliente() != null) {
+            simularAvisoSms(cita.getCliente(), null, titulo, mensaje);
+        }
+    }
+
+    /**
      * Envía un correo con diseño HTML al cliente o muestra el contenido por consola en modo desarrollo.
      */
     private void enviarEmailCliente(Cliente cliente, Reparacion reparacion, String titulo, String mensaje) {
@@ -89,7 +172,30 @@ public class NotificacionService {
         String marcaModelo = (reparacion != null && reparacion.getVehiculo() != null)
                 ? reparacion.getVehiculo().getMarca() + " " + reparacion.getVehiculo().getModelo() : "";
 
-        // Si hay servidor SMTP configurado, enviar correo HTML real
+        String rutaEnlace = "pages/consulta-estado.html"
+                + (localizador != null && !localizador.isBlank() ? "?localizador=" + localizador : "");
+
+        enviarEmailDirecto(
+                email,
+                cliente.getNombre(),
+                titulo,
+                mensaje,
+                "Localizador",
+                localizador,
+                matricula,
+                marcaModelo,
+                rutaEnlace,
+                "Consultar Estado en Directo"
+        );
+    }
+
+    private void enviarEmailDirecto(String emailDestino, String nombreDestinatario, String titulo, String mensaje,
+                                    String etiquetaCodigo, String valorCodigo, String matricula,
+                                    String marcaModelo, String rutaEnlace, String textoBoton) {
+        if (emailDestino == null || emailDestino.isBlank()) {
+            return;
+        }
+
         if (mailSender != null && mailHost != null && !mailHost.isBlank()) {
             try {
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -98,20 +204,24 @@ public class NotificacionService {
                 if (mailUsername != null && !mailUsername.isBlank()) {
                     helper.setFrom(mailUsername);
                 }
-                helper.setTo(email);
+                helper.setTo(emailDestino);
                 helper.setSubject("MotorFlow - " + titulo + " (" + matricula + ")");
 
-                String htmlContent = construirPlantillaHtml(cliente.getNombre(), titulo, mensaje, localizador, matricula, marcaModelo);
+                String htmlContent = construirPlantillaHtml(
+                        nombreDestinatario, titulo, mensaje,
+                        etiquetaCodigo, valorCodigo, matricula, marcaModelo,
+                        rutaEnlace, textoBoton
+                );
                 helper.setText(htmlContent, true);
 
                 mailSender.send(mimeMessage);
-                System.out.println("[EMAIL ENVIADO] A: " + email + " | Asunto: " + titulo);
+                System.out.println("[EMAIL ENVIADO] A: " + emailDestino + " | Asunto: " + titulo);
             } catch (Exception e) {
                 System.err.println("Error al enviar email de notificación: " + e.getMessage());
             }
         } else {
-            // Modo desarrollo: Imprimir en consola de manera visual
-            imprimirLogConsolaEmail(email, cliente.getNombre(), titulo, mensaje, localizador, matricula, marcaModelo);
+            imprimirLogConsolaEmail(emailDestino, nombreDestinatario, titulo, mensaje,
+                    etiquetaCodigo, valorCodigo, matricula, marcaModelo, rutaEnlace);
         }
     }
 
@@ -131,24 +241,27 @@ public class NotificacionService {
     }
 
     private void imprimirLogConsolaEmail(String email, String nombre, String titulo, String mensaje,
-                                         String localizador, String matricula, String marcaModelo) {
+                                         String etiquetaCodigo, String valorCodigo, String matricula,
+                                         String marcaModelo, String rutaEnlace) {
         System.out.println("================================================================================");
         System.out.println(" [NOTIFICACIÓN POR EMAIL - MODO DESARROLLO MOTORFLOW]");
         System.out.println(" Para: " + email + " (" + nombre + ")");
         System.out.println(" Asunto: MotorFlow - " + titulo + " [" + matricula + "]");
         System.out.println(" Vehículo: " + marcaModelo + " | Matrícula: " + matricula);
-        if (localizador != null && !localizador.isBlank()) {
-            System.out.println(" Localizador: " + localizador);
-            System.out.println(" Enlace de consulta directa: http://localhost:8080/pages/consulta-estado.html?localizador=" + localizador);
+        if (valorCodigo != null && !valorCodigo.isBlank()) {
+            System.out.println(" " + etiquetaCodigo + ": " + valorCodigo);
+        }
+        if (rutaEnlace != null && !rutaEnlace.isBlank()) {
+            System.out.println(" Enlace de consulta directa: http://localhost:8080/" + rutaEnlace);
         }
         System.out.println(" Contenido: " + mensaje);
         System.out.println("================================================================================");
     }
 
     private String construirPlantillaHtml(String nombreCliente, String titulo, String mensaje,
-                                          String localizador, String matricula, String marcaModelo) {
-        String urlConsulta = "http://localhost:8080/pages/consulta-estado.html" +
-                (localizador != null && !localizador.isBlank() ? "?localizador=" + localizador : "");
+                                          String etiquetaCodigo, String valorCodigo, String matricula,
+                                          String marcaModelo, String rutaEnlace, String textoBoton) {
+        String urlConsulta = "http://localhost:8080/" + (rutaEnlace != null ? rutaEnlace : "pages/consulta-estado.html");
 
         return "<div style=\"font-family: 'Segoe UI', Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #1e1e1e; color: #f5f5f5; border: 1px solid #333; border-radius: 8px; overflow: hidden;\">"
                 + "<div style=\"background-color: #e85d04; padding: 20px; text-align: center;\">"
@@ -161,10 +274,10 @@ public class NotificacionService {
                 + "<p style=\"font-size: 15px; color: #cbd5e1; line-height: 1.6;\">" + mensaje + "</p>"
                 + "<div style=\"background-color: #2b2b2b; border-left: 4px solid #e85d04; padding: 12px 16px; margin: 20px 0; border-radius: 4px;\">"
                 + "<p style=\"margin: 0; color: #f5f5f5; font-size: 14px;\"><strong>Vehículo:</strong> " + marcaModelo + " (" + matricula + ")</p>"
-                + (localizador != null && !localizador.isBlank() ? "<p style=\"margin: 6px 0 0 0; color: #f5f5f5; font-size: 14px;\"><strong>Localizador:</strong> <span style=\"background-color: #e85d04; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;\">" + localizador + "</span></p>" : "")
+                + (valorCodigo != null && !valorCodigo.isBlank() ? "<p style=\"margin: 6px 0 0 0; color: #f5f5f5; font-size: 14px;\"><strong>" + etiquetaCodigo + ":</strong> <span style=\"background-color: #e85d04; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold;\">" + valorCodigo + "</span></p>" : "")
                 + "</div>"
                 + "<div style=\"text-align: center; margin: 30px 0 10px 0;\">"
-                + "<a href=\"" + urlConsulta + "\" style=\"display: inline-block; background-color: #e85d04; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px;\">Consultar Estado en Directo</a>"
+                + "<a href=\"" + urlConsulta + "\" style=\"display: inline-block; background-color: #e85d04; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 15px;\">" + textoBoton + "</a>"
                 + "</div>"
                 + "</div>"
                 + "<div style=\"background-color: #151515; padding: 14px 20px; text-align: center; color: #888; font-size: 12px; border-top: 1px solid #2d2d2d;\">"

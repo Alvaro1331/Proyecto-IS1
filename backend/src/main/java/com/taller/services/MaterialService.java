@@ -10,7 +10,9 @@ import com.taller.repositories.ReparacionMaterialRepository;
 import com.taller.repositories.ReparacionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -176,6 +178,57 @@ public class MaterialService {
         return materialRepository.findByStockDisponibleLessThan(umbral).stream()
                 .map(m -> convertirAResponseDTO(m, null))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * HU #60: Modifica los datos comerciales (nombre, descripción y precio unitario) de un material.
+     * No modifica el stock ni registra ningún gasto de compra en Tesorería.
+     */
+    @Transactional
+    public MaterialResponseDTO actualizarMaterial(Long id, String nombre, String descripcion, Double precioUnitario) {
+        Material material = materialRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No se encontró el material con ID: " + id));
+
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre del material no puede estar vacío.");
+        }
+        if (precioUnitario == null || precioUnitario <= 0.0) {
+            throw new IllegalArgumentException("El precio unitario del material debe ser mayor que 0,00 €.");
+        }
+
+        material.setNombre(nombre.trim());
+        material.setDescripcion(descripcion != null ? descripcion.trim() : "");
+        material.setPrecioUnitario(Math.round(precioUnitario * 100.0) / 100.0);
+        materialRepository.save(material);
+
+        return convertirAResponseDTO(material, "Material actualizado correctamente.");
+    }
+
+    /**
+     * HU #60: Elimina un material del inventario siempre que no haya sido consumido
+     * en ninguna reparación histórica (reparacion_materiales).
+     */
+    @Transactional
+    public Map<String, Object> eliminarMaterial(Long id) {
+        Material material = materialRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No se encontró el material con ID: " + id));
+
+        if (reparacionMaterialRepository != null) {
+            List<ReparacionMaterial> usos = reparacionMaterialRepository.findByMaterialId(id);
+            if (usos != null && !usos.isEmpty()) {
+                throw new IllegalStateException("No se puede eliminar el material '" + material.getNombre()
+                        + "' porque ya ha sido consumido en " + usos.size()
+                        + " registro(s) de reparaciones históricas.");
+            }
+        }
+
+        materialRepository.delete(material);
+        return Map.of(
+                "id", id,
+                "mensaje", "Material '" + material.getNombre() + "' eliminado correctamente del inventario."
+        );
     }
 
     // --- Método auxiliar ---

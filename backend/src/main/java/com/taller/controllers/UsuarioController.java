@@ -85,4 +85,46 @@ public class UsuarioController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * HU #59: Actualiza datos personales, rol y (opcionalmente) contraseña de un empleado.
+     * PUT /api/usuarios/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            String nombre = body.get("nombre") != null ? body.get("nombre").toString() : null;
+            String email = body.get("email") != null ? body.get("email").toString() : null;
+            String telefono = body.get("telefono") != null ? body.get("telefono").toString() : null;
+            String rol = body.get("rol") != null ? body.get("rol").toString() : null;
+            String nuevaPassword = body.get("password") != null ? body.get("password").toString()
+                    : (body.get("nuevaPassword") != null ? body.get("nuevaPassword").toString() : null);
+            Long adminActualId = body.get("adminActualId") != null && !body.get("adminActualId").toString().isBlank()
+                    ? Long.valueOf(body.get("adminActualId").toString()) : null;
+
+            UsuarioResponseDTO respuesta = usuarioService.actualizarUsuario(
+                    id, nombre, email, telefono, rol, nuevaPassword, adminActualId);
+            return ResponseEntity.ok(respuesta);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #59: Elimina un empleado del taller protegiendo contra autoborrado del admin.
+     * DELETE /api/usuarios/{id}?adminActualId=1
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarUsuario(@PathVariable Long id,
+                                             @RequestParam(required = false) Long adminActualId) {
+        try {
+            return ResponseEntity.ok(usuarioService.eliminarUsuario(id, adminActualId));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

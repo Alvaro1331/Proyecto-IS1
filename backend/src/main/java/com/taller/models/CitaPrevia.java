@@ -54,6 +54,9 @@ public class CitaPrevia {
 
     private Long reparacionId;
 
+    @Column(length = 150)
+    private String emailContacto;
+
     @Column(nullable = false)
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 
@@ -109,6 +112,9 @@ public class CitaPrevia {
 
     public Long getReparacionId() { return reparacionId; }
     public void setReparacionId(Long reparacionId) { this.reparacionId = reparacionId; }
+
+    public String getEmailContacto() { return emailContacto; }
+    public void setEmailContacto(String emailContacto) { this.emailContacto = emailContacto; }
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }

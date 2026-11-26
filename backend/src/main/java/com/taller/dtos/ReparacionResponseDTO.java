@@ -61,7 +61,20 @@ public class ReparacionResponseDTO {
     private String estadoPresupuesto;
     private String dniCifCliente;
     private String direccionFiscalCliente;
+    private boolean clienteTieneCuenta;
     private String mensaje;
+
+    // Campos adicionales para ordenación, registro cronológico, temporizador, supervisión e historial (HU #7, #8, #19, #20, #21)
+    private Long vehiculoId;
+    private Long mecanicoId;
+    private String fechaHoraEntrada;
+    private Long minutosEstancia;
+    private String tiempoEstanciaTexto;
+    private Integer totalUnidadesPiezas;
+    private String estadoTemporizador;
+    private String inicioTemporizador;
+    private Long segundosAcumuladosTemporizador;
+    private String tiempoTrabajoFormateado;
 
     public ReparacionResponseDTO() {}
 
@@ -209,6 +222,39 @@ public class ReparacionResponseDTO {
     public String getDireccionFiscalCliente() { return direccionFiscalCliente; }
     public void setDireccionFiscalCliente(String direccionFiscalCliente) { this.direccionFiscalCliente = direccionFiscalCliente; }
 
+    public boolean isClienteTieneCuenta() { return clienteTieneCuenta; }
+    public void setClienteTieneCuenta(boolean clienteTieneCuenta) { this.clienteTieneCuenta = clienteTieneCuenta; }
+
     public String getMensaje() { return mensaje; }
     public void setMensaje(String mensaje) { this.mensaje = mensaje; }
+
+    public Long getVehiculoId() { return vehiculoId; }
+    public void setVehiculoId(Long vehiculoId) { this.vehiculoId = vehiculoId; }
+
+    public Long getMecanicoId() { return mecanicoId; }
+    public void setMecanicoId(Long mecanicoId) { this.mecanicoId = mecanicoId; }
+
+    public String getFechaHoraEntrada() { return fechaHoraEntrada; }
+    public void setFechaHoraEntrada(String fechaHoraEntrada) { this.fechaHoraEntrada = fechaHoraEntrada; }
+
+    public Long getMinutosEstancia() { return minutosEstancia; }
+    public void setMinutosEstancia(Long minutosEstancia) { this.minutosEstancia = minutosEstancia; }
+
+    public String getTiempoEstanciaTexto() { return tiempoEstanciaTexto; }
+    public void setTiempoEstanciaTexto(String tiempoEstanciaTexto) { this.tiempoEstanciaTexto = tiempoEstanciaTexto; }
+
+    public Integer getTotalUnidadesPiezas() { return totalUnidadesPiezas; }
+    public void setTotalUnidadesPiezas(Integer totalUnidadesPiezas) { this.totalUnidadesPiezas = totalUnidadesPiezas; }
+
+    public String getEstadoTemporizador() { return estadoTemporizador; }
+    public void setEstadoTemporizador(String estadoTemporizador) { this.estadoTemporizador = estadoTemporizador; }
+
+    public String getInicioTemporizador() { return inicioTemporizador; }
+    public void setInicioTemporizador(String inicioTemporizador) { this.inicioTemporizador = inicioTemporizador; }
+
+    public Long getSegundosAcumuladosTemporizador() { return segundosAcumuladosTemporizador; }
+    public void setSegundosAcumuladosTemporizador(Long segundosAcumuladosTemporizador) { this.segundosAcumuladosTemporizador = segundosAcumuladosTemporizador; }
+
+    public String getTiempoTrabajoFormateado() { return tiempoTrabajoFormateado; }
+    public void setTiempoTrabajoFormateado(String tiempoTrabajoFormateado) { this.tiempoTrabajoFormateado = tiempoTrabajoFormateado; }
 }

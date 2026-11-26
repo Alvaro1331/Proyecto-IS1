@@ -13,6 +13,7 @@
             <div class="nav-brand">MotorFlow</div>
             <ul class="nav-links flex items-center">
                 <li><a href="../index.html">Inicio</a></li>
+                <li><a href="cita-previa.html">Pedir Cita Previa</a></li>
                 <li><a href="consulta-estado.html" class="active">Consultar Estado de mi Coche</a></li>
                 <li><a href="login.html" class="btn btn-primary">Iniciar Sesión</a></li>
             </ul>
@@ -136,6 +137,12 @@
                             ${renderizarFacturaDesglosadaHTML(rep.factura)}
                         </div>
                     </details>
+                `;
+            } else if (rep.estado === 'CANCELADA') {
+                facturaHtml = `
+                    <div style="margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 8px; background: color-mix(in srgb, var(--err) 8%, transparent); border: 1px solid color-mix(in srgb, var(--err) 25%, transparent); font-size: 0.88rem; color: var(--err);">
+                        <strong>Reparación cancelada:</strong> El presupuesto fue rechazado y el vehículo fue devuelto sin reparar (sin factura).
+                    </div>
                 `;
             } else {
                 facturaHtml = `

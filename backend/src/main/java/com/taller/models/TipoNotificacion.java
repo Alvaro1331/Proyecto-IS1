@@ -11,5 +11,7 @@ public enum TipoNotificacion {
     CAMBIO_FECHA,
     LISTO_PARA_RECOGER,
     ENTREGADA,
+    CANCELADA,
+    CITA_PREVIA,
     INFO
 }

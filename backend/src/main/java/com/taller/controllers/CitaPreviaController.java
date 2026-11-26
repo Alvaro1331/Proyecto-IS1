@@ -131,19 +131,28 @@ public class CitaPreviaController {
             String matriculaManual = body.get("matricula") != null ? body.get("matricula").toString() : null;
             String nombreCliente = body.get("nombreCliente") != null ? body.get("nombreCliente").toString() : null;
             String telefonoCliente = body.get("telefonoCliente") != null ? body.get("telefonoCliente").toString() : null;
+            String emailContacto = body.get("emailContacto") != null ? body.get("emailContacto").toString()
+                    : (body.get("email") != null ? body.get("email").toString() : null);
             String marcaManual = body.get("marca") != null ? body.get("marca").toString() : null;
             String modeloManual = body.get("modelo") != null ? body.get("modelo").toString() : null;
+            Object anioRaw = body.get("anio") != null ? body.get("anio") : body.get("ano");
+            Integer anioManual = (anioRaw != null && !anioRaw.toString().isBlank())
+                    ? Integer.valueOf(anioRaw.toString()) : null;
 
             String fechaStr = body.get("fecha") != null ? body.get("fecha").toString() : null;
             LocalDate fecha = (fechaStr != null && !fechaStr.isBlank()) ? LocalDate.parse(fechaStr.trim()) : null;
             String franjaHoraria = body.get("franjaHoraria") != null ? body.get("franjaHoraria").toString() : null;
             String motivo = body.get("motivo") != null ? body.get("motivo").toString() : null;
             String observaciones = body.get("observaciones") != null ? body.get("observaciones").toString() : null;
-            String estado = body.get("estado") != null ? body.get("estado").toString() : "CONFIRMADA";
+            boolean esSolicitudPublica = body.get("esSolicitudPublica") != null
+                    && Boolean.parseBoolean(body.get("esSolicitudPublica").toString());
+            String estado = body.get("estado") != null && !body.get("estado").toString().isBlank()
+                    ? body.get("estado").toString() : "PENDIENTE";
 
             Map<String, Object> creada = citaService.crearCita(
                     clienteId, vehiculoId, matriculaManual, nombreCliente, telefonoCliente,
-                    marcaManual, modeloManual, fecha, franjaHoraria, motivo, observaciones, estado
+                    emailContacto, marcaManual, modeloManual, anioManual,
+                    fecha, franjaHoraria, motivo, observaciones, estado, esSolicitudPublica
             );
             return ResponseEntity.status(HttpStatus.CREATED).body(creada);
         } catch (IllegalStateException e) {
@@ -163,11 +172,43 @@ public class CitaPreviaController {
     @PutMapping("/{id}/estado")
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {
-            return ResponseEntity.ok(citaService.cambiarEstadoCita(id, body.get("estado")));
+            String motivo = body.get("motivo") != null ? body.get("motivo") : body.get("motivoCancelacion");
+            return ResponseEntity.ok(citaService.cambiarEstadoCita(id, body.get("estado"), motivo));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #58: Recepciona una cita previa y abre automáticamente la orden de reparación vinculada.
+     * POST /api/citas/{id}/recepcionar
+     */
+    @PostMapping("/{id}/recepcionar")
+    public ResponseEntity<?> recepcionarCita(@PathVariable Long id,
+                                             @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            Map<String, Object> payload = body != null ? body : Collections.emptyMap();
+            Long recepcionistaId = payload.get("recepcionistaId") != null && !payload.get("recepcionistaId").toString().isBlank()
+                    ? Long.valueOf(payload.get("recepcionistaId").toString()) : null;
+            Double estimacionInicial = payload.get("estimacionInicial") != null && !payload.get("estimacionInicial").toString().isBlank()
+                    ? Double.valueOf(payload.get("estimacionInicial").toString()) : null;
+            Integer diasEstimados = payload.get("diasEstimados") != null && !payload.get("diasEstimados").toString().isBlank()
+                    ? Integer.valueOf(payload.get("diasEstimados").toString()) : null;
+            String descripcionAveria = payload.get("descripcionAveria") != null
+                    ? payload.get("descripcionAveria").toString() : null;
+
+            Map<String, Object> resultado = citaService.recepcionarYAbrirReparacion(
+                    id, recepcionistaId, estimacionInicial, diasEstimados, descripcionAveria
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al recepcionar la cita: " + e.getMessage()));
         }
     }
 }

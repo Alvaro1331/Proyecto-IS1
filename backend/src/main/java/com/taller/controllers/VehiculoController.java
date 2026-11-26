@@ -65,4 +65,39 @@ public class VehiculoController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * HU #61: Actualiza matrícula, marca, modelo y año de un vehículo registrado.
+     * PUT /api/vehiculos/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarVehiculo(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            String matricula = body.get("matricula") != null ? body.get("matricula").toString() : null;
+            String marca = body.get("marca") != null ? body.get("marca").toString() : null;
+            String modelo = body.get("modelo") != null ? body.get("modelo").toString() : null;
+            Object anoRaw = body.get("ano") != null ? body.get("ano") : body.get("anio");
+            Integer ano = (anoRaw != null && !anoRaw.toString().isBlank()) ? Integer.valueOf(anoRaw.toString()) : null;
+            return ResponseEntity.ok(vehiculoService.actualizarVehiculo(id, matricula, marca, modelo, ano));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El año de fabricación debe ser un número entero válido."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * HU #61: Elimina un vehículo si no tiene historial de reparaciones ni citas asociadas.
+     * DELETE /api/vehiculos/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarVehiculo(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(vehiculoService.eliminarVehiculo(id));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

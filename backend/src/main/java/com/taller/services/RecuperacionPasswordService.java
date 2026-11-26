@@ -25,6 +25,9 @@ public class RecuperacionPasswordService {
     @Autowired
     private ClienteRepository clienteRepository;
 
+    @Autowired
+    private PasswordSecurityService passwordSecurityService = new PasswordSecurityService();
+
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
@@ -145,13 +148,7 @@ public class RecuperacionPasswordService {
         // Validar el código primero
         verificarCodigo(email, codigo);
 
-        if (nuevaPassword == null || nuevaPassword.isBlank()) {
-            throw new IllegalArgumentException("La nueva contraseña no puede estar vacía.");
-        }
-
-        if (nuevaPassword.length() < 4) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 4 caracteres.");
-        }
+        passwordSecurityService.validarFortaleza(nuevaPassword);
 
         if (!nuevaPassword.equals(confirmarPassword)) {
             throw new IllegalArgumentException("Las contraseñas no coinciden.");
@@ -161,7 +158,7 @@ public class RecuperacionPasswordService {
         Cliente cliente = clienteRepository.findByEmail(emailNormalizado)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
 
-        cliente.setPassword(nuevaPassword);
+        cliente.setPassword(passwordSecurityService.hashear(nuevaPassword));
         clienteRepository.save(cliente);
 
         // Eliminar código para que no se pueda reutilizar
