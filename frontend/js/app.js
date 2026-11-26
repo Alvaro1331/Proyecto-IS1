@@ -1,8 +1,16 @@
-const API_BASE_URL = window.location.origin.includes('localhost')
+const isLocalEnv = window.location.protocol === 'file:' ||
+                   window.location.origin === 'null' ||
+                   !window.location.origin ||
+                   window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.origin.includes('localhost') ||
+                   window.location.origin.includes('127.0.0.1');
+
+const API_BASE_URL = isLocalEnv
     ? 'http://localhost:8080/api'
     : '/api';
 const API_BASE = API_BASE_URL;
-const BACKEND_ORIGIN = window.location.origin.includes('localhost')
+const BACKEND_ORIGIN = isLocalEnv
     ? 'http://localhost:8080'
     : '';
 

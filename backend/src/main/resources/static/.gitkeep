@@ -1,0 +1,2 @@
+# Este directorio se mantiene vacío intencionadamente en el código fuente para evitar duplicación.
+# Los archivos del frontend se encuentran en la carpeta raíz 'frontend/' y Maven los empaqueta automáticamente en target/classes/static.

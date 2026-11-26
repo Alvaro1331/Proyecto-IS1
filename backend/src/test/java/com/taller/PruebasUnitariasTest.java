@@ -19,11 +19,19 @@ import com.taller.repositories.ReparacionRepository;
 import com.taller.repositories.ReparacionMaterialRepository;
 import com.taller.repositories.UsuarioRepository;
 import com.taller.repositories.VehiculoRepository;
+import com.taller.config.WebConfig;
 import com.taller.services.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.servlet.config.annotation.CorsRegistration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistration;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -2176,5 +2184,58 @@ public class PruebasUnitariasTest {
         // 3. En desarrollo local puro (sin servidor de correo ni URL configurada), utiliza localhost
         ReflectionTestUtils.setField(notifService, "mailHost", null);
         assertEquals(NotificacionService.DEFAULT_LOCAL_URL, notifService.getBaseUrl());
+    }
+
+    /**
+     * PRUEBA 60 (WebConfig - Seguridad CORS, Enrutamiento y Recursos Estáticos sin Duplicación):
+     * Verifica la configuración de WebConfig:
+     * 1) Política CORS global para /** con métodos HTTP autorizados (GET, POST, PUT, DELETE, PATCH, OPTIONS) y credenciales.
+     * 2) Registro de manejadores de recursos para /uploads/** y /** mapeando al frontend local/classpath sin duplicar archivos.
+     * 3) Redirección segura de la raíz "/" hacia "/index.html".
+     */
+    @Test
+    @DisplayName("Prueba 60: WebConfig configura correctamente la seguridad CORS, redirección a index.html y recursos estáticos")
+    void test60_WebConfigSeguridadCorsYRecursosEstaticos() {
+        WebConfig webConfig = new WebConfig();
+
+        // 1. Validar política CORS (Arrange, Act & Assert)
+        CorsRegistry corsRegistry = mock(CorsRegistry.class);
+        CorsRegistration corsReg = mock(CorsRegistration.class);
+        when(corsRegistry.addMapping("/**")).thenReturn(corsReg);
+        when(corsReg.allowedOriginPatterns("*")).thenReturn(corsReg);
+        when(corsReg.allowedMethods(any(String[].class))).thenReturn(corsReg);
+        when(corsReg.allowedHeaders("*")).thenReturn(corsReg);
+        when(corsReg.allowCredentials(true)).thenReturn(corsReg);
+
+        webConfig.addCorsMappings(corsRegistry);
+
+        verify(corsRegistry, times(1)).addMapping("/**");
+        verify(corsReg, times(1)).allowedOriginPatterns("*");
+        verify(corsReg, times(1)).allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS");
+        verify(corsReg, times(1)).allowedHeaders("*");
+        verify(corsReg, times(1)).allowCredentials(true);
+
+        // 2. Validar redirección de raíz a index.html (Arrange, Act & Assert)
+        ViewControllerRegistry viewRegistry = mock(ViewControllerRegistry.class);
+        ViewControllerRegistration viewReg = mock(ViewControllerRegistration.class);
+        when(viewRegistry.addViewController("/")).thenReturn(viewReg);
+
+        webConfig.addViewControllers(viewRegistry);
+        verify(viewRegistry, times(1)).addViewController("/");
+        verify(viewReg, times(1)).setViewName("forward:/index.html");
+
+        // 3. Validar registro de recursos estáticos (/uploads/** y /**)
+        ResourceHandlerRegistry resourceRegistry = mock(ResourceHandlerRegistry.class);
+        ResourceHandlerRegistration uploadReg = mock(ResourceHandlerRegistration.class);
+        ResourceHandlerRegistration frontendReg = mock(ResourceHandlerRegistration.class);
+
+        when(resourceRegistry.addResourceHandler("/uploads/**")).thenReturn(uploadReg);
+        when(resourceRegistry.addResourceHandler("/**")).thenReturn(frontendReg);
+        when(uploadReg.addResourceLocations(any(String[].class))).thenReturn(uploadReg);
+        when(frontendReg.addResourceLocations(any(String[].class))).thenReturn(frontendReg);
+
+        webConfig.addResourceHandlers(resourceRegistry);
+        verify(resourceRegistry, times(1)).addResourceHandler("/uploads/**");
+        verify(resourceRegistry, times(1)).addResourceHandler("/**");
     }
 }

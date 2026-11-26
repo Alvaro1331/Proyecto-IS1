@@ -31,5 +31,6 @@ Thumbs.db
 desktop.ini
 
 # Evitar duplicación de estáticos del frontend en el backend (se empaquetan con Maven o se sirven en vivo)
-backend/src/main/resources/static/
+backend/src/main/resources/static/*
+!backend/src/main/resources/static/.gitkeep
 
