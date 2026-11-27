@@ -279,7 +279,7 @@
         <div class="meta-box">
             <strong>Asignatura:</strong> Ingeniería del Software I (Proyecto-IS1) &nbsp;|&nbsp;
             <strong>Documento para:</strong> Revisiones Técnicas Formales (RRTTFF) &nbsp;|&nbsp;
-            <strong>Total HU:</strong> 41 historias
+            <strong>Total HU:</strong> 44 historias
         </div>
         <div class="team-list">
             <strong>Equipo de desarrollo:</strong> Marta Barbero Fuentes · Nicolás Rodríguez Torrevejano · Marcos Arévalo Garrido · Marcos Martín Clemente · Álvaro Sánchez Camacho
@@ -288,25 +288,25 @@
 
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-num">41</div>
-            <div class="stat-lbl">Historias de Usuario Totales<br>(40 HU + 1 Épica #14)</div>
+            <div class="stat-num">44</div>
+            <div class="stat-lbl">Historias de Usuario Totales<br>(42 HU + 2 Épicas #14 y #36)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color: #166534;">34 / 7</div>
-            <div class="stat-lbl">Estado en el Proyecto<br>(34 Done · 7 Pendientes)</div>
+            <div class="stat-num" style="color: #166534;">37 / 7</div>
+            <div class="stat-lbl">Estado en el Proyecto<br>(37 Done · 7 Pendientes)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color: #9a3412;">13 / 23 / 5</div>
-            <div class="stat-lbl">Prioridad<br>(13 Alta · 23 Media · 5 Baja)</div>
+            <div class="stat-num" style="color: #9a3412;">16 / 23 / 5</div>
+            <div class="stat-lbl">Prioridad<br>(16 Alta · 23 Media · 5 Baja)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-num" style="color: #6b21a8;">7 / 19 / 15</div>
-            <div class="stat-lbl">Tamaño<br>(7 Grande · 19 Media · 15 Pequeño)</div>
+            <div class="stat-num" style="color: #6b21a8;">7 / 19 / 18</div>
+            <div class="stat-lbl">Tamaño<br>(7 Grande · 19 Media · 18 Pequeño)</div>
         </div>
     </div>
 
     <div class="alert alert-info">
-        <strong>Propósito de este documento (RRTTFF):</strong> Recopila en un único documento de consulta rápida las <strong>41 Historias de Usuario</strong> del proyecto <strong>MotorFlow</strong> registradas en el tablero <em>HISTORIAS DE USUARIO</em> de GitHub y en el backlog de seguridad y despliegue, incluyendo para cada una su enunciado, la justificación detallada bajo los seis criterios <strong>INVEST</strong>, sus <strong>Criterios de Aceptación</strong> verificables, su <strong>Prioridad</strong>, su <strong>Tamaño</strong> estimado y su <strong>estado real verificado</strong> frente al código fuente actual.
+        <strong>Propósito de este documento (RRTTFF):</strong> Recopila en un único documento de consulta rápida las <strong>44 Historias de Usuario</strong> del proyecto <strong>MotorFlow</strong> registradas en el tablero <em>HISTORIAS DE USUARIO</em> de GitHub y en el backlog de seguridad y despliegue, incluyendo para cada una su enunciado, la justificación detallada bajo los seis criterios <strong>INVEST</strong>, sus <strong>Criterios de Aceptación</strong> verificables, su <strong>Prioridad</strong>, su <strong>Tamaño</strong> estimado y su <strong>estado real verificado</strong> frente al código fuente actual.
     </div>
 
     <h2 class="section-title">1. Marco Metodológico y Criterios de Evaluación</h2>
@@ -318,7 +318,7 @@
         <div class="invest-item"><strong>N — Negociable (Negotiable):</strong> Su enunciado define el objetivo funcional, dejando margen al equipo para acordar detalles de diseño o interfaz durante el sprint.</div>
         <div class="invest-item"><strong>V — Valiosa (Valuable):</strong> Aporta un valor claro y directo a los usuarios reales del taller (cliente, recepcionista, mecánico o administrador).</div>
         <div class="invest-item"><strong>E — Estimable (Estimable):</strong> Su alcance técnico en backend y frontend permite dimensionar el esfuerzo necesario con precisión antes de planificar el sprint.</div>
-        <div class="invest-item"><strong>S — Pequeña (Small):</strong> Está acotada para completarse dentro de un único Sprint de 2 semanas (cuando una historia fue demasiado grande, como la Épica <code>HU #14</code>, se aplicó <em>Splitting</em> en <code>HU #29</code> y <code>HU #30</code>).</div>
+        <div class="invest-item"><strong>S — Pequeña (Small):</strong> Está acotada para completarse dentro de un único Sprint de 2 semanas (cuando una historia fue demasiado grande, como las Épicas <code>HU #14</code> y <code>HU #36</code>, se aplicó <em>Splitting</em> en <code>HU #29</code> y <code>HU #30</code>, y en <code>HU #68</code>, <code>HU #69</code>, <code>HU #70</code> y <code>HU #4</code> respectivamente).</div>
         <div class="invest-item"><strong>T — Testeable (Testable):</strong> Dispone de criterios de aceptación concretos en formato condicional (<em>Si... entonces...</em>) comprobables mediante pruebas manuales y unitarias.</div>
     </div>
 
@@ -326,7 +326,7 @@
     <ul>
         <li><strong>Prioridad:</strong> <strong>Alta</strong> (imprescindible para el núcleo operativo y seguridad del taller), <strong>Media</strong> (importante para la gestión diaria y experiencia de usuario, no bloqueante al arranque) y <strong>Baja</strong> (mejora operativa o visual complementaria).</li>
         <li><strong>Tamaño:</strong> <strong>Pequeño</strong> (~1 día de desarrollo), <strong>Medio</strong> (2–3 días) y <strong>Grande</strong> (+3 días dentro de un mismo sprint).</li>
-        <li><strong>Estado Verificado:</strong> <strong>Done (34 historias)</strong> implementadas y verificadas en el repositorio; <strong>Pendientes / Sin iniciar (7 historias: #58, #59, #60, #61, #65/HU-02, #66/HU-03 y #67)</strong> registradas en el Product Backlog.</li>
+        <li><strong>Estado Verificado:</strong> <strong>Done (37 historias)</strong> implementadas y verificadas en el repositorio; <strong>Pendientes / Sin iniciar (7 historias: #58, #59, #60, #61, #65/HU-02, #66/HU-03 y #67)</strong> registradas en el Product Backlog.</li>
     </ul>
 
     <h2 class="section-title">2. Índice Rápido de Historias de Usuario (Resumen RRTTFF)</h2>
@@ -360,7 +360,7 @@
             </tr>
             <tr>
                 <td><strong>HU #4</strong></td>
-                <td><a href="#hu-4" style="color:#0f172a; text-decoration:none; font-weight:600;">Inicio de sesi&#243;n de clientes</a></td>
+                <td><a href="#hu-4" style="color:#0f172a; text-decoration:none; font-weight:600;">Inicio de sesi&#243;n de clientes</a> <small style="color:#64748b;">(Hija de Épica #36)</small></td>
                 <td>Cliente</td>
                 <td><span class="badge badge-alta">ALTA</span></td>
                 <td><span class="badge badge-grande">GRANDE</span></td>
@@ -584,10 +584,34 @@
             </tr>
             <tr>
                 <td><strong>HU #36</strong></td>
-                <td><a href="#hu-36" style="color:#0f172a; text-decoration:none; font-weight:600;">Log-In</a></td>
-                <td>Todos los Roles</td>
+                <td><a href="#hu-36" style="color:#0f172a; text-decoration:none; font-weight:600;">Log-In</a> <span class="badge badge-epica">ÉPICA</span></td>
+                <td>Sistema (&#201;pica)</td>
                 <td><span class="badge badge-alta">ALTA</span></td>
                 <td><span class="badge badge-grande">GRANDE</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #68</strong></td>
+                <td><a href="#hu-68" style="color:#0f172a; text-decoration:none; font-weight:600;">Inicio de sesi&#243;n de administrador</a> <small style="color:#64748b;">(Hija de Épica #36)</small></td>
+                <td>Administrador</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #69</strong></td>
+                <td><a href="#hu-69" style="color:#0f172a; text-decoration:none; font-weight:600;">Inicio de sesi&#243;n de recepcionista</a> <small style="color:#64748b;">(Hija de Épica #36)</small></td>
+                <td>Recepcionista</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
+                <td><span class="badge badge-done">Done</span></td>
+            </tr>
+            <tr>
+                <td><strong>HU #70</strong></td>
+                <td><a href="#hu-70" style="color:#0f172a; text-decoration:none; font-weight:600;">Inicio de sesi&#243;n de mec&#225;nico</a> <small style="color:#64748b;">(Hija de Épica #36)</small></td>
+                <td>Mec&#225;nico</td>
+                <td><span class="badge badge-alta">ALTA</span></td>
+                <td><span class="badge badge-pequeno">PEQUEÑO</span></td>
                 <td><span class="badge badge-done">Done</span></td>
             </tr>
             <tr>
@@ -674,12 +698,12 @@
     </table>
 
     <div class="alert alert-success">
-        <strong>Verificación frente al código:</strong> Las <strong>34 historias en estado Done</strong> corresponden a funcionalidades verificadas en <code>backend/</code> y <code>frontend/</code> (incluyendo acceso por roles, cifrado seguro de contraseñas con BCrypt y política mínima de fortaleza, clientes, vehículos, órdenes, ordenación por prioridad, registro cronológico de espera, presupuestos desglosados, aceptación/rechazo con contraseña o presencial, cancelación tras rechazo, temporizador de mano de obra, supervisión de mecánicos, historial técnico para mecánicos, incidencias con fotos, almacén y alertas de stock bajo, citas, calendario, facturas en PDF y notificaciones). Las <strong>7 historias pendientes</strong> (<code>#58</code>, <code>#59</code>, <code>#60</code>, <code>#61</code>, <code>#65/HU-02</code>, <code>#66/HU-03</code> y <code>#67</code>) permanecen registradas en el backlog para los próximos sprints de gestión, seguridad y despliegue.
+        <strong>Verificación frente al código:</strong> Las <strong>37 historias en estado Done</strong> corresponden a funcionalidades verificadas en <code>backend/</code> y <code>frontend/</code> (incluyendo acceso por roles, cifrado seguro de contraseñas con BCrypt y política mínima de fortaleza, clientes, vehículos, órdenes, ordenación por prioridad, registro cronológico de espera, presupuestos desglosados, aceptación/rechazo con contraseña o presencial, cancelación tras rechazo, temporizador de mano de obra, supervisión de mecánicos, historial técnico para mecánicos, incidencias con fotos, almacén y alertas de stock bajo, citas, calendario, facturas en PDF y notificaciones). Las <strong>7 historias pendientes</strong> (<code>#58</code>, <code>#59</code>, <code>#60</code>, <code>#61</code>, <code>#65/HU-02</code>, <code>#66/HU-03</code> y <code>#67</code>) permanecen registradas en el backlog para los próximos sprints de gestión, seguridad y despliegue.
     </div>
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">3. Catálogo Detallado de las 41 Historias de Usuario</h2>
+    <h2 class="section-title">3. Catálogo Detallado de las 44 Historias de Usuario</h2>
     <div class="hu-card" id="hu-2">
         <div class="hu-header">
             <div class="hu-title-wrap">
@@ -778,7 +802,7 @@
     <div class="hu-card" id="hu-4">
         <div class="hu-header">
             <div class="hu-title-wrap">
-                <span class="hu-id">HU #4</span> Inicio de sesi&#243;n de clientes
+                <span class="hu-id">HU #4</span> Inicio de sesi&#243;n de clientes <small style="color:#64748b; font-size:9pt; font-weight:normal;">(Hija de Épica HU #36)</small>
             </div>
             <div class="hu-badges">
                 
@@ -795,21 +819,21 @@
                 <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
                 <p>Esta historia de usuario cumple &#237;ntegramente con el criterio INVEST:</p>
 <ul>
-<li><strong>Independiente (I):</strong> Sienta las bases de identidad y gesti&#243;n de cuenta del cliente sin bloquear el modelado interno de las &#243;rdenes de reparaci&#243;n en el taller.</li>
-<li><strong>Negociable (N):</strong> Permite acordar los campos de registro del cliente y el mecanismo de recuperaci&#243;n de contrase&#241;a (mediante c&#243;digo de verificaci&#243;n de 6 d&#237;gitos enviado al correo electr&#243;nico).</li>
+<li><strong>Independiente (I):</strong> Constituye la historia hija para el rol <strong>Cliente</strong> resultante de dividir la <strong>&#201;pica <code>HU #36</code> (Log-In)</strong>, separada del acceso interno del personal del taller (<code>HU #68</code>, <code>HU #69</code> y <code>HU #70</code>). Sienta las bases de identidad y gesti&#243;n de cuenta del cliente sin bloquear el modelado interno de las &#243;rdenes de reparaci&#243;n en el taller.</li>
+<li><strong>Negociable (N):</strong> Permite acordar los campos de registro del cliente, el inicio de sesi&#243;n tanto por correo electr&#243;nico como por tel&#233;fono y el mecanismo de recuperaci&#243;n de contrase&#241;a (mediante c&#243;digo de verificaci&#243;n de 6 d&#237;gitos enviado al correo electr&#243;nico).</li>
 <li><strong>Valiosa (V):</strong> Garantiza la privacidad de datos sensibles del cliente (matr&#237;culas, presupuestos y facturas) y le permite gestionar su acceso de forma aut&#243;noma sin llamar al taller si olvida su clave.</li>
-<li><strong>Estimable (E) y Testeable (T):</strong> Es verificable mediante pruebas de registro, autenticaci&#243;n, recuperaci&#243;n de clave y aislamiento estricto de datos por identificador de cliente.</li>
-<li><strong>Peque&#241;a (S):</strong> Est&#225; acotada a la gesti&#243;n de cuenta y acceso privado del cliente dentro de un &#250;nico Sprint.</li>
+<li><strong>Estimable (E) y Testeable (T):</strong> Es verificable mediante pruebas de registro, autenticaci&#243;n, recuperaci&#243;n de clave, aislamiento estricto de datos por identificador de cliente y bloqueo de acceso a las vistas internas de empleados.</li>
+<li><strong>Peque&#241;a (S):</strong> Al desgajarse de la &#201;pica <code>HU #36</code> como historia espec&#237;fica del &#225;rea de clientes, queda acotada al flujo completo de cuenta y acceso privado del cliente dentro de un &#250;nico Sprint.</li>
 </ul>
 
             </div>
             <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
-<li>Si me registro como nuevo cliente o introduzco mis credenciales v&#225;lidas (correo electr&#243;nico y contrase&#241;a) en la pesta&#241;a de &#193;rea Clientes, entonces el sistema me autentica correctamente y me redirige a mi panel privado.</li>
+<li>Si me registro como nuevo cliente o introduzco mis credenciales v&#225;lidas (correo electr&#243;nico o tel&#233;fono y contrase&#241;a) en la pesta&#241;a de &#193;rea Clientes de <code>login.html</code>, entonces el servidor valida la contrase&#241;a contra el hash BCrypt almacenado (<code>/api/clientes/login</code>), guarda la sesi&#243;n en el navegador y me redirige autom&#225;ticamente a mi panel privado (<code>dashboard-cliente.html</code>).</li>
 <li>Si estoy autenticado en la plataforma, entonces el sistema solo me muestra los veh&#237;culos y reparaciones asociados a mi identificador de cliente, impidiendo estrictamente el acceso a datos de otros usuarios.</li>
 <li>Si olvido mi contrase&#241;a y solicito recuperarla introduciendo mi correo electr&#243;nico, entonces el sistema genera un c&#243;digo temporal de 6 d&#237;gitos con caducidad que me permite restablecer una nueva contrase&#241;a de forma segura.</li>
-<li>Si intento acceder mediante una URL directa al panel privado de clientes sin haber iniciado sesi&#243;n previamente, entonces el sistema bloquea el acceso y me redirige a la pantalla de login.</li>
-<li>Si introduzco un correo o contrase&#241;a incorrectos, entonces el sistema me muestra un mensaje de error claro indicando que las credenciales no son v&#225;lidas.</li>
-<li>Si decido cerrar sesi&#243;n de forma voluntaria, entonces la sesi&#243;n activa se elimina de inmediato y se me redirige a la pantalla de inicio de sesi&#243;n.</li>
+<li>Si intento acceder mediante una URL directa al panel privado de clientes (<code>dashboard-cliente.html</code>) sin haber iniciado sesi&#243;n previamente, o si siendo cliente autenticado intento entrar a los paneles internos del personal del taller (<code>dashboard-admin.html</code>, <code>dashboard-recepcionista.html</code> o <code>dashboard-mecanico.html</code>), entonces el sistema bloquea el acceso y me redirige a la pantalla de inicio de sesi&#243;n (<code>login.html</code>).</li>
+<li>Si introduzco un correo o tel&#233;fono inexistente, una contrase&#241;a incorrecta o intento iniciar sesi&#243;n con una ficha de cliente presencial sin cuenta registrada, entonces el sistema me muestra un mensaje de error claro sin crear sesi&#243;n ni cambiar de p&#225;gina.</li>
+<li>Si decido cerrar sesi&#243;n de forma voluntaria, entonces la sesi&#243;n activa se elimina de inmediato de <code>sessionStorage</code> y se me redirige a la pantalla de inicio de sesi&#243;n.</li>
 <li>Si me registro como nuevo cliente indicando el mismo n&#250;mero de tel&#233;fono con el que el taller ya me hab&#237;a dado de alta en mostrador, entonces el sistema vincula autom&#225;ticamente a mi cuenta todos mis veh&#237;culos y reparaciones previas existentes sin necesidad de introducir manualmente sus c&#243;digos localizadores.</li>
 </ol></div>
 
@@ -820,7 +844,7 @@
                 </div>
                 <div class="hu-meta-box">
                     <div class="hu-meta-box-title">Tamaño: Grande</div>
-                    <p>Dentro del Sprint supone una tarea de envergadura alta (3-4 d&#237;as) porque abarca el alta de cuenta de cliente, el inicio de sesi&#243;n, el flujo de recuperaci&#243;n de contrase&#241;a por correo con c&#243;digo temporal y la protecci&#243;n de acceso a sus datos privados.</p>
+                    <p>Dentro del Sprint supone una tarea de envergadura alta (3-4 d&#237;as) porque abarca el alta de cuenta de cliente, el inicio de sesi&#243;n, el flujo de recuperaci&#243;n de contrase&#241;a por correo con c&#243;digo temporal y la protecci&#243;n de acceso a sus datos privados. Constituye la historia hija de rol Cliente dentro de las 4 historias en las que se divide la &#201;pica <code>HU #36</code>.</p>
                 </div>
             </div>
         </div>
@@ -2085,7 +2109,7 @@
                 <span class="hu-id">HU #36</span> Log-In
             </div>
             <div class="hu-badges">
-                
+                <span class="badge badge-epica">ÉPICA</span>
                 <span class="badge badge-alta">Prioridad: ALTA</span>
                 <span class="badge badge-grande">Tamaño: GRANDE</span>
                 <span class="badge badge-done">Done</span>
@@ -2093,38 +2117,176 @@
         </div>
         <div class="hu-body">
             <div class="hu-enunciado">
-                <strong>Historia de Usuario:</strong> Como usuario del taller (administrador, recepcionista, mec&#225;nico o cliente), quiero iniciar sesi&#243;n con mi usuario y contrase&#241;a, para acceder a mi panel correspondiente y gestionar las tareas o consultar los veh&#237;culos seg&#250;n mis permisos.
+                <strong>Historia de Usuario:</strong> [&#201;PICA] Como usuario del taller (administrador, recepcionista, mec&#225;nico o cliente), quiero iniciar sesi&#243;n con mis credenciales, para acceder a mi panel correspondiente y gestionar las tareas o consultar los veh&#237;culos seg&#250;n mis permisos.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n de Divisi&#243;n (Splitting seg&#250;n criterio INVEST)</div>
+                <p>Esta funcionalidad originalmente agrupaba a los cuatro perfiles del sistema (administrador, recepcionista, mec&#225;nico y cliente) bajo una &#250;nica historia de tama&#241;o grande, incumpliendo el criterio <strong>Peque&#241;a (S - Small)</strong> de INVEST al mezclar actores con endpoints de autenticaci&#243;n distintos (<code>/api/usuarios/login</code> frente a <code>/api/clientes/login</code>), flujos de recuperaci&#243;n propios y guardas de acceso diferenciadas por rol.</p>
+<p>Para garantizar historias peque&#241;as, independientes y verificables por perfil, se clasifica la <code>HU #36</code> como <strong>&#201;pica</strong> y se descompone en <strong>4 Historias de Usuario hijas</strong> (una por cada rol del taller):</p>
+<ul>
+<li><strong>HU #68 (Inicio de sesi&#243;n de administrador):</strong> Acceso del perfil <code>ADMIN</code> desde la pesta&#241;a <em>Personal del Taller</em> hacia <code>dashboard-admin.html</code> con guarda exclusiva <code>requireAuth(['ADMIN'])</code>.</li>
+<li><strong>HU #69 (Inicio de sesi&#243;n de recepcionista):</strong> Acceso del perfil <code>RECEPCIONISTA</code> desde la pesta&#241;a <em>Personal del Taller</em> hacia <code>dashboard-recepcionista.html</code> con guarda <code>requireAuth(['RECEPCIONISTA', 'ADMIN'])</code> y bloqueo de vistas administrativas y mec&#225;nicas.</li>
+<li><strong>HU #70 (Inicio de sesi&#243;n de mec&#225;nico):</strong> Acceso del perfil <code>MECANICO</code> desde la pesta&#241;a <em>Personal del Taller</em> hacia <code>dashboard-mecanico.html</code> con guarda <code>requireAuth(['MECANICO', 'ADMIN'])</code> y bloqueo de vistas administrativas y de recepci&#243;n.</li>
+<li><strong>HU #4 (Inicio de sesi&#243;n de clientes):</strong> Registro, acceso (por correo o tel&#233;fono), recuperaci&#243;n de contrase&#241;a con c&#243;digo de 6 d&#237;gitos y aislamiento privado del perfil <code>CLIENTE</code> desde la pesta&#241;a <em>&#193;rea Clientes</em> hacia <code>dashboard-cliente.html</code>.</li>
+</ul>
+
+            </div>
+            
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es imprescindible para el arranque seguro del sistema; sin esta puerta de acceso y control de roles no es posible separar las vistas por puestos de trabajo ni proteger la informaci&#243;n del taller y de los clientes.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Grande (&#201;pica dividida en HU #68, HU #69, HU #70 y HU #4)</div>
+                    <p>Por abarcar la pantalla unificada de acceso (<code>login.html</code>), la autenticaci&#243;n en el servidor y las guardas de seguridad por rol de los cuatro perfiles del sistema, se gestiona, estima y verifica mediante sus cuatro historias hijas independientes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-68">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #68</span> Inicio de sesi&#243;n de administrador <small style="color:#64748b; font-size:9pt; font-weight:normal;">(Hija de Épica HU #36)</small>
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como administrador del taller, quiero iniciar sesi&#243;n con mi correo electr&#243;nico y contrase&#241;a desde la pesta&#241;a de Personal del Taller, para acceder de forma segura al panel de administraci&#243;n (<code>dashboard-admin.html</code>) y gestionar empleados, asignaciones, presupuestos, almac&#233;n y tesorer&#237;a impidiendo el acceso a otros roles.
             </div>
             <div class="hu-block">
                 <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
                 <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
 <ul>
-<li><strong>Independiente (I):</strong> Se centra en verificar la identidad de la persona que entra a la web y su rol. Funciona de manera aut&#243;noma como puerta de entrada al sistema, sin depender de que existan aver&#237;as creadas ni de piezas en el almac&#233;n.</li>
-<li><strong>Negociable (N):</strong> Podemos acordar entre nosotros si el acceso se realiza mediante nombre de usuario o correo electr&#243;nico, y c&#243;mo estructurar las pesta&#241;as de acceso diferenciado para clientes y personal del taller.</li>
-<li><strong>Valiosa (V):</strong> Es el pilar de la seguridad del taller: garantiza que nadie ajeno acceda a los datos de los clientes, evita que un usuario sin permisos toque el dinero de la caja y asegura que cada empleado vea &#250;nicamente las funciones de su puesto (control de acceso basado en roles - RBAC).</li>
-<li><strong>Estimable (E):</strong> Es totalmente medible para el equipo: consiste en crear la pantalla de acceso con sus campos de texto, comprobar los datos introducidos contra el servidor y redirigir a cada persona a su p&#225;gina correspondiente seg&#250;n su rol.</li>
-<li><strong>Peque&#241;a (S):</strong> Aunque es una pieza transversal clave, tiene un alcance bien acotado para completarse en un &#250;nico sprint: valida las credenciales, guarda la sesi&#243;n activa y protege el acceso a las rutas de cada rol.</li>
-<li><strong>Testeable (T):</strong> Se comprueba muy f&#225;cilmente en las pruebas: probamos a entrar con un usuario de prueba de cada rol (mec&#225;nico, recepcionista, admin y cliente) para verificar que cada uno llega a su pantalla, y probamos con contrase&#241;as err&#243;neas o intentando saltar directamente a una p&#225;gina privada para ver el bloqueo.</li>
+<li><strong>Independiente (I):</strong> Se centra &#250;nicamente en autenticar al perfil <code>ADMIN</code> mediante <code>POST /api/usuarios/login</code> y proteger <code>dashboard-admin.html</code>, sin depender del acceso de clientes ni de otros m&#243;dulos operativos.</li>
+<li><strong>Negociable (N):</strong> Permite acordar con el equipo la disposici&#243;n de la pesta&#241;a <em>Personal del Taller</em> en <code>login.html</code> y c&#243;mo mostrar el nombre y la etiqueta <code>ADMINISTRADOR</code> en la cabecera mediante <code>pintarCabeceraUsuario</code>.</li>
+<li><strong>Valiosa (V):</strong> Protege las funciones m&#225;s sensibles del negocio (alta de empleados, tesorer&#237;a y caja, configuraci&#243;n de m&#225;rgenes/tarifas y supervisi&#243;n de mec&#225;nicos), impidiendo que clientes u otros empleados sin privilegios puedan consultarlas o alterarlas.</li>
+<li><strong>Estimable (E):</strong> Alcance t&#233;cnico bien medido: formulario de acceso en <code>login.html</code>, validaci&#243;n de hash BCrypt en <code>UsuarioController.login</code> / <code>UsuarioService.login</code> sin exponer la clave ni el hash en <code>UsuarioResponseDTO</code>, sesi&#243;n en <code>sessionStorage</code> y guarda <code>requireAuth(['ADMIN'])</code>.</li>
+<li><strong>Peque&#241;a (S):</strong> Al desgajarse de la &#201;pica <code>HU #36</code>, queda acotada a un &#250;nico rol y puede implementarse y probarse en ~1 d&#237;a dentro de un Sprint.</li>
+<li><strong>Testeable (T):</strong> Se verifica f&#225;cilmente entrando con una cuenta <code>ADMIN</code> para comprobar la redirecci&#243;n a <code>dashboard-admin.html</code>, probando credenciales err&#243;neas (<code>401</code>), intentando acceder sin sesi&#243;n o con otro rol para confirmar el bloqueo, y cerrando sesi&#243;n con <code>logout()</code>.</li>
 </ul>
 
             </div>
             <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
-<li>Si introduzco mis credenciales correctas y tengo rol de administrador, entonces la web me redirige de forma autom&#225;tica al panel de control de administraci&#243;n (<code>dashboard-admin.html</code>).</li>
-<li>Si introduzco mis credenciales correctas y tengo rol de recepcionista, entonces la web me redirige al panel de recepci&#243;n (<code>dashboard-recepcionista.html</code>) para atender clientes, veh&#237;culos y citas.</li>
-<li>Si introduzco mis credenciales correctas y tengo rol de mec&#225;nico, entonces la web me redirige al panel de taller (<code>dashboard-mecanico.html</code>) con mi lista de reparaciones asignadas.</li>
-<li>Si introduzco mis credenciales correctas y tengo rol de cliente, entonces la web me redirige a mi panel personal (<code>dashboard-cliente.html</code>) con la lista de mis veh&#237;culos y presupuestos.</li>
-<li>Si escribo un usuario inexistente o una contrase&#241;a incorrecta, entonces la pantalla me muestra un aviso de error claro indicando que los datos son incorrectos, sin cambiar de p&#225;gina.</li>
-<li>Si intento entrar directamente escribiendo la direcci&#243;n de cualquier panel privado en el navegador sin haber iniciado sesi&#243;n previamente o con un rol distinto al requerido, entonces el sistema bloquea el acceso y me redirige a la pantalla de inicio de sesi&#243;n.</li>
+<li>Si introduzco mi correo electr&#243;nico y contrase&#241;a v&#225;lidos con rol <code>ADMIN</code> en la pesta&#241;a <strong>Personal del Taller</strong> de <code>login.html</code>, entonces el servidor verifica la credencial contra su hash BCrypt (<code>POST /api/usuarios/login</code>), guarda la sesi&#243;n en <code>sessionStorage</code> sin devolver contrase&#241;a ni hash y me redirige autom&#225;ticamente a <code>dashboard-admin.html</code> mostrando mi nombre y la etiqueta <code>ADMINISTRADOR</code>.</li>
+<li>Si escribo un correo inexistente o una contrase&#241;a incorrecta, entonces el servidor responde con error de autenticaci&#243;n (<code>401 Unauthorized</code>) y la web muestra un aviso claro en <code>login.html</code> sin iniciar sesi&#243;n ni cambiar de p&#225;gina.</li>
+<li>Si intento abrir directamente <code>dashboard-admin.html</code> en el navegador sin haber iniciado sesi&#243;n previamente, entonces la guarda <code>requireAuth(['ADMIN'])</code> bloquea el acceso y me redirige a <code>login.html</code>.</li>
+<li>Si un usuario autenticado con rol distinto de <code>ADMIN</code> (<code>RECEPCIONISTA</code>, <code>MECANICO</code> o <code>CLIENTE</code>) intenta acceder por URL directa a <code>dashboard-admin.html</code>, entonces el sistema bloquea el acceso y lo redirige a <code>login.html</code>, protegiendo empleados, tesorer&#237;a y configuraci&#243;n.</li>
+<li>Si pulso &laquo;Cerrar Sesi&#243;n&raquo; (<code>logout()</code>), entonces el sistema elimina mi sesi&#243;n de <code>sessionStorage</code> y me redirige a <code>login.html</code>, impidiendo volver a entrar sin autenticarme de nuevo.</li>
 </ol></div>
 
             <div class="hu-meta-grid">
                 <div class="hu-meta-box">
                     <div class="hu-meta-box-title">Prioridad: Alta</div>
-                    <p>Es imprescindible para el arranque del sistema; sin esta puerta de acceso y control de roles no es posible separar las vistas por puestos de trabajo ni proteger la informaci&#243;n del taller.</p>
+                    <p>Imprescindible para habilitar la administraci&#243;n del taller y garantizar que solo el administrador pueda acceder al control econ&#243;mico, la gesti&#243;n de plantilla y la supervisi&#243;n global.</p>
                 </div>
                 <div class="hu-meta-box">
-                    <div class="hu-meta-box-title">Tamaño: Grande</div>
-                    <p>Dentro del sprint supone un esfuerzo amplio (3-4 d&#237;as) ya que comprende el dise&#241;o de la pantalla unificada de acceso (<code>login.html</code>) con pesta&#241;as diferenciadas para clientes y personal, la verificaci&#243;n de credenciales en el servidor, la gesti&#243;n de sesi&#243;n en el navegador y las guardas de seguridad por rol en todas las pantallas privadas.</p>
+                    <div class="hu-meta-box-title">Tamaño: Pequeño</div>
+                    <p>Tarea acotada (~1 d&#237;a) centrada en el inicio de sesi&#243;n del rol <code>ADMIN</code> en <code>login.html</code> (<code>handleStaffLogin</code>), la validaci&#243;n en <code>UsuarioService.login</code> y la protecci&#243;n exclusiva <code>requireAuth(['ADMIN'])</code> en <code>dashboard-admin.html</code>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-69">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #69</span> Inicio de sesi&#243;n de recepcionista <small style="color:#64748b; font-size:9pt; font-weight:normal;">(Hija de Épica HU #36)</small>
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como recepcionista del taller, quiero iniciar sesi&#243;n con mi correo electr&#243;nico y contrase&#241;a desde la pesta&#241;a de Personal del Taller, para acceder a mi panel de recepci&#243;n (<code>dashboard-recepcionista.html</code>) y gestionar clientes, veh&#237;culos, citas, &#243;rdenes de reparaci&#243;n y facturaci&#243;n seg&#250;n mis permisos.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se centra exclusivamente en autenticar al rol <code>RECEPCIONISTA</code> y restringir el acceso a <code>dashboard-recepcionista.html</code>, sin acoplarse al acceso de mec&#225;nicos ni clientes.</li>
+<li><strong>Negociable (N):</strong> Permite acordar la presentaci&#243;n de alertas de error en <code>login.html</code> y la identificaci&#243;n visual de la cabecera (<code>RECEPCIONISTA</code>) al iniciar jornada en mostrador.</li>
+<li><strong>Valiosa (V):</strong> Asegura que &#250;nicamente el personal de recepci&#243;n (y el administrador) pueda consultar fichas personales de clientes, gestionar la agenda de citas y emitir facturas, evitando accesos no autorizados.</li>
+<li><strong>Estimable (E):</strong> Reutiliza el endpoint <code>POST /api/usuarios/login</code> con validaci&#243;n BCrypt en <code>UsuarioService.login</code>, almacenamiento de sesi&#243;n en <code>sessionStorage</code>, redirecci&#243;n en <code>handleStaffLogin</code> y guarda <code>requireAuth(['RECEPCIONISTA', 'ADMIN'])</code>.</li>
+<li><strong>Peque&#241;a (S):</strong> Al separarse de la &#201;pica <code>HU #36</code>, queda acotada a ~1 d&#237;a de trabajo dentro de un Sprint para el acceso y control de permisos del puesto de recepci&#243;n.</li>
+<li><strong>Testeable (T):</strong> Verificable iniciando sesi&#243;n con una cuenta <code>RECEPCIONISTA</code>, comprobando la carga de <code>dashboard-recepcionista.html</code>, validando el error con contrase&#241;a incorrecta y comprobando el bloqueo ante usuarios sin sesi&#243;n o con rol <code>MECANICO</code>/<code>CLIENTE</code>, as&#237; como el bloqueo del recepcionista al intentar abrir <code>dashboard-admin.html</code> o <code>dashboard-mecanico.html</code>.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si introduzco mi correo electr&#243;nico y contrase&#241;a v&#225;lidos con rol <code>RECEPCIONISTA</code> en la pesta&#241;a <strong>Personal del Taller</strong> de <code>login.html</code>, entonces el sistema valida la credencial contra su hash BCrypt (<code>POST /api/usuarios/login</code>), guarda la sesi&#243;n en <code>sessionStorage</code> y me redirige autom&#225;ticamente a <code>dashboard-recepcionista.html</code> mostrando mi nombre y la etiqueta <code>RECEPCIONISTA</code>.</li>
+<li>Si escribo un correo inexistente o una contrase&#241;a incorrecta, entonces el sistema muestra un aviso de error claro en <code>login.html</code> (<code>401</code>) sin crear sesi&#243;n ni cambiar de p&#225;gina.</li>
+<li>Si alguien intenta abrir directamente <code>dashboard-recepcionista.html</code> sin haber iniciado sesi&#243;n o con rol <code>MECANICO</code> o <code>CLIENTE</code>, entonces la guarda <code>requireAuth(['RECEPCIONISTA', 'ADMIN'])</code> bloquea el acceso y redirige a <code>login.html</code>.</li>
+<li>Si estoy autenticado como <code>RECEPCIONISTA</code> e intento entrar por URL directa a <code>dashboard-admin.html</code> o <code>dashboard-mecanico.html</code>, entonces el sistema bloquea el acceso por rol insuficiente y me redirige a <code>login.html</code>.</li>
+<li>Si pulso &laquo;Cerrar Sesi&#243;n&raquo; (<code>logout()</code>), entonces la sesi&#243;n activa se elimina de <code>sessionStorage</code> y el sistema me redirige a <code>login.html</code>.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es esencial para habilitar el puesto de atenci&#243;n al p&#250;blico y proteger la privacidad de los datos personales de los clientes y de la facturaci&#243;n frente a accesos no autorizados.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Pequeño</div>
+                    <p>Alcance compacto (~1 d&#237;a) sobre el flujo de autenticaci&#243;n de <code>RECEPCIONISTA</code> en <code>login.html</code>, la comprobaci&#243;n en <code>UsuarioService.login</code> y la guarda <code>requireAuth(['RECEPCIONISTA', 'ADMIN'])</code> en <code>dashboard-recepcionista.html</code>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="hu-card" id="hu-70">
+        <div class="hu-header">
+            <div class="hu-title-wrap">
+                <span class="hu-id">HU #70</span> Inicio de sesi&#243;n de mec&#225;nico <small style="color:#64748b; font-size:9pt; font-weight:normal;">(Hija de Épica HU #36)</small>
+            </div>
+            <div class="hu-badges">
+                
+                <span class="badge badge-alta">Prioridad: ALTA</span>
+                <span class="badge badge-pequeno">Tamaño: PEQUEÑO</span>
+                <span class="badge badge-done">Done</span>
+            </div>
+        </div>
+        <div class="hu-body">
+            <div class="hu-enunciado">
+                <strong>Historia de Usuario:</strong> Como mec&#225;nico del taller, quiero iniciar sesi&#243;n con mi correo electr&#243;nico y contrase&#241;a desde la pesta&#241;a de Personal del Taller, para acceder a mi panel de taller (<code>dashboard-mecanico.html</code>) y consultar mis reparaciones asignadas, controlar el temporizador de mano de obra, reportar incidencias y registrar piezas utilizadas.
+            </div>
+            <div class="hu-block">
+                <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario</div>
+                <p>Esta historia cumple el criterio INVEST de forma clara y adaptada a nuestro proyecto:</p>
+<ul>
+<li><strong>Independiente (I):</strong> Se limita a autenticar al operario con rol <code>MECANICO</code> mediante <code>POST /api/usuarios/login</code> y proteger <code>dashboard-mecanico.html</code>, de manera aut&#243;noma respecto a las vistas de recepci&#243;n, administraci&#243;n o clientes.</li>
+<li><strong>Negociable (N):</strong> Permite acordar la presentaci&#243;n de la cabecera con la etiqueta <code>MEC&#193;NICO</code> y la carga inicial autom&#225;tica de sus reparaciones asignadas tras iniciar sesi&#243;n.</li>
+<li><strong>Valiosa (V):</strong> Permite identificar de forma inequ&#237;voca qu&#233; mec&#225;nico est&#225; trabajando para mostrarle solo sus coches asignados y operar su cron&#243;metro personal, al tiempo que le impide acceder a caja o datos administrativos ajenos a su puesto.</li>
+<li><strong>Estimable (E):</strong> Sigue un flujo claro y medible: validaci&#243;n BCrypt en <code>UsuarioService.login</code>, guardado de sesi&#243;n en <code>sessionStorage</code>, redirecci&#243;n en <code>handleStaffLogin</code> a <code>dashboard-mecanico.html</code> y guarda <code>requireAuth(['MECANICO', 'ADMIN'])</code>.</li>
+<li><strong>Peque&#241;a (S):</strong> Al separarse de la &#201;pica <code>HU #36</code>, queda perfectamente acotada a ~1 d&#237;a de desarrollo dentro de un Sprint para el acceso y aislamiento del rol mec&#225;nico.</li>
+<li><strong>Testeable (T):</strong> Se comprueba iniciando sesi&#243;n con una cuenta <code>MECANICO</code>, verificando el acceso a <code>dashboard-mecanico.html</code>, probando contrase&#241;as err&#243;neas (<code>401</code>), intentando entrar sin sesi&#243;n o como <code>RECEPCIONISTA</code>/<code>CLIENTE</code> y comprobando el bloqueo si el mec&#225;nico intenta abrir <code>dashboard-admin.html</code> o <code>dashboard-recepcionista.html</code>.</li>
+</ul>
+
+            </div>
+            <div class="hu-block"><div class="hu-section-label">Criterios de Aceptación</div><ol>
+<li>Si introduzco mi correo electr&#243;nico y contrase&#241;a v&#225;lidos con rol <code>MECANICO</code> en la pesta&#241;a <strong>Personal del Taller</strong> de <code>login.html</code>, entonces el sistema valida la credencial contra su hash BCrypt (<code>POST /api/usuarios/login</code>), guarda la sesi&#243;n en <code>sessionStorage</code> y me redirige autom&#225;ticamente a <code>dashboard-mecanico.html</code> mostrando mi nombre, la etiqueta <code>MEC&#193;NICO</code> y mi lista de reparaciones asignadas.</li>
+<li>Si escribo un correo inexistente o una contrase&#241;a incorrecta, entonces el sistema muestra un aviso de error claro en <code>login.html</code> (<code>401</code>) sin crear sesi&#243;n ni cambiar de p&#225;gina.</li>
+<li>Si alguien intenta acceder directamente a <code>dashboard-mecanico.html</code> sin sesi&#243;n iniciada o con rol <code>RECEPCIONISTA</code> o <code>CLIENTE</code>, entonces la guarda <code>requireAuth(['MECANICO', 'ADMIN'])</code> bloquea el acceso y redirige a <code>login.html</code>.</li>
+<li>Si estoy autenticado como <code>MECANICO</code> e intento entrar por URL directa a <code>dashboard-admin.html</code> o <code>dashboard-recepcionista.html</code>, entonces el sistema bloquea el acceso por falta de permisos y me redirige a <code>login.html</code>.</li>
+<li>Si pulso &laquo;Cerrar Sesi&#243;n&raquo; (<code>logout()</code>), entonces la sesi&#243;n activa se elimina de <code>sessionStorage</code> y el sistema me redirige a <code>login.html</code>.</li>
+</ol></div>
+
+            <div class="hu-meta-grid">
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Prioridad: Alta</div>
+                    <p>Es imprescindible para que cada operario acceda a sus &#243;rdenes de reparaci&#243;n asignadas y registre su trabajo t&#233;cnico bajo su propia identidad verificada.</p>
+                </div>
+                <div class="hu-meta-box">
+                    <div class="hu-meta-box-title">Tamaño: Pequeño</div>
+                    <p>Alcance compacto (~1 d&#237;a) sobre el inicio de sesi&#243;n del rol <code>MECANICO</code> en <code>login.html</code>, la validaci&#243;n en <code>UsuarioService.login</code> y la guarda <code>requireAuth(['MECANICO', 'ADMIN'])</code> en <code>dashboard-mecanico.html</code>.</p>
                 </div>
             </div>
         </div>
@@ -2148,10 +2310,10 @@
                 <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario (INVEST)</div>
                 <p>Esta historia cumple &#237;ntegramente con el criterio INVEST:</p>
                 <ul>
-                    <li><strong>Independiente (I):</strong> Puede desarrollarse, probarse y desplegarse sin depender de nuevas historias futuras. Los m&#243;dulos base (<code>CitaPrevia</code> y <code>Reparacion</code>) ya existen en el sistema y la entidad <code>CitaPrevia.java</code> ya cuenta incluso con el atributo <code>reparacionId</code> preparado en la base de datos. No bloquea ni depende del trabajo de otros m&#243;dulos como facturaci&#243;n o almac&#233;n.</li>
+                    <li><strong>Independiente (I):</strong> Puede desarrollarse, probarse y desplegarse de forma aut&#243;noma, sin depender de otras historias de usuario. La funcionalidad se apoya en los m&#243;dulos existentes de gesti&#243;n de citas y reparaciones, por lo que no requiere nuevas dependencias funcionales ni bloquea el desarrollo de otros m&#243;dulos como facturaci&#243;n o almac&#233;n.</li>
                     <li><strong>Negociable (N):</strong> El c&#243;mo desarrollar la historia es negociable entre el equipo y el Product Owner: se puede implementar abriendo un modal pre-rellenado para que la recepcionista confirme la estimaci&#243;n inicial (€) y los d&#237;as previstos antes de guardar, o bien redirigiendo a la pesta&#241;a &quot;Reparaciones y Facturaci&#243;n&quot; con el formulario ya autocompletado.</li>
                     <li><strong>Valiosa (V):</strong> Aporta valor directo tanto al negocio como al usuario final: para el recepcionista, ahorra tiempo y elimina errores humanos de transcripci&#243;n (el veh&#237;culo, cliente y motivo + observaciones de la cita pasan solos a la aver&#237;a de la reparaci&#243;n); para el cliente, le permite recibir al instante su resguardo con el c&#243;digo localizador de 8 caracteres y su notificaci&#243;n autom&#225;tica de entrada en taller sin esperas.</li>
-                    <li><strong>Estimable (E):</strong> El equipo conoce perfectamente la arquitectura implicada porque toca c&#243;digo propio ya dominado: un endpoint o ampliaci&#243;n en <code>CitaPreviaController.java</code> / <code>CitaPreviaService.java</code> que invoque a <code>reparacionService.crearReparacion(...)</code>, guarde el <code>reparacionId</code> en la cita, y un bot&#243;n en la tabla del calendario de <code>dashboard-recepcionista.html</code>. No hay incertidumbre t&#233;cnica.</li>
+                    <li><strong>Estimable (E):</strong> El esfuerzo puede estimarse con precisi&#243;n porque afecta a componentes ya conocidos del sistema, utiliza patrones y tecnolog&#237;as ya empleadas en el proyecto y no presenta incertidumbres funcionales ni t&#233;cnicas relevantes.</li>
                     <li><strong>Peque&#241;a (S):</strong> Abarca un &#250;nico flujo concreto de transici&#243;n (Cita <code>CONFIRMADA</code> → Cita <code>RECEPCIONADA</code> + Reparaci&#243;n <code>PENDIENTE</code>). Se puede completar c&#243;modamente en 1 o 2 d&#237;as de trabajo dentro de un &#250;nico Sprint por una pareja de desarrolladores (1 backend + 1 frontend).</li>
                     <li><strong>Testeable (T):</strong> Es 100% verificable tanto mediante pruebas unitarias en JUnit 5 + Mockito (comprobar que al recepcionar la cita <code>c.getEstado()</code> pasa a <code>&quot;RECEPCIONADA&quot;</code>, <code>c.getReparacionId()</code> deja de ser <code>null</code> y se crea una <code>Reparacion</code> con localizador de 8 caracteres) como mediante pruebas de aceptaci&#243;n en la interfaz web.</li>
                 </ul>
@@ -2202,7 +2364,7 @@
                     <li><strong>Independiente (I):</strong> Opera exclusivamente sobre el m&#243;dulo de personal (<code>Usuario</code>, <code>UsuarioService</code>, <code>UsuarioController</code> y la pesta&#241;a Gesti&#243;n de Usuarios en <code>dashboard-admin.html</code>). Puede implementarse y desplegarse sin depender del desarrollo de ninguna otra historia pendiente del inventario o de recepci&#243;n.</li>
                     <li><strong>Negociable (N):</strong> Los detalles de implementaci&#243;n son flexibles y acordables con el Product Owner; por ejemplo, decidir si la edici&#243;n se realiza mediante una ventana modal o en la propia fila de la tabla, o qu&#233; ocurre con las reparaciones asignadas a un mec&#225;nico cuando se le da de baja (desasignarlas autom&#225;ticamente o bloquear el borrado hasta reasignarlas).</li>
                     <li><strong>Valiosa (V):</strong> Aporta valor directo a la gesti&#243;n y seguridad del negocio, ya que actualmente cualquier errata al crear un empleado es irreversible desde la aplicaci&#243;n y un exempleado conservar&#237;a acceso indefinido al panel interno del taller.</li>
-                    <li><strong>Estimable (E):</strong> El equipo conoce al detalle la estructura de la entidad <code>Usuario</code> y sus validaciones (<code>@Email</code>, <code>@NotBlank</code>, enum <code>Rol</code>). Es f&#225;cil calcular el esfuerzo porque sigue exactamente el mismo patr&#243;n REST (<code>PUT</code> y <code>DELETE</code>) que ya se ha utilizado en otros controladores del proyecto.</li>
+                    <li><strong>Estimable (E):</strong> El equipo conoce perfectamente el m&#243;dulo de usuarios y los mecanismos de validaci&#243;n ya utilizados en el sistema, por lo que el esfuerzo puede estimarse con precisi&#243;n y sin incertidumbres significativas. Adem&#225;s, la funcionalidad sigue patrones REST ya implementados en otros m&#243;dulos del proyecto.</li>
                     <li><strong>Peque&#241;a (S):</strong> Se limita &#250;nicamente a las operaciones de actualizaci&#243;n y borrado sobre una sola tabla (<code>usuarios</code>) y una sola pesta&#241;a del panel de administrador, por lo que puede completarse en pocas horas dentro de un mismo Sprint.</li>
                     <li><strong>Testeable (T):</strong> Se puede verificar de forma objetiva tanto con pruebas unitarias en JUnit 5 (comprobar actualizaci&#243;n de campos, bloqueo de emails duplicados e impedimento de autoborrado del propio administrador) como desde la interfaz web.</li>
                 </ul>
@@ -2305,7 +2467,7 @@
                     <li><strong>Negociable (N):</strong> Se puede acordar con el Product Owner qu&#233; campos son editables directamente (por ejemplo, si se permite cambiar el propietario asociado a un veh&#237;culo o si el borrado de un veh&#237;culo se bloquea cuando ya tiene &#243;rdenes de reparaci&#243;n hist&#243;ricas asociadas).</li>
                     <li><strong>Valiosa (V):</strong> Resuelve un problema cotidiano en recepci&#243;n: actualmente, si el recepcionista se equivoca en un d&#237;gito del tel&#233;fono o de la matr&#237;cula al registrar un coche r&#225;pido en mostrador, no puede corregirlo desde la web, lo que impide que el cliente reciba notificaciones o vincule su cuenta por tel&#233;fono.</li>
                     <li><strong>Estimable (E):</strong> Las validaciones de negocio (unicidad de matr&#237;cula y tel&#233;fono, a&#241;o posterior a 1900 y campos obligatorios) ya est&#225;n programadas en <code>VehiculoService</code> y <code>ClienteService</code>, por lo que el equipo puede estimar con total precisi&#243;n el tiempo necesario para exponer los m&#233;todos de actualizaci&#243;n y borrado.</li>
-                    <li><strong>Peque&#241;a (S):</strong> Consiste en a&#241;adir las operaciones <code>PUT</code> y <code>DELETE</code> sobre dos entidades estrechamente relacionadas que comparten la misma pesta&#241;a en el panel de recepci&#243;n, siendo abarcable en pocas horas dentro de un Sprint.</li>
+                    <li><strong>Peque&#241;a (S):</strong> Se limita a operaciones de actualizaci&#243;n y eliminaci&#243;n dentro de una misma secci&#243;n funcional, por lo que puede completarse en un &#250;nico Sprint sin necesidad de dividirse en historias adicionales.</li>
                     <li><strong>Testeable (T):</strong> Se puede comprobar f&#225;cilmente mediante pruebas unitarias en JUnit 5 (verificar rechazo de matr&#237;cula duplicada al editar, tel&#233;fono ya perteneciente a otro cliente, a&#241;o inv&#225;lido &lt; 1900 y bloqueo de borrado si hay reparaciones activas) y desde la interfaz de recepci&#243;n.</li>
                 </ul>
             </div>
@@ -2444,7 +2606,7 @@
         </div>
         <div class="hu-body">
             <div class="hu-enunciado">
-                <strong>Historia de Usuario:</strong> Como usuario de la plataforma (cliente, mec&#225;nico, recepcionista o administrador), quiero que mi contrase&#241;a cumpla unos requisitos m&#237;nimos de seguridad y se almacene protegida mediante un algoritmo criptogr&#225;fico irreversible (hash con salt, como BCrypt) sin exponerse nunca en texto plano, para garantizar la privacidad de mi cuenta y evitar que un acceso no autorizado a la base de datos comprometa mis credenciales.
+                <strong>Historia de Usuario:</strong> Como usuario de la plataforma, quiero que mi contrase&#241;a est&#233; protegida de forma segura y privada, para garantizar que nadie no autorizado pueda acceder a mi cuenta.
             </div>
             <div class="hu-block">
                 <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario (INVEST)</div>
@@ -2494,7 +2656,7 @@
         </div>
         <div class="hu-body">
             <div class="hu-enunciado">
-                <strong>Historia de Usuario:</strong> Como usuario autenticado del taller (recepcionista, mec&#225;nico, cliente o administrador), quiero que el servidor compruebe mi identidad y mis permisos en cada consulta o cambio que solicito (a trav&#233;s de una sesi&#243;n segura o clave digital temporal), y no solo fi&#225;ndose de lo que muestra el navegador, para impedir que personas no autorizadas puedan espiar, descargar o borrar datos confidenciales (como fichas de clientes, facturas o gastos de reparaciones) salt&#225;ndose la p&#225;gina web.
+                <strong>Historia de Usuario:</strong> Como usuario autenticado del taller (recepcionista, mec&#225;nico, cliente o administrador), quiero que el servidor compruebe mi identidad y mis permisos en cada consulta o cambio que solicito, para impedir que personas no autorizadas puedan espiar, descargar o borrar datos confidenciales (como fichas de clientes, facturas o gastos de reparaciones) salt&#225;ndose la p&#225;gina web.
             </div>
             <div class="hu-block">
                 <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario (INVEST)</div>
@@ -2543,7 +2705,7 @@
         </div>
         <div class="hu-body">
             <div class="hu-enunciado">
-                <strong>Historia de Usuario:</strong> Como usuario del taller (mec&#225;nico, recepcionista o cliente), quiero que las fotograf&#237;as de aver&#237;as e incidencias subidas a la aplicaci&#243;n se guarden de forma duradera y permanente (y no solo en una carpeta temporal del servidor), para que las im&#225;genes nunca se pierdan tras actualizar la aplicaci&#243;n o reiniciarse el servicio en la nube en Azure App Service.
+                <strong>Historia de Usuario:</strong> Como usuario del taller (mec&#225;nico, recepcionista o cliente), quiero que las fotograf&#237;as de aver&#237;as e incidencias subidas a la aplicaci&#243;n se guarden de forma duradera y permanente, para que las im&#225;genes nunca se pierdan.
             </div>
             <div class="hu-block">
                 <div class="hu-section-label">Justificaci&#243;n como Historia de Usuario (INVEST)</div>
