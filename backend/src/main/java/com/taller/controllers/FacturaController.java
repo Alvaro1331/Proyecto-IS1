@@ -24,6 +24,7 @@ public class FacturaController {
      * vehículo, cliente, desglose de materiales, mano de obra, margen e IVA.
      * GET /api/facturas
      */
+    @com.taller.security.RequiereRol({"ADMIN", "RECEPCIONISTA"})
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> obtenerTodasLasFacturas() {
         return ResponseEntity.ok(reparacionService.obtenerTodasLasFacturas());

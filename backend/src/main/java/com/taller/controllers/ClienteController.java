@@ -47,6 +47,10 @@ public class ClienteController {
     @Autowired
     private RecuperacionPasswordService recuperacionPasswordService;
 
+    @Autowired
+    private com.taller.security.TokenSessionService tokenSessionService;
+
+    @com.taller.security.RequiereRol({"ADMIN", "RECEPCIONISTA"})
     @GetMapping
     public ResponseEntity<List<Cliente>> obtenerTodos() {
         return ResponseEntity.ok(clienteRepository.findAll());
@@ -93,7 +97,12 @@ public class ClienteController {
         try {
             Map<String, Object> respuesta = clienteService.loginCliente(
                     dto.getEmailOrTelefono(), dto.getPassword());
-            return ResponseEntity.ok(respuesta);
+            Long clienteId = respuesta.get("id") != null ? Long.valueOf(respuesta.get("id").toString()) : null;
+            String email = respuesta.get("email") != null ? respuesta.get("email").toString() : "";
+            String token = tokenSessionService.crearSesion(clienteId, email, "CLIENTE");
+            java.util.Map<String, Object> respuestaConToken = new java.util.HashMap<>(respuesta);
+            respuestaConToken.put("token", token);
+            return ResponseEntity.ok(respuestaConToken);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
