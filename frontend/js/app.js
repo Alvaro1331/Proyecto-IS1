@@ -1,8 +1,16 @@
-const API_BASE_URL = window.location.origin.includes('localhost')
+const isLocalEnv = window.location.protocol === 'file:' ||
+                   window.location.origin === 'null' ||
+                   !window.location.origin ||
+                   window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.origin.includes('localhost') ||
+                   window.location.origin.includes('127.0.0.1');
+
+const API_BASE_URL = isLocalEnv
     ? 'http://localhost:8080/api'
     : '/api';
 const API_BASE = API_BASE_URL;
-const BACKEND_ORIGIN = window.location.origin.includes('localhost')
+const BACKEND_ORIGIN = isLocalEnv
     ? 'http://localhost:8080'
     : '';
 
@@ -39,6 +47,13 @@ async function apiFetch(endpoint, options = {}) {
     try {
         const isFormData = fetchOptions.body instanceof FormData;
         const defaultHeaders = isFormData ? {} : { 'Content-Type': 'application/json' };
+        
+        // Incluir token de autenticación si existe en sesión
+        const user = getUsuarioActual();
+        if (user && user.token) {
+            defaultHeaders['Authorization'] = `Bearer ${user.token}`;
+        }
+
         const res = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...fetchOptions,
             headers: {
@@ -53,6 +68,10 @@ async function apiFetch(endpoint, options = {}) {
         }
 
         if (!res.ok) {
+            if (res.status === 401 && !endpoint.includes('/login') && !endpoint.includes('/recuperar')) {
+                sessionStorage.removeItem('usuario');
+                window.location.href = LOGIN_URL;
+            }
             throw new Error(data?.error || data?.message || `Error: ${res.status}`);
         }
         return data;

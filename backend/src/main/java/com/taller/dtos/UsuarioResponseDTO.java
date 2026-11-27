@@ -12,6 +12,7 @@ public class UsuarioResponseDTO {
     private String telefono;
     private String rol;
     private String mensaje;
+    private String token;
 
     public UsuarioResponseDTO(Long id, String nombre, String email, String telefono, String rol, String mensaje) {
         this.id = id;
@@ -22,6 +23,16 @@ public class UsuarioResponseDTO {
         this.mensaje = mensaje;
     }
 
+    public UsuarioResponseDTO(Long id, String nombre, String email, String telefono, String rol, String mensaje, String token) {
+        this.id = id;
+        this.nombre = nombre;
+        this.email = email;
+        this.telefono = telefono;
+        this.rol = rol;
+        this.mensaje = mensaje;
+        this.token = token;
+    }
+
     // --- Getters ---
     public Long getId() { return id; }
     public String getNombre() { return nombre; }
@@ -29,4 +40,6 @@ public class UsuarioResponseDTO {
     public String getTelefono() { return telefono; }
     public String getRol() { return rol; }
     public String getMensaje() { return mensaje; }
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
 }

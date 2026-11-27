@@ -149,12 +149,12 @@
         <div class="meta-box">
             <strong>Proyecto:</strong> Ingeniería de Software 1 (Proyecto-IS1) &nbsp;|&nbsp; 
             <strong>Fecha:</strong> Noviembre 2026 &nbsp;|&nbsp; 
-            <strong>Estado:</strong> 100% Operativo y Verificado (58 Pruebas Implementadas)
+            <strong>Estado:</strong> 100% Operativo y Verificado (60 Pruebas Implementadas)
         </div>
     </div>
 
     <div class="alert alert-success">
-        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>58 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Seguridad y Cifrado BCrypt de Contraseñas HU #64, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Ordenación por Prioridad HU #7, Registro Cronológico de Espera HU #8, Temporizador de Mano de Obra HU #19, Supervisión de Mecánicos HU #20, Historial Técnico de Solo Lectura HU #21, Contabilidad de Tesorería sin Doble Cargo, Inmutabilidad de Facturas Bug 2.2, Recepción con Cita Previa HU #58, Gestión de Empleados HU #59, Edición de Materiales HU #60, Edición de Clientes/Vehículos HU #61 y Perfil Fiscal del Cliente HU #67)</strong> se encuentran completamente configurados.
+        <strong>✓ Estado Global:</strong> Tanto el backend de Spring Boot, como la base de datos MySQL (<code>tallerdb</code>), el frontend interactivo y la suite de <strong>60 pruebas unitarias con JUnit 5 (incluyendo suite de Ciberseguridad, Control de Acceso RBAC, Seguridad y Cifrado BCrypt de Contraseñas HU #64, Notificaciones al Cliente, Citas Previas sin Sesión, Presupuestos Presenciales/Telefónicos, Cancelación de Reparaciones, Auto-vinculación de Clientes, Ordenación por Prioridad HU #7, Registro Cronológico de Espera HU #8, Temporizador de Mano de Obra HU #19, Supervisión de Mecánicos HU #20, Historial Técnico de Solo Lectura HU #21, Contabilidad de Tesorería sin Doble Cargo, Inmutabilidad de Facturas Bug 2.2, Recepción con Cita Previa HU #58, Gestión de Empleados HU #59, Edición de Materiales HU #60, Edición de Clientes/Vehículos HU #61, Perfil Fiscal del Cliente HU #67, Resolución de URLs en Notificaciones sin Localhost y Configuración Global CORS y Recursos Estáticos)</strong> se encuentran completamente configurados.
     </div>
 
     <h2 class="section-title">1. Diagnóstico y Corrección en IntelliJ IDEA</h2>
@@ -328,7 +328,7 @@
 
     <div class="page-break"></div>
 
-    <h2 class="section-title">5. Catálogo Completo de las 58 Pruebas Unitarias Implementadas</h2>
+    <h2 class="section-title">5. Catálogo Completo de las 60 Pruebas Unitarias Implementadas</h2>
     <p>
         La suite se localiza en <code>backend/src/test/java/com/taller/PruebasUnitariasTest.java</code> y cubre la totalidad de la lógica funcional, contable, de gestión y de seguridad del taller:
     </p>
@@ -691,6 +691,18 @@
                 <td><strong>(HU #67) PERFIL FISCAL Y CAMBIO DE CLAVE CLIENTE:</strong> Permite editar contacto y datos fiscales (<code>dniCif</code> en mayúsculas) validando unicidad, y exige <code>passwordActual</code>, confirmación y fortaleza BCrypt al cambiar clave.</td>
                 <td><code>assertEquals("45678912A", dniCif)</code><br><code>assertThrows(IllegalArgumentException.class)</code><br><code>assertTrue(coincide("NuevaSegura2026", ...))</code></td>
             </tr>
+            <tr class="security-row">
+                <td><strong>59</strong></td>
+                <td><code>NotificacionService</code><br><code>getBaseUrl()</code><br><code>construirUrlCompleta()</code></td>
+                <td><strong>RESOLUCIÓN DE URLS PARA EMAILS (PRODUCCIÓN/AZURE SIN LOCALHOST):</strong> Valida que las URLs en los enlaces de correo no queden fijadas a <code>localhost:8080</code>. Resuelve dinámicamente la URL base mediante <code>app.base-url</code> o <code>APP_BASE_URL</code>, normaliza barras finales, detecta la URL pública en Azure (<code>WEBSITE_HOSTNAME</code> / <code>DEFAULT_PROD_URL</code>) al enviar correos reales por SMTP y mantiene <code>localhost</code> únicamente en desarrollo local sin correo.</td>
+                <td><code>assertEquals("https://motorflow.midominio.com", getBaseUrl())</code><br><code>assertEquals(DEFAULT_PROD_URL, getBaseUrl())</code><br><code>assertEquals(DEFAULT_LOCAL_URL, getBaseUrl())</code></td>
+            </tr>
+            <tr>
+                <td><strong>60</strong></td>
+                <td><code>WebConfig</code><br><code>addCorsMappings()</code><br><code>addViewControllers()</code><br><code>addResourceHandlers()</code></td>
+                <td><strong>CONFIGURACIÓN GLOBAL CORS Y RECURSOS ESTÁTICOS:</strong> Verifica mediante Mockito que <code>WebConfig</code> registra correctamente el mapeo CORS global (<code>/**</code>) con <code>allowedOriginPatterns("*")</code>, métodos <code>GET/POST/PUT/DELETE/PATCH/OPTIONS</code>, cabeceras permitidas y <code>allowCredentials(true)</code>; que redirige la raíz <code>/</code> a <code>/index.html</code>; y que registra los manejadores de recursos para <code>/uploads/**</code> y <code>/**</code> apuntando al directorio <code>frontend</code> y al classpath.</td>
+                <td><code>verify(corsReg).addMapping("/**")</code><br><code>verify(corsReg).allowedOriginPatterns("*")</code><br><code>verify(corsReg).allowCredentials(true)</code><br><code>verify(viewReg).addViewController("/")</code><br><code>verify(resReg).addResourceHandler("/uploads/**")</code></td>
+            </tr>
         </tbody>
     </table>
 
@@ -703,29 +715,26 @@
         <li>En la vista de proyecto lateral, despliega la ruta: <code>backend &gt; src &gt; test &gt; java &gt; com.taller</code>.</li>
         <li>Haz clic derecho sobre el archivo <strong><code>PruebasUnitariasTest.java</code></strong>.</li>
         <li>Selecciona la opción <strong>Run 'PruebasUnitariasTest'</strong> (o atajo de teclado Mayús+F10 / Ctrl+Shift+F10).</li>
-        <li>En el panel inferior de IntelliJ se mostrarán los <strong>58 tests con el check verde de aprobación</strong>.</li>
+        <li>En el panel inferior de IntelliJ se mostrarán los <strong>60 tests con el check verde de aprobación</strong>.</li>
     </ol>
 
     <h3 class="subsection-title">B. Ejecución por consola con Maven:</h3>
     <p>Desde una terminal de PowerShell en la carpeta <code>backend</code>, ejecuta el comando de pruebas:</p>
     <div class="code-block">.\apache-maven-3.9.6\bin\mvn.cmd test -Dtest=PruebasUnitariasTest</div>
 
-    <h3 class="subsection-title">Salida esperada en consola (suite completa de 58 pruebas):</h3>
+    <h3 class="subsection-title">Salida esperada en consola (suite completa de 60 pruebas):</h3>
     <div class="code-block">[INFO] -------------------------------------------------------
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running com.taller.PruebasUnitariasTest
-[INFO] Tests run: 58, Failures: 0, Errors: 0, Skipped: 0 -- in com.taller.PruebasUnitariasTest
+[INFO] Tests run: 60, Failures: 0, Errors: 0, Skipped: 0 -- in com.taller.PruebasUnitariasTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[INFO] Tests run: 58, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 60, Failures: 0, Errors: 0, Skipped: 0
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  14.361 s
-[INFO] Finished at: 2026-11-24T10:47:00+01:00
 [INFO] ------------------------------------------------------------------------</div>
 
     <h2 class="section-title">7. Pasos para Crear una Nueva Prueba Unitaria de Seguridad (Checklist Rápido)</h2>
@@ -739,9 +748,9 @@
     <div class="alert alert-info">
         <strong>Archivos entregables disponibles en la carpeta <code>Pruebas_unitarias/</code>:</strong>
         <ul>
-            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 58 pruebas y módulo de seguridad.</li>
+            <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.pdf</code>: Informe técnico completo con la suite de 60 pruebas y módulo de seguridad.</li>
             <li><code>DOCUMENTO_CAMBIOS_Y_PRUEBAS.html</code>: Versión interactiva para navegador.</li>
-            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 58 pruebas unitarias listo para copiar.</li>
+            <li><code>CODIGO_PRUEBAS_UNITARIAS.txt</code>: Archivo de texto con el código Java íntegro de las 60 pruebas unitarias listo para copiar.</li>
         </ul>
     </div>
 

@@ -32,6 +32,9 @@ public class UsuarioController {
     @Autowired
     private UsuarioService usuarioService;
 
+    @Autowired
+    private com.taller.security.TokenSessionService tokenSessionService;
+
     @PostMapping
     public ResponseEntity<?> crearUsuario(@Valid @RequestBody UsuarioRequestDTO dto) {
         try {
@@ -80,6 +83,8 @@ public class UsuarioController {
             }
 
             UsuarioResponseDTO respuesta = usuarioService.login(email, password);
+            String token = tokenSessionService.crearSesion(respuesta.getId(), respuesta.getEmail(), respuesta.getRol());
+            respuesta.setToken(token);
             return ResponseEntity.ok(respuesta);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));

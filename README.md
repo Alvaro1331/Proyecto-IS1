@@ -25,7 +25,6 @@ Bienvenido al README de nuestro proyecto: un software encargado de la gestión i
 - [Información para nuevos desarrolladores](#información-para-nuevos-desarrolladores)
   - [Tecnologías elegidas](#qué-tecnologías-hemos-elegido-y-por-qué)
   - [Cómo arrancar el proyecto en tu ordenador](#cómo-arrancar-el-proyecto-en-tu-ordenador)
-  - [Organización del equipo](#organización-del-equipo)
   - [Estándar del entorno (JDK 17)](#estándar-del-entorno-y-versión-de-java-jdk-17)
   - [Suite de pruebas unitarias y seguridad](#suite-completa-de-pruebas-unitarias-y-seguridad-junit-5--mockito)
   - [Módulos avanzados](#módulos-y-arquitectura-avanzada)
@@ -78,13 +77,6 @@ Si te acabas de clonar el repositorio, sigue estos pasos:
      ```
 4. **Abrir la aplicación:** Una vez arrancado el servidor en el puerto `8080`, accede desde el navegador a `http://localhost:8080` (o abre `frontend/index.html` en desarrollo local).
 5. **Correo de recuperación de contraseña (opcional en local):** Si no defines las variables de entorno `SPRING_MAIL_HOST`, `SPRING_MAIL_USERNAME` y `SPRING_MAIL_PASSWORD`, el servidor funciona en modo desarrollo e imprime el código de recuperación de 6 dígitos directamente en la consola.
-
-### Organización del equipo
-
-Dado que somos 5 personas y que el proyecto tiene una parte visual (frontend) y una parte de lógica y datos (backend), decidimos dividir el equipo en dos áreas con dedicación flexible según las necesidades del proyecto:
-
-- **Equipo Frontend:** Se encarga de todo lo que el usuario ve en pantalla (formularios, botones, tablas, diseño visual y selector de tema). Trabaja dentro de la carpeta `frontend/`.
-- **Equipo Backend:** Se encarga de la lógica del servidor (recibir peticiones, validar datos, gestionar seguridad, guardar en base de datos y exponer la API REST). Trabaja dentro de la carpeta `backend/`.
 
 ### Estándar del Entorno y Versión de Java (JDK 17)
 
@@ -166,7 +158,7 @@ Reglas de negocio destacadas:
 
 ## Estructura del frontend
 
-La interfaz web está desarrollada en **HTML, CSS y JavaScript nativo**, conectada al backend mediante `fetch` con datos reales de MySQL. Cuenta con diseño visual corporativo en naranja y soporte para **modo claro y modo oscuro** (`js/theme.js`). En el despliegue a Azure, GitHub Actions sincroniza automáticamente la carpeta `frontend/` dentro de `backend/src/main/resources/static/` para que Spring Boot sirva la web completa.
+La interfaz web está desarrollada en **HTML, CSS y JavaScript nativo**, conectada al backend mediante `fetch` con datos reales de MySQL. Cuenta con diseño visual corporativo en azul y soporte para **modo claro y modo oscuro** (`js/theme.js`). En el despliegue a Azure, GitHub Actions sincroniza automáticamente la carpeta `frontend/` dentro de `backend/src/main/resources/static/` para que Spring Boot sirva la web completa.
 
 Pantallas y archivos principales:
 

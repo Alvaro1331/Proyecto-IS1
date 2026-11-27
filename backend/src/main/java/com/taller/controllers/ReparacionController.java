@@ -93,6 +93,7 @@ public class ReparacionController {
      * reembolsando el importe a la caja del taller y revirtiendo las unidades de stock.
      * DELETE /api/reparaciones/gastos/{gastoId}
      */
+    @com.taller.security.RequiereRol({"ADMIN"})
     @DeleteMapping("/gastos/{gastoId}")
     public ResponseEntity<?> eliminarGastoTesoreria(@PathVariable String gastoId) {
         try {

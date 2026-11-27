@@ -1,18 +1,34 @@
 package com.taller.config;
 
+import com.taller.security.AuthSecurityInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Configuración web para servir de forma estática las imágenes subidas por los mecánicos
- * en la carpeta local "uploads/" bajo la ruta pública "/uploads/**".
+ * Configuración web para:
+ * 1. Servir de forma estática las imágenes subidas por los mecánicos en "uploads/".
+ * 2. Servir los archivos estáticos del frontend directamente desde la carpeta "frontend/"
+ *    (en desarrollo local) o desde "classpath:/static/" (al compilar / empaquetar en JAR).
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private AuthSecurityInterceptor authSecurityInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authSecurityInterceptor)
+                .addPathPatterns("/api/**");
+    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -30,5 +46,40 @@ public class WebConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(uploadPath, backendUploadPath);
+
+        // Rutas a la carpeta frontend para desarrollo local sin duplicar archivos
+        Path frontendDir = Paths.get("..", "frontend").toAbsolutePath().normalize();
+        String frontendPath = frontendDir.toUri().toString();
+        if (!frontendPath.endsWith("/")) {
+            frontendPath += "/";
+        }
+
+        Path frontendLocalDir = Paths.get("frontend").toAbsolutePath().normalize();
+        String frontendLocalPath = frontendLocalDir.toUri().toString();
+        if (!frontendLocalPath.endsWith("/")) {
+            frontendLocalPath += "/";
+        }
+
+        registry.addResourceHandler("/**")
+                .addResourceLocations(
+                        frontendPath,
+                        frontendLocalPath,
+                        "classpath:/static/"
+                );
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // Redirigir la raíz "/" a "/index.html"
+        registry.addViewController("/").setViewName("forward:/index.html");
+    }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 }
