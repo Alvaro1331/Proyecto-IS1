@@ -2,9 +2,11 @@ package com.taller.controllers;
 
 import com.taller.dtos.ReparacionRequestDTO;
 import com.taller.dtos.ReparacionResponseDTO;
+import com.taller.models.IncidenciaReparacion;
 import com.taller.services.ReparacionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Controlador REST para la gestión de reparaciones, seguimiento temporal, incidencias con fotos,
@@ -264,6 +267,31 @@ public class ReparacionController {
     public ResponseEntity<?> obtenerIncidencias(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(reparacionService.obtenerIncidencias(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Obtiene la fotografía persistida de una incidencia concreta.
+     * GET /api/reparaciones/{id}/incidencias/{incidenciaId}/foto
+     */
+    @GetMapping("/{id}/incidencias/{incidenciaId}/foto")
+    public ResponseEntity<?> obtenerFotoIncidencia(@PathVariable Long id, @PathVariable Long incidenciaId) {
+        try {
+            IncidenciaReparacion incidencia = reparacionService.obtenerFotoIncidencia(id, incidenciaId);
+            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            if (incidencia.getFotoContentType() != null && !incidencia.getFotoContentType().isBlank()) {
+                try {
+                    mediaType = MediaType.parseMediaType(incidencia.getFotoContentType());
+                } catch (IllegalArgumentException ignored) {
+                    mediaType = MediaType.IMAGE_JPEG;
+                }
+            }
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .cacheControl(CacheControl.maxAge(24, TimeUnit.HOURS).cachePublic())
+                    .body(incidencia.getFotoDatos());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }

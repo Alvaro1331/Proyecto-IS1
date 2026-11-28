@@ -30,8 +30,20 @@ public class IncidenciaReparacion {
     // Impacto orientativo en el coste (puede ser 0.0 o positivo si añade coste previsto)
     private Double impactoPrecio = 0.0;
 
-    // Ruta pública relativa de la foto subida (ej. "/uploads/incidencia_3_1710000.jpg")
+    // Ruta pública relativa de la foto subida (ej. "/api/reparaciones/3/incidencias/10/foto")
     private String rutaFoto;
+
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] fotoDatos;
+
+    @JsonIgnore
+    private String fotoContentType;
+
+    @JsonIgnore
+    private String fotoNombre;
 
     public IncidenciaReparacion() {}
 
@@ -60,4 +72,13 @@ public class IncidenciaReparacion {
 
     public String getRutaFoto() { return rutaFoto; }
     public void setRutaFoto(String rutaFoto) { this.rutaFoto = rutaFoto; }
+
+    public byte[] getFotoDatos() { return fotoDatos; }
+    public void setFotoDatos(byte[] fotoDatos) { this.fotoDatos = fotoDatos; }
+
+    public String getFotoContentType() { return fotoContentType; }
+    public void setFotoContentType(String fotoContentType) { this.fotoContentType = fotoContentType; }
+
+    public String getFotoNombre() { return fotoNombre; }
+    public void setFotoNombre(String fotoNombre) { this.fotoNombre = fotoNombre; }
 }

@@ -502,27 +502,37 @@ public class ReparacionService {
             throw new IllegalArgumentException("La descripción de la incidencia no puede estar vacía.");
         }
 
-        String rutaFotoPublica = null;
+        byte[] fotoBytes = null;
+        String fotoContentType = null;
+        String fotoNombre = null;
         if (archivoFoto != null && !archivoFoto.isEmpty()) {
+            String contentType = archivoFoto.getContentType();
+            if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
+                throw new IllegalArgumentException("Solo se permiten archivos de imagen válidos (JPG, PNG, WEBP, GIF).");
+            }
             try {
-                Path directorioUploads = Paths.get("uploads").toAbsolutePath().normalize();
-                Files.createDirectories(directorioUploads);
-
-                String nombreOriginal = archivoFoto.getOriginalFilename() != null
+                fotoBytes = archivoFoto.getBytes();
+                fotoContentType = contentType;
+                fotoNombre = archivoFoto.getOriginalFilename() != null
                         ? archivoFoto.getOriginalFilename().replaceAll("[^a-zA-Z0-9._-]", "_")
                         : "foto.jpg";
-                String nombreArchivo = "incidencia_" + reparacionId + "_" + System.currentTimeMillis() + "_" + nombreOriginal;
-                Path destino = directorioUploads.resolve(nombreArchivo);
-                Files.copy(archivoFoto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
-                rutaFotoPublica = "/uploads/" + nombreArchivo;
             } catch (IOException e) {
-                throw new IllegalArgumentException("No se pudo guardar la imagen de la incidencia: " + e.getMessage());
+                throw new IllegalArgumentException("No se pudo leer la imagen de la incidencia.");
             }
         }
 
         double impacto = impactoPrecio != null ? Math.round(impactoPrecio * 100.0) / 100.0 : 0.0;
-        IncidenciaReparacion incidencia = new IncidenciaReparacion(reparacion, descripcion.trim(), impacto, rutaFotoPublica);
-        incidenciaRepository.save(incidencia);
+        IncidenciaReparacion incidencia = new IncidenciaReparacion(reparacion, descripcion.trim(), impacto, null);
+        if (fotoBytes != null) {
+            incidencia.setFotoDatos(fotoBytes);
+            incidencia.setFotoContentType(fotoContentType);
+            incidencia.setFotoNombre(fotoNombre);
+        }
+        incidencia = incidenciaRepository.save(incidencia);
+        if (fotoBytes != null && incidencia.getId() != null) {
+            incidencia.setRutaFoto("/api/reparaciones/" + reparacionId + "/incidencias/" + incidencia.getId() + "/foto");
+            incidencia = incidenciaRepository.save(incidencia);
+        }
 
         if (eventPublisher != null && reparacion.getVehiculo() != null && reparacion.getVehiculo().getCliente() != null) {
             String extraImpacto = (impacto > 0)
@@ -567,8 +577,26 @@ public class ReparacionService {
     }
 
     /**
-     * Elimina únicamente la foto asociada a una incidencia (manteniendo el texto de la nota)
-     * y borra el archivo de imagen físico de la carpeta uploads/.
+     * Obtiene una incidencia verificando que pertenezca a la reparación y contenga fotografía almacenada.
+     */
+    public IncidenciaReparacion obtenerFotoIncidencia(Long reparacionId, Long incidenciaId) {
+        IncidenciaReparacion incidencia = incidenciaRepository.findById(incidenciaId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la fotografía de la incidencia solicitada."));
+
+        if (incidencia.getReparacion() == null || !incidencia.getReparacion().getId().equals(reparacionId)) {
+            throw new IllegalArgumentException("La fotografía solicitada no pertenece a esta reparación.");
+        }
+
+        if (incidencia.getFotoDatos() == null || incidencia.getFotoDatos().length == 0) {
+            throw new IllegalArgumentException("La incidencia no dispone de fotografía almacenada.");
+        }
+
+        return incidencia;
+    }
+
+    /**
+     * Elimina únicamente la foto asociada a una incidencia (manteniendo el texto de la nota),
+     * limpiando los datos binarios persistidos en base de datos y cualquier archivo residual en disco.
      */
     public Map<String, Object> eliminarFotoIncidencia(Long reparacionId, Long incidenciaId) {
         IncidenciaReparacion incidencia = incidenciaRepository.findById(incidenciaId)
@@ -584,11 +612,18 @@ public class ReparacionService {
                     "El historial de reparaciones concluidas es de solo lectura: no se pueden eliminar fotografías.");
         }
 
-        if (incidencia.getRutaFoto() == null || incidencia.getRutaFoto().isBlank()) {
+        boolean tieneFotoEnBd = incidencia.getFotoDatos() != null && incidencia.getFotoDatos().length > 0;
+        boolean tieneRutaFoto = incidencia.getRutaFoto() != null && !incidencia.getRutaFoto().isBlank();
+        if (!tieneFotoEnBd && !tieneRutaFoto) {
             throw new IllegalArgumentException("Esta incidencia no tiene ninguna foto adjunta para eliminar.");
         }
 
-        borrarArchivoFotoFisico(incidencia.getRutaFoto());
+        if (tieneRutaFoto && incidencia.getRutaFoto().startsWith("/uploads/")) {
+            borrarArchivoFotoFisico(incidencia.getRutaFoto());
+        }
+        incidencia.setFotoDatos(null);
+        incidencia.setFotoContentType(null);
+        incidencia.setFotoNombre(null);
         incidencia.setRutaFoto(null);
         incidenciaRepository.save(incidencia);
 
